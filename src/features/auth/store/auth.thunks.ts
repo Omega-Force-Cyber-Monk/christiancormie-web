@@ -2,7 +2,8 @@ import type { ThunkAction, UnknownAction } from "@reduxjs/toolkit";
 
 import type { RootState } from "@/app/rootReducer";
 import { authApi } from "@/features/auth/api/auth.api";
-import { authenticatedUserSchema } from "@/features/auth/schemas/session.schema";
+import { currentUserResponseSchema } from "@/features/auth/schemas/current-user.schema";
+import { toAuthenticatedUser } from "@/features/auth/utils/authAdapters";
 import {
   initializationFailed,
   initializationStarted,
@@ -26,7 +27,7 @@ export const initializeSession =
       authApi.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
     );
     try {
-      const parsed = authenticatedUserSchema.safeParse(await request.unwrap());
+      const parsed = currentUserResponseSchema.safeParse(await request.unwrap());
       if (!parsed.success)
         throw new Error("Unable to verify your account. Please try again.");
       const current = getState().auth;
@@ -36,7 +37,7 @@ export const initializeSession =
         !current.refreshToken
       )
         return;
-      dispatch(identityVerified(parsed.data));
+      dispatch(identityVerified(toAuthenticatedUser(parsed.data)));
     } catch (error) {
       if (getState().auth.sessionId !== initial.sessionId) return;
       const appError = normalizeApiError(error);

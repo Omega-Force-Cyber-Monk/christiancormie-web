@@ -78,7 +78,7 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
           <img
             alt="Admin avatar"
             className="size-12 shrink-0 rounded-full border border-white/10 object-cover"
-            src={adminAvatar}
+            src={user?.avatarUrl || adminAvatar}
           />
           <div className="hidden flex-col leading-tight sm:flex">
             <span className="text-sm font-medium text-[#FF5733]">{displayName}</span>

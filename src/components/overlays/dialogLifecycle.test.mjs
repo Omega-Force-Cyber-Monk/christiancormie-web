@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadModule } from "../../lib/testing/loadModule.mjs";
-
-const { registerDialog } = await loadModule(
-  "/src/components/overlays/dialogLifecycle.ts",
-);
+import { registerDialog } from "./dialogLifecycle.ts";
 
 // Small DOM double exercises lifecycle ownership, not browser layout/rendering.
 class Element {

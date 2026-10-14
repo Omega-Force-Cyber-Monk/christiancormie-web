@@ -1,22 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { matchRoutes } from "react-router";
-import { loadModule } from "../../lib/testing/loadModule.mjs";
+import { ROUTES } from "../../constants/routes.ts";
+import { adminRoutes } from "./admin.routes.tsx";
+import { customerRoutes } from "./customer.routes.tsx";
+import { vendorRoutes } from "./vendor.routes.tsx";
+import { vendorStaffRoutes } from "./vendor-staff.routes.tsx";
+import { publicRoutes } from "./public.routes.tsx";
 
-const { ROUTES } = await loadModule("/src/constants/routes.ts");
-const groups = await Promise.all(
-  [
-    ["admin", "ADMIN", "adminRoutes"],
-    ["customer", "CUSTOMER", "customerRoutes"],
-    ["vendor", "VENDOR", "vendorRoutes"],
-    ["vendor-staff", "VENDOR_STAFF", "vendorStaffRoutes"],
-  ].map(async ([name, role, exported]) => ({
-    name,
-    role,
-    routes: (await loadModule(`/src/router/routes/${name}.routes.tsx`))[exported],
-  })),
-);
-const { publicRoutes } = await loadModule("/src/router/routes/public.routes.tsx");
+const groups = [
+  { name: "admin", role: "ADMIN", routes: adminRoutes },
+  { name: "customer", role: "CUSTOMER", routes: customerRoutes },
+  { name: "vendor", role: "VENDOR", routes: vendorRoutes },
+  { name: "vendor-staff", role: "VENDOR_STAFF", routes: vendorStaffRoutes },
+];
 
 test("declared role routes resolve and retain the intended role guard", () => {
   for (const { name, role, routes } of groups) {

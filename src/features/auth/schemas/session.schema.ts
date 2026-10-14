@@ -7,6 +7,7 @@ export const authenticatedUserSchema = z.object({
   name: z.string(),
   email: z.string(),
   role: z.enum(ALL_USER_ROLES),
+  avatarUrl: z.string().nullable().optional(),
 });
 
 export const sessionResponseSchema = z.object({

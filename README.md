@@ -80,9 +80,9 @@ src/
 ## Role Architecture
 
 Roles are centralized in `src/constants/roles.ts` and exported as constants plus a
-derived `UserRole` type. Login establishes identity through its validated API
-response; persisted sessions are revalidated through the existing `/auth/me`
-contract before protected routes render. An explicitly enabled development mock
+derived `UserRole` type. Login persists tokens, then `/users/me` verifies identity;
+persisted sessions are also revalidated through this endpoint before protected
+routes render. An explicitly enabled development mock
 user remains available for local role-based routing and static-design work.
 
 ## Routing

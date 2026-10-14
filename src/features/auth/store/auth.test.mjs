@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadModule } from "../../../lib/testing/loadModule.mjs";
+import * as auth from "./auth.slice.ts";
+import * as selectors from "./auth.selectors.ts";
+import { initializeSession } from "./auth.thunks.ts";
+import { authApi } from "../api/auth.api.ts";
+import { currentUserResponse } from "../utils/current-user.test-fixtures.mjs";
 
-const auth = await loadModule("/src/features/auth/store/auth.slice.ts");
-const selectors = await loadModule("/src/features/auth/store/auth.selectors.ts");
-const { initializeSession } = await loadModule(
-  "/src/features/auth/store/auth.thunks.ts",
-);
-const { authApi } = await loadModule("/src/features/auth/api/auth.api.ts");
 const user = {
   id: "test-user",
   name: "Test",
@@ -50,9 +48,11 @@ test("network failure retains credentials without granting protected access", ()
   assert.equal(selectors.selectIsAuthenticated({ auth: state }), false);
 });
 
-test("login establishes verified identity and logout removes it", () => {
+test("login stores tokens without trusting identity before current-user verification", () => {
   let state = auth.authReducer(undefined, auth.sessionStarted(saved));
-  assert.equal(selectors.selectIsAuthenticated({ auth: state }), true);
+  assert.equal(selectors.selectIsAuthenticated({ auth: state }), false);
+  assert.equal(state.user, null);
+  assert.equal(state.isHydrated, false);
   state = auth.authReducer(state, auth.clearSession("invalid-session"));
   assert.equal(state.user, null);
   assert.equal(state.accessToken, null);
@@ -85,10 +85,9 @@ async function initializeWith(unwrap) {
 }
 
 test("initialization verifies the server identity and releases its subscription", async () => {
-  const { state, unsubscribed } = await initializeWith(async () => ({
-    ...user,
-    role: "CUSTOMER",
-  }));
+  const { state, unsubscribed } = await initializeWith(async () =>
+    currentUserResponse({ roles: ["CUSTOMER"] }),
+  );
   assert.equal(state.user.role, "CUSTOMER");
   assert.equal(state.isIdentityVerified, true);
   assert.equal(unsubscribed, true);

@@ -2,14 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { loadModule } from "../../../lib/testing/loadModule.mjs";
-
-const { getPagination } = await loadModule(
-  "/src/components/data-display/DataTable/pagination.ts",
-);
-const { DataTablePagination } = await loadModule(
-  "/src/components/data-display/DataTable/DataTablePagination.tsx",
-);
+import { getPagination } from "./pagination.ts";
+import { DataTablePagination } from "./DataTablePagination.tsx";
 
 test("shrinking/empty data clamps the page and row slice", () => {
   assert.deepEqual(getPagination(9, 10, 12), {

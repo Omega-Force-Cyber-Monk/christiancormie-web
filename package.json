@@ -12,7 +12,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
-    "test": "node --test",
+    "test": "node src/lib/testing/runTests.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check"
   },

@@ -10,10 +10,36 @@ Implement the complete static frontend from supplied full-page Figma SVGs first.
 Backend integration is a separate stage, allowed only after design approval and an
 explicit user request. Do not implement pages during documentation-only tasks.
 
-Inspect current code rather than relying on an old audit. Read
-[foundation readiness](docs/FOUNDATION_READINESS.md) and, for design tasks,
-[the Figma design-system reference](docs/FIGMA_DESIGN_SYSTEM.md). Preserve existing
-uncommitted work. README and folder guides are context, not authority to bypass these rules.
+Inspect current code rather than relying on an old audit. Read relevant sections of
+[foundation readiness](docs/FOUNDATION_READINESS.md) only when modifying authentication,
+dialogs, routing foundations, shared infrastructure or other behavior it covers.
+For SVG, visual design, styling or token tasks, read applicable sections of
+[the Figma design-system reference](docs/FIGMA_DESIGN_SYSTEM.md), not a full token audit.
+Do not read unrelated documentation or recursively follow links unless necessary.
+Reuse information inspected during the current task; reread only after changes or
+when missing context is needed. Preserve existing uncommitted work. README and
+folder guides are context, not authority to bypass these rules.
+
+### Task scope and investigation
+
+- **A. Small changes** (endpoint, TypeScript, button, validation or small component
+  fixes): inspect the target implementation, directly related types/configuration,
+  affected consumers and relevant tests. Do not perform a full repository audit;
+  expand only when evidence shows broader dependencies. Security-sensitive changes
+  still require inspection of the affected session/guard paths.
+- **B. SVG-to-React pages**: analyze the SVG, target route/page, relevant feature
+  files, shared layout, reusable components, applicable tokens and directly affected
+  dependencies. Do not inspect unrelated features, roles or documentation.
+- **C. Major architecture changes** (authentication/state architecture, shared
+  infrastructure or cross-feature refactoring): investigate affected architecture
+  and dependencies more deeply, in proportion to demonstrated impact.
+
+Search the owning feature or infrastructure area first, then shared dependencies
+as needed. Search affected consumers before changing public interfaces. Prefer
+targeted `rg` searches; exclude `node_modules`, `dist`, `build`, `.git`, generated
+files and irrelevant output. Avoid repeated identical searches and rereading
+unchanged files. Broad searches require a concrete reason; expand whenever needed
+for correctness rather than imposing an artificial file limit.
 
 ## 2. Technology stack
 
@@ -154,12 +180,17 @@ accessibility or the user's execution restrictions.
 
 ## 8. Full-page SVG to React workflow
 
-1. Read these rules and inspect the supplied SVG completely, including viewBox,
-   text or outlined text, groups, fills, opacity, clip paths, gradients and assets.
-2. Identify section hierarchy, repeated patterns, typography and logical layout.
-3. Inspect the target route/page, shared shell and comparable feature components.
-4. Search existing UI/types/hooks/utilities/assets; plan meaningful boundaries and
-   decide which details use approved tokens versus page-specific presentation.
+1. Analyze the supplied SVG's overall visual structure once: viewBox/dimensions,
+   layout hierarchy, text or outlined text, typography, styles and assets. Account
+   for groups, fills, opacity, clip paths and gradients where they affect fidelity.
+2. Identify repeated patterns and logical layout. Inspect detailed path data only
+   when needed to preserve, extract or modify artwork; do not repeatedly dump or
+   analyze unchanged SVG content.
+3. Inspect the target route/page, shared shell and relevant feature components
+   within the task scope in section 1.
+4. Search relevant UI/types/hooks/utilities/assets; plan meaningful boundaries and
+   consult applicable design-system sections to distinguish approved tokens from
+   page-specific presentation. Do not audit all exports for each page.
 5. Build real React/TypeScript components with semantic HTML, Flexbox/Grid and
    Tailwind. Keep artwork distinct from ordinary text and interactive controls.
 6. Implement Stage A interactions and responsive behavior; preserve desktop detail
@@ -266,17 +297,36 @@ A production build is allowed; a development/preview server or browser test is n
 
 ## 13. Allowed validation and code quality
 
-For implementation changes, inspect scripts/helpers first, then run applicable
-non-browser checks: `npm run typecheck`, `npm run lint`, `npm run build`, targeted
-format checks and `git diff --check`. Use `npm.cmd` on PowerShell when necessary.
-Unit/regression tests are allowed only when they initialize no server or browser;
-never assume a `test` script is safe from its name.
+Inspect relevant scripts/helpers before executing checks; never assume a `test`
+script is safe from its name. Use `npm.cmd` on PowerShell when necessary.
 
-**Current test caveat:** `npm test` invokes Node's runner, but the regression files
-import `src/lib/testing/loadModule.mjs`, which calls Vite `createServer` in middleware
-mode. It has no application listener/HMR/WebSocket, yet initializes a development
-server and therefore must not run under the restriction above. Preserve the tests;
-report the limitation. Do not change the runner in an unrelated page task.
+- **During implementation:** use focused checks when useful. Do not run full
+  validation after every small edit or repeat successful checks without relevant
+  changes. Use standalone `npm run typecheck` when useful during development or
+  when a build cannot provide the required verification.
+- **Final application-code validation:** after implementation stabilizes, run one
+  `npm run build` (currently includes TypeScript checking), `npm run lint`, formatting
+  checks for changed files, `git diff --check` and relevant permitted regressions
+  when available. No separate final typecheck is needed when the build verifies it.
+  Repeat failed checks only after related changes; repeat successful checks only
+  when relevant changes invalidate their results.
+- **Documentation-only tasks:** validate changed Markdown, local links and
+  `git diff --check`; do not run application builds/tests unnecessarily.
+- **Read-only tasks:** do not execute builds or tests unless explicitly requested.
+
+Unit/regression execution is permitted only after confirming its execution path
+initializes no server or browser. Section 12 restrictions apply to all tests.
+
+**Server-free regressions:** `npm test` runs `src/lib/testing/runTests.mjs`: Vite's
+production SSR build transforms selected tests, then Node runs isolated test files.
+It never initializes Vite middleware, a watcher or a server. Run focused files with
+`npm test -- src/features/auth/store/auth.test.mjs`; see the testing section in
+[foundation readiness](docs/FOUNDATION_READINESS.md) for supported arguments and limits.
+Write colocated `.test.mjs` or `.regression.mjs` files with direct source imports
+and Node assertions. The runner uses test-only environment values and rejects
+server creation/unmocked network calls; stub HTTP and restore mocks/clean up state.
+Preserve coverage and section 12 restrictions; inspect new execution paths before
+running them and do not change test infrastructure in unrelated page tasks.
 
 Preserve strict typing, existing domain/schema types, safe formatting/errors and
 completed foundation fixes. Avoid unnecessary `any`, assertions, `@ts-ignore`,
@@ -286,24 +336,39 @@ personal/payment data or complete sensitive request objects.
 
 Fix errors caused by the task; report pre-existing/external blockers accurately.
 Do not run repository-wide formatting writes: the nine Figma exports have known
-formatting differences and must not be rewritten incidentally. For documentation-
-only tasks, validate changed Markdown, local links and `git diff --check`; do not
-claim old TypeScript/build/test results were rerun.
+formatting differences and must not be rewritten incidentally. Do not claim old
+TypeScript/build/test results were rerun or disable TypeScript/ESLint rules for speed.
 
 ## 14. Definition of done and handoff
 
-Before finishing, confirm ownership/reuse, stage boundaries, guards, accessibility,
-responsive code, scoped changes and allowed checks. Preserve the existing foundation
-and do not invent product content, actions or backend requirements.
+Apply ownership/reuse, stage boundaries, guards, accessibility and responsive review
+to the affected behavior. Preserve foundations; do not invent product content,
+actions or backend requirements. A task is complete when:
 
-Report:
+1. The requested behavior or deliverable is implemented.
+2. Directly affected dependencies and consumers are handled.
+3. Applicable checks pass or blockers are accurately documented.
+4. No unrelated changes were introduced.
+5. Remaining external dependencies are clearly identified.
 
-1. Page/feature implemented and route updated (or documentation-only scope).
-2. Components reused/created and static interactions implemented.
-3. Files changed and validation commands/results, including checks not run and why.
-4. Unresolved design/token/backend ambiguities and any static/integration boundary.
-5. Manual visual checks for the user: hierarchy, typography, spacing, artwork,
-   desktop fidelity, mobile/tablet layouts, overflow, states and keyboard behavior.
+Stop after these conditions are met. Do not investigate unrelated improvements,
+expand scope because improvements are possible, or repeatedly self-review unchanged
+code without a specific unresolved issue.
+
+Keep reports proportional to the task:
+
+- **Small fixes:** what changed, files modified, validation results and remaining issues.
+- **SVG pages:** page/route, components created/reused, static interactions,
+  responsive behavior, validation and manual visual checks (hierarchy, typography,
+  spacing, artwork, desktop fidelity, mobile/tablet layouts, overflow, states and
+  keyboard behavior). Include unresolved token/design ambiguities and stage boundaries.
+- **Architecture changes:** architecture changed, affected features, important
+  decisions, regression coverage, validation and remaining risks/backend requirements.
+- **Documentation/read-only tasks:** findings or documentation changes, appropriate
+  verification and limitations; omit unrelated page/interaction checklists.
+
+Include checks not run and why. Do not create lengthy reports or new documentation
+for small tasks unless requested or necessary to explain changed usage/contracts.
 
 Do not claim pixel-perfect, browser-verified or production-integrated completion
 without the corresponding evidence. Do not modify unrelated documentation merely

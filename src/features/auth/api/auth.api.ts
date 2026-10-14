@@ -6,15 +6,15 @@ import type {
   RegisterRequest,
   SourceRegisterResponse,
 } from "@/features/auth/types/auth.types";
-import { toAuthenticatedUser } from "@/features/auth/utils/authAdapters";
+import type { CurrentUserResponse } from "@/features/auth/types/current-user.types";
+import { currentUserResponseSchema } from "@/features/auth/schemas/current-user.schema";
 import { sourceLoginResponseSchema } from "@/features/auth/schemas/session.schema";
 import { logger } from "@/lib/logger/logger";
-import type { AuthenticatedUser } from "@/types/user.types";
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<RefreshSessionResponse, LoginRequest>({
-      async queryFn(credentials, api, _extraOptions, baseQuery) {
+      async queryFn(credentials, _api, _extraOptions, baseQuery) {
         const result = await baseQuery({
           url: "/auth/login",
           method: "POST",
@@ -33,12 +33,19 @@ export const authApi = baseApi.injectEndpoints({
         const session = {
           accessToken: parsed.data.accessToken,
           refreshToken: parsed.data.refreshToken,
-          user: toAuthenticatedUser(parsed.data.user),
         };
-        // Establish and persist the session before unwrap resolves and navigation runs.
-        api.dispatch(sessionStarted(session));
-        logger.debug("Login succeeded.", { tokenPresent: true });
         return { data: session };
+      },
+      async onQueryStarted(_credentials, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          // Session middleware resets the API cache. Wait for mutation completion
+          // so that cleanup cannot cancel this login's pending result.
+          dispatch(sessionStarted(data));
+          logger.debug("Login succeeded.", { tokenPresent: true });
+        } catch {
+          // Failed login leaves the existing session untouched; the form owns errors.
+        }
       },
       invalidatesTags: ["CurrentUser"],
     }),
@@ -49,8 +56,19 @@ export const authApi = baseApi.injectEndpoints({
         body: userData,
       }),
     }),
-    getCurrentUser: builder.query<AuthenticatedUser, void>({
-      query: () => "/auth/me",
+    getCurrentUser: builder.query<CurrentUserResponse, void>({
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const result = await baseQuery({ url: "/users/me", method: "GET" });
+        if (result.error) return { error: result.error };
+        const parsed = currentUserResponseSchema.safeParse(result.data);
+        if (!parsed.success) {
+          return {
+            error: { status: "CUSTOM_ERROR", error: "Invalid current-user response." },
+          };
+        }
+        // Cache the complete API response, including opaque and additional fields.
+        return { data: parsed.data };
+      },
       providesTags: ["CurrentUser"],
     }),
   }),

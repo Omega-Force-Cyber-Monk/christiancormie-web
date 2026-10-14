@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadModule } from "../../../lib/testing/loadModule.mjs";
-
-const { formatCurrency, formatDate, formatRelativeTime, formatNumber, getInitials } =
-  await loadModule("/src/features/admin/utils/adminFormat.ts");
+import {
+  formatCurrency,
+  formatDate,
+  formatRelativeTime,
+  formatNumber,
+  getInitials,
+} from "./adminFormat.ts";
 
 test("missing/invalid amounts differ from a real zero and preserve cents", () => {
   for (const value of [null, undefined, NaN, Infinity]) {

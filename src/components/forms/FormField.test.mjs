@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { loadModule } from "../../lib/testing/loadModule.mjs";
-
-const { FormField } = await loadModule("/src/components/forms/FormField.tsx");
+import { FormField } from "./FormField.tsx";
 
 test("repeated field names get unique label/error associations", () => {
   const html = renderToStaticMarkup(

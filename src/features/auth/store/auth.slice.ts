@@ -7,6 +7,7 @@ import type {
   LogoutReason,
   RefreshSessionResponse,
   StoredSession,
+  SessionTokens,
 } from "@/features/auth/types/auth.types";
 import { createMockUser, getInitialMockRole } from "@/features/auth/utils/mockAuth";
 import { sessionStorageService } from "@/features/auth/utils/sessionStorage";
@@ -40,14 +41,14 @@ export const authSlice = createSlice({
       }
     },
     sessionStarted: {
-      prepare(session: RefreshSessionResponse & { user: AuthenticatedUser }) {
-        return { payload: { ...session, sessionId: crypto.randomUUID() } };
+      prepare(session: SessionTokens) {
+        return { payload: { ...session, user: null, sessionId: crypto.randomUUID() } };
       },
       reducer(state, action: PayloadAction<StoredSession>) {
         Object.assign(state, action.payload);
         state.expiresAt = action.payload.expiresAt ?? null;
-        state.isHydrated = true;
-        state.isIdentityVerified = true;
+        state.isHydrated = false;
+        state.isIdentityVerified = false;
         state.isInitializing = false;
         state.initializationError = null;
       },

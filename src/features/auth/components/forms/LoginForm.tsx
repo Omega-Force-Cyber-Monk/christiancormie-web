@@ -39,7 +39,7 @@ export function LoginForm() {
     setFormError(null);
 
     try {
-      const response = await login({
+      await login({
         email: values.email.trim(),
         password: values.password,
       }).unwrap();
@@ -47,7 +47,7 @@ export function LoginForm() {
         (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ??
         ROUTES.DASHBOARD;
 
-      toast.success(`Welcome back, ${response.user?.name ?? "admin"}.`);
+      toast.success("Login accepted. Verifying your account...");
       void navigate(fromPath, { replace: true });
     } catch (error) {
       const appError = normalizeApiError(error);

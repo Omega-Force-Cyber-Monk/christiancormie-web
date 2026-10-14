@@ -11,9 +11,9 @@ layouts. It does not implement unfinished business features.
   passing nullable or unverified persisted identity into a refresh response.
 - `src/features/auth/types/auth.types.ts`, `store/auth.slice.ts`,
   `store/auth.selectors.ts`, `store/auth.thunks.ts`, `store/auth.middleware.ts`:
-  explicitly track verified identity; persisted sessions require `/auth/me`
-  validation before role-based access. Successful login remains verified through
-  the existing validated login response. A definitive initialization 401 clears
+  explicitly track verified identity; persisted sessions require `/users/me`
+  validation before role-based access. Login tokens also remain unverified until
+  this current-user request succeeds. A definitive initialization 401 clears
   the session; temporary failures retain credentials for retry.
 - `src/features/auth/components/SessionBootstrap.tsx`, `SessionGate.tsx`,
   `src/router/guards/AuthGuard.tsx`, `GuestGuard.tsx`: session initialization is
@@ -57,21 +57,32 @@ layouts. It does not implement unfinished business features.
 - `src/utils/files/formatFileSize.ts`: handle negative/nonfinite byte counts safely.
 - `.env.example`, `README.md`: document the existing explicit development mock
   flag and remove the nonexistent examples-route instruction.
-- `package.json`: add `npm test` using Node's built-in runner. Tests live next to
-  the behavior they verify; `src/lib/testing/loadModule.mjs` uses the existing
-  Vite transformer for TypeScript/JSX and aliases. No dependencies were added.
+- `package.json`: the foundation task added `npm test` using Node's built-in runner
+  and colocated tests. Its original Vite middleware transformer has since been
+  replaced by the server-free production-build workflow below. No dependencies
+  were added.
 
 ## Checks
 
-Verified in this task: TypeScript, ESLint, production build, and all 22 regression
-tests pass. Changed source/documentation files pass formatting, and `git diff
+Verified during the foundation task, before the current-user migration: TypeScript,
+ESLint, production build, and all 22 regression tests passed. Changed files passed formatting, and `git diff
 --check` passes. The available browser inventory was empty, so interactive
 keyboard, screen-reader, and responsive visual smoke checks remain pending.
 
-Run `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, and
-`npm run format:check`. In Windows PowerShell installations that block `npm.ps1`,
-use `npm.cmd` instead. Regression tests cover formatting, null/error handling,
-pagination, identity restoration/initialization, and dialog lifecycle ownership.
+Follow the validation policy in [AGENTS.md](../AGENTS.md). For application code,
+use focused checks during implementation, then one final `npm run build` (includes
+TypeScript checking), `npm run lint`, changed-file formatting checks,
+`git diff --check` and relevant permitted regressions. Standalone typecheck is
+useful during development or when build cannot provide the required verification;
+do not repeat successful checks without relevant changes. Documentation-only tasks
+need Markdown/link/diff validation; read-only tasks do not run builds/tests unless
+explicitly requested. Use `npm.cmd` when PowerShell blocks `npm.ps1`.
+
+`npm test` now uses the server-free workflow below. The old Vite middleware loader
+was removed; test assertions were retained and source imports replaced loader calls.
+Tests are permitted only after confirming their execution path initializes no
+server or browser. Regression coverage includes formatting, null/error handling,
+pagination, identity initialization and dialog ownership.
 Dialog lifecycle unit tests use a small DOM double and do not establish browser
 rendering, screen-reader behavior, or mobile layout fidelity.
 
@@ -85,20 +96,76 @@ Added test files:
 - `src/features/auth/store/auth.test.mjs`
 - `src/router/routes/routes.test.mjs`
 
+The current-user migration's `src/features/auth/utils/current-user.regression.mjs`
+is included automatically, covering normalization, roles, login verification,
+refresh and stale-session handling. The runner guard has its own regression test.
+
+### Server-free regression workflow
+
+```bash
+# All colocated regressions under src
+npm test
+# One or more explicit files (only selected files are bundled/executed)
+npm test -- src/features/auth/store/auth.test.mjs
+npm test -- src/features/auth/utils/current-user.regression.mjs
+# Optional Node test-runner flags use the equals form
+npm test -- src/components/overlays/dialogLifecycle.test.mjs --test-name-pattern=Escape
+```
+
+Use `npm.cmd` in PowerShell when necessary. `--test-name-pattern=`,
+`--test-reporter=` and `--test-timeout=` are supported; paths must be existing
+`.test.mjs` or `.regression.mjs` files inside `src`. Empty discovery, invalid paths,
+build failures and test failures exit unsuccessfully.
+
+`src/lib/testing/runTests.mjs` discovers only source tests, invokes Vite's production
+`build` API using the existing `vite.config.ts`, and runs Node's built-in test runner
+with separate processes per test file. It does not call `createServer`, `preview`,
+watch mode or a browser. Unique build output lives under ignored
+`node_modules/.tmp/regression-tests` and is removed after each run, including failures.
+No dependencies were added. Source maps retain source locations in failures.
+
+Write future tests next to their owning behavior, using `node:test`,
+`node:assert/strict` and direct imports of source `.ts`/`.tsx` modules. Use ordinary
+static imports or statically resolvable dynamic imports; the old arbitrary-path
+`loadModule` helper is unavailable. Shared imports retain module identity within
+each test process, while different test files have independent module/global state.
+Restore mutable mocks in `finally`, unsubscribe and reset RTK Query caches, and
+avoid concurrent tests sharing global mocks.
+
+The existing Vite plugins handle TS/TSX, JSX, `@/` aliases, JSON, assets and CSS
+imports through the SSR build. CSS is processed as build output, not rendered in a
+DOM; browser-only imports may need a suitable test boundary. React static markup
+and explicit DOM doubles are supported, not browser layout/focus/screen-reader QA.
+Dependencies follow Vite's SSR externalization; arbitrary runtime source paths,
+HMR, browser module mocking and development-server behavior are not supported.
+Bundling does not replace the final production build's TypeScript checking.
+
+Local `.env` files are disabled. Build-time `import.meta.env` uses production SSR
+semantics with mock auth disabled, an empty socket URL and the fixed test API base
+`https://example.invalid/api/v1`. Tests requiring HTTP must replace `globalThis.fetch`
+with local responses and restore it afterward. `serverFreeGuard.mjs` runs before
+build/test imports and blocks standard Node server factories/listeners, socket
+connections, HTTP requests and unmocked fetch. Its guard regression verifies these
+calls throw before initialization. This is an accidental-I/O guard, not a security
+sandbox; inspect new tests/plugins and do not add server/browser execution paths.
+
 The existing Figma exports fail the full formatting check. They are deliberately
 unchanged. Do not run a repository-wide formatting write as part of design work.
 
 ## Backend confirmation still required
 
-- The exact `/auth/me` and `/auth/refresh` response shapes. Current schemas are
-  preserved; unexpected responses block protected access and permit retry.
+- The exact `/auth/refresh` response shape. `/users/me` now follows the supplied
+  current-user contract, preserving its full response and normalizing dashboard
+  name/avatar/role separately. Unexpected responses block access and permit retry.
 - Token expiry units and policy. `expiresAt` is not interpreted as seconds or
   milliseconds without a contract, and a stored deadline alone is not used to
   discard refreshable credentials.
 - Definitive refresh rejection statuses beyond the existing explicit 401,
   server-side logout/revocation, and access-token storage policy.
-- Role precedence for multiple roles or an empty role list. The existing login
-  adapter is unchanged; no new roles or permission system were introduced.
+- Role precedence for multiple supported roles. Empty/unknown-only roles and
+  multiple distinct supported roles are gated without a fallback role. Duplicate
+  instances of one supported role are unambiguous. The raw roles array is retained;
+  no new roles or permission system were introduced.
 - List pagination envelopes, mutations for unfinished admin controls, messaging,
   uploads, payouts, rewards, and socket authentication/reconnection contracts.
 

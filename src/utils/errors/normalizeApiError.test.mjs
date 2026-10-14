@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadModule } from "../../lib/testing/loadModule.mjs";
-
-const { normalizeApiError } = await loadModule(
-  "/src/utils/errors/normalizeApiError.ts",
-);
+import { normalizeApiError } from "./normalizeApiError.ts";
 
 test("unknown/primitive errors are safe", () => {
   for (const value of [null, undefined, "oops", 42, { status: 400, data: null }]) {
