@@ -28,6 +28,7 @@ export function FileUpload({
   value,
 }: FileUploadProps) {
   const handleFilesSelected = (files: File[]) => {
+    if (disabled) return;
     const nextFiles = files.map((file) =>
       createFileItem(file, {
         allowedExtensions,
@@ -40,6 +41,7 @@ export function FileUpload({
   };
 
   const handleRemove = (id: string) => {
+    if (disabled) return;
     onChange(value.filter((item) => item.id !== id));
   };
 
@@ -47,13 +49,26 @@ export function FileUpload({
     <div className="space-y-3">
       <FileDropzone
         disabled={disabled}
+        accept={
+          [
+            ...(allowedMimeTypes ?? []),
+            ...(allowedExtensions ?? []).map(
+              (extension) => `.${extension.replace(/^\./, "")}`,
+            ),
+          ].join(",") || undefined
+        }
         multiple={multiple}
         onFilesSelected={handleFilesSelected}
       />
       {value.length ? (
         <ul className="space-y-2">
           {value.map((item) => (
-            <FileUploadItem item={item} key={item.id} onRemove={handleRemove} />
+            <FileUploadItem
+              disabled={disabled}
+              item={item}
+              key={item.id}
+              onRemove={handleRemove}
+            />
           ))}
         </ul>
       ) : null}

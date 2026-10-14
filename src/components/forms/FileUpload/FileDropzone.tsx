@@ -2,17 +2,19 @@ import type { ChangeEvent, DragEvent } from "react";
 
 type FileDropzoneProps = {
   disabled?: boolean;
+  accept?: string;
   multiple?: boolean;
   onFilesSelected: (files: File[]) => void;
 };
 
 export function FileDropzone({
   disabled = false,
+  accept,
   multiple = false,
   onFilesSelected,
 }: FileDropzoneProps) {
   const handleFiles = (files: FileList | null) => {
-    if (!files) return;
+    if (!files || disabled) return;
     onFilesSelected(Array.from(files));
   };
 
@@ -39,6 +41,7 @@ export function FileDropzone({
       <span>or drag and drop them here</span>
       <input
         className="sr-only"
+        accept={accept}
         disabled={disabled}
         multiple={multiple}
         onChange={handleInputChange}

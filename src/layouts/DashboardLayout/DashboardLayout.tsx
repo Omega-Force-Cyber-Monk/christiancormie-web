@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Outlet } from "react-router";
 
 import { useAppSelector } from "@/app/hooks";
@@ -22,6 +22,7 @@ export function DashboardLayout() {
   );
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isAdmin = role === USER_ROLES.ADMIN;
+  const closeMobileSidebar = useCallback(() => setIsMobileSidebarOpen(false), []);
 
   const handleToggleCollapsed = () => {
     setIsSidebarCollapsed((current) => {
@@ -46,7 +47,7 @@ export function DashboardLayout() {
       <MobileSidebar
         isLegacyAdmin={isAdmin}
         items={navigation}
-        onClose={() => setIsMobileSidebarOpen(false)}
+        onClose={closeMobileSidebar}
         open={isMobileSidebarOpen}
       />
       <div
@@ -68,7 +69,7 @@ export function DashboardLayout() {
           <div
             className={`mx-auto w-full ${
               isAdmin ? "max-w-[1540px]" : "max-w-[92rem]"
-            } legacy-admin-content`}
+            } ${isAdmin ? "legacy-admin-content" : ""}`}
           >
             <Outlet />
           </div>

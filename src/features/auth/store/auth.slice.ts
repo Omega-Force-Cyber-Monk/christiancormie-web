@@ -22,7 +22,8 @@ const initialState = (): AuthState => {
     accessToken: session?.accessToken ?? null,
     refreshToken: session?.refreshToken ?? null,
     sessionId: session?.sessionId ?? null,
-    isHydrated: !session || Boolean(session.user),
+    isHydrated: !session,
+    isIdentityVerified: false,
     isInitializing: false,
     initializationError: null,
     expiresAt: session?.expiresAt ?? null,
@@ -46,6 +47,7 @@ export const authSlice = createSlice({
         Object.assign(state, action.payload);
         state.expiresAt = action.payload.expiresAt ?? null;
         state.isHydrated = true;
+        state.isIdentityVerified = true;
         state.isInitializing = false;
         state.initializationError = null;
       },
@@ -55,19 +57,28 @@ export const authSlice = createSlice({
       state.refreshToken = action.payload.refreshToken;
       state.expiresAt = action.payload.expiresAt ?? null;
       if (action.payload.user) state.user = action.payload.user;
-      state.isHydrated = Boolean(state.user);
+      // Refreshing tokens must not verify an identity loaded from local storage.
+      state.isHydrated = state.isIdentityVerified;
       if (state.isHydrated) state.isInitializing = false;
       state.initializationError = null;
     },
     sessionRestored(state, action: PayloadAction<StoredSession>) {
       Object.assign(state, action.payload);
       state.expiresAt = action.payload.expiresAt ?? null;
-      state.isHydrated = Boolean(state.user);
+      state.isHydrated = false;
+      state.isIdentityVerified = false;
       state.isInitializing = false;
       state.initializationError = null;
     },
     initializationStarted(state) {
       state.isInitializing = true;
+      state.initializationError = null;
+    },
+    identityVerified(state, action: PayloadAction<AuthenticatedUser>) {
+      state.user = action.payload;
+      state.isIdentityVerified = true;
+      state.isHydrated = true;
+      state.isInitializing = false;
       state.initializationError = null;
     },
     initializationFailed(state, action: PayloadAction<AppError>) {
@@ -85,6 +96,7 @@ export const authSlice = createSlice({
         state.sessionId = null;
         state.expiresAt = null;
         state.isHydrated = true;
+        state.isIdentityVerified = false;
         state.isInitializing = false;
         state.initializationError = null;
       },
@@ -95,6 +107,7 @@ export const authSlice = createSlice({
 export const {
   clearSession,
   initializationFailed,
+  identityVerified,
   initializationStarted,
   sessionRestored,
   sessionStarted,

@@ -32,7 +32,7 @@ export function DataTableBody<TRow, TSortKey extends string>({
   variant = "default",
 }: DataTableBodyProps<TRow, TSortKey>) {
   const colSpan = columns.length + (rowActions ? 1 : 0);
-  const isLegacyAdminBookings = variant === "legacyAdminBookings";
+  const isContrast = variant === "contrast";
 
   if (error) {
     return (
@@ -49,14 +49,12 @@ export function DataTableBody<TRow, TSortKey extends string>({
   return (
     <tbody
       className={
-        isLegacyAdminBookings
-          ? "divide-y divide-[#1c2436]"
-          : "divide-y divide-[var(--border)]"
+        isContrast ? "divide-y divide-[#1c2436]" : "divide-y divide-[var(--border)]"
       }
     >
       {isLoading ? <DataTableSkeleton columnCount={colSpan} /> : null}
       {!isLoading && data.length === 0 ? (
-        isLegacyAdminBookings ? (
+        isContrast ? (
           <tr>
             <td className="py-10 text-center text-sm text-[#64748b]" colSpan={colSpan}>
               {emptyMessage}
@@ -70,7 +68,7 @@ export function DataTableBody<TRow, TSortKey extends string>({
         ? data.map((row) => (
             <tr
               className={
-                isLegacyAdminBookings
+                isContrast
                   ? "whitespace-nowrap transition-colors hover:bg-[#182032]/40"
                   : "hover:bg-[var(--surface-muted)]"
               }
@@ -79,7 +77,7 @@ export function DataTableBody<TRow, TSortKey extends string>({
               {columns.map((column) => (
                 <td
                   className={
-                    isLegacyAdminBookings
+                    isContrast
                       ? `px-6 py-5 text-sm whitespace-nowrap text-slate-200 ${column.className ?? ""}`
                       : `px-4 py-3 text-sm text-[var(--text)] ${column.className ?? ""}`
                   }
@@ -91,7 +89,7 @@ export function DataTableBody<TRow, TSortKey extends string>({
               {rowActions ? (
                 <td
                   className={
-                    isLegacyAdminBookings
+                    isContrast
                       ? "px-6 py-5 text-center whitespace-nowrap"
                       : "px-4 py-3 text-right"
                   }

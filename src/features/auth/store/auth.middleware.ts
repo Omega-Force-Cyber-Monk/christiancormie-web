@@ -3,6 +3,7 @@ import type { Middleware } from "@reduxjs/toolkit";
 import type { RootState } from "@/app/rootReducer";
 import {
   clearSession,
+  identityVerified,
   sessionRestored,
   sessionStarted,
   sessionUpdated,
@@ -26,6 +27,7 @@ export const authSessionMiddleware: Middleware<Record<string, never>, RootState>
       api.dispatch(baseApi.util.resetApiState());
       logger.debug("Authentication session cleared.", { reason: action.payload });
     } else if (
+      identityVerified.match(action) ||
       sessionStarted.match(action) ||
       sessionUpdated.match(action) ||
       sessionRestored.match(action)

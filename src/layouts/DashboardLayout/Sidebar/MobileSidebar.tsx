@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useDialogLifecycle } from "@/components/overlays/useDialogLifecycle";
 
 import type { NavigationItem } from "@/config/navigation/navigation.types";
 import { appConfig } from "@/config/app.config";
@@ -21,38 +22,28 @@ export function MobileSidebar({
   open,
 }: MobileSidebarProps) {
   const drawerRef = useRef<HTMLElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useDialogLifecycle(open, drawerRef, rootRef, onClose);
 
   useEffect(() => {
     if (!open) return undefined;
 
-    previousFocusRef.current = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    drawerRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) onClose();
     };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-      previousFocusRef.current?.focus();
-    };
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
   }, [onClose, open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden" ref={rootRef}>
       <button
         aria-label="Close navigation overlay"
+        tabIndex={-1}
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
         type="button"
@@ -60,7 +51,7 @@ export function MobileSidebar({
       <aside
         aria-label="Mobile dashboard navigation"
         aria-modal="true"
-        className={`relative flex h-full flex-col border-r shadow-xl ${
+        className={`relative flex h-full flex-col overflow-y-auto border-r shadow-xl ${
           isLegacyAdmin
             ? "w-64 border-white/10 bg-[#1B2233] text-white"
             : "w-[min(22rem,88vw)] border-[var(--border)] bg-[var(--surface)]"

@@ -9,7 +9,10 @@ type ErrorStateProps = {
 
 export function ErrorState({ error, onRetry }: ErrorStateProps) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+    <div
+      className="rounded-lg border border-red-200 bg-red-50 p-6 text-center"
+      role="alert"
+    >
       <h2 className="text-base font-semibold text-[var(--danger)]">
         Something went wrong
       </h2>

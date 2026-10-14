@@ -36,7 +36,13 @@ const refreshSession = async (
   if (wasPersisted && !saved) return { refreshed: false };
   if (saved && saved.sessionId !== snapshot.sessionId) return { refreshed: false };
   if (saved && saved.refreshToken !== snapshot.refreshToken) {
-    api.dispatch(sessionUpdated(saved));
+    api.dispatch(
+      sessionUpdated({
+        accessToken: saved.accessToken,
+        refreshToken: saved.refreshToken,
+        expiresAt: saved.expiresAt,
+      }),
+    );
     return { refreshed: true };
   }
 

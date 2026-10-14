@@ -1,8 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
-import { PageLoader } from "@/components/feedback/PageLoader";
-import { ErrorState } from "@/components/states/ErrorState";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { selectAuthInitialization } from "@/features/auth/store/auth.selectors";
 import { clearSession, sessionRestored } from "@/features/auth/store/auth.slice";
@@ -11,9 +9,7 @@ import { sessionStorageService } from "@/features/auth/utils/sessionStorage";
 
 export function SessionBootstrap({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
-  const { isHydrated, initializationError, sessionId } = useAppSelector(
-    selectAuthInitialization,
-  );
+  const { isHydrated, sessionId } = useAppSelector(selectAuthInitialization);
 
   useEffect(() => {
     void dispatch(initializeSession());
@@ -33,19 +29,6 @@ export function SessionBootstrap({ children }: { children: ReactNode }) {
     window.addEventListener("storage", synchronize);
     return () => window.removeEventListener("storage", synchronize);
   }, [dispatch]);
-
-  if (!isHydrated) {
-    return initializationError ? (
-      <ErrorState
-        error={initializationError}
-        onRetry={() => {
-          void dispatch(initializeSession());
-        }}
-      />
-    ) : (
-      <PageLoader />
-    );
-  }
 
   return children;
 }

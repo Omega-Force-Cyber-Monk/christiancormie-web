@@ -1,10 +1,11 @@
 const units = ["B", "KB", "MB", "GB"] as const;
 
 export const formatFileSize = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes < 0) return "N/A";
   if (bytes === 0) return "0 B";
 
   const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
+    Math.max(0, Math.floor(Math.log(bytes) / Math.log(1024))),
     units.length - 1,
   );
   const value = bytes / 1024 ** unitIndex;

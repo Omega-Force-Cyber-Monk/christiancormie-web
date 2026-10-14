@@ -7,9 +7,14 @@ import { formatFileSize } from "@/utils/files/formatFileSize";
 type FileUploadItemProps = {
   item: FileUploadItemValue;
   onRemove: (id: string) => void;
+  disabled?: boolean;
 };
 
-export function FileUploadItem({ item, onRemove }: FileUploadItemProps) {
+export function FileUploadItem({
+  item,
+  onRemove,
+  disabled = false,
+}: FileUploadItemProps) {
   return (
     <li className="flex items-center gap-3 rounded-md border border-[var(--border)] p-3">
       <FilePreview file={item.file} />
@@ -26,6 +31,7 @@ export function FileUploadItem({ item, onRemove }: FileUploadItemProps) {
       </div>
       <button
         aria-label={`Remove ${item.file.name}`}
+        disabled={disabled}
         className="rounded-md p-2 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         onClick={() => onRemove(item.id)}
         type="button"

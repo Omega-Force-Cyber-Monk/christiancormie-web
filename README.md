@@ -38,15 +38,22 @@ Environment values:
 ```env
 VITE_API_BASE_URL=
 VITE_SOCKET_URL=
+VITE_ENABLE_MOCK_AUTH=false
 ```
 
 Do not put server secrets in frontend environment variables.
+
+For local static-design work without a backend, explicitly set
+`VITE_ENABLE_MOCK_AUTH=true` in your local `.env`. This enables the existing
+development-only mock identity (admin by default); it is disabled in production.
+It does not mock API responses or implement unfinished business workflows.
 
 ## Commands
 
 ```bash
 npm run dev
 npm run typecheck
+npm test
 npm run lint
 npm run format
 npm run format:check
@@ -72,7 +79,11 @@ src/
 
 ## Role Architecture
 
-Roles are centralized in `src/constants/roles.ts` and exported as constants plus a derived `UserRole` type. The app currently uses an isolated development mock user in the auth feature so role-based routing and navigation can be exercised before real authentication exists.
+Roles are centralized in `src/constants/roles.ts` and exported as constants plus a
+derived `UserRole` type. Login establishes identity through its validated API
+response; persisted sessions are revalidated through the existing `/auth/me`
+contract before protected routes render. An explicitly enabled development mock
+user remains available for local role-based routing and static-design work.
 
 ## Routing
 
@@ -132,12 +143,14 @@ The mobile drawer now locks background scroll, supports Escape to close, and res
 
 ## Examples
 
-Admins can open `/dashboard/admin/examples` to see isolated examples for the DataTable, URL synchronization, confirmation workflow, and file upload foundation.
+Shared DataTable, confirmation, and file-upload primitives are available for feature
+pages. There is currently no `/dashboard/admin/examples` route.
 
 ## Documentation
 
 - [`AGENTS.md`](./AGENTS.md): mandatory development rules and constraints.
 - [`docs/FOLDER_STRUCTURE.md`](./docs/FOLDER_STRUCTURE.md): detailed architecture and folder-placement guide.
+- [`docs/FOUNDATION_READINESS.md`](./docs/FOUNDATION_READINESS.md): scoped foundation fixes, regression checks, and backend questions.
 - `README.md`: setup, stack, commands, and high-level onboarding.
 
 ## AI Contribution Rules

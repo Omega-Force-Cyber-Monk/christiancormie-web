@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
@@ -26,6 +26,8 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
   const accessToken = useAppSelector(selectAccessToken);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -39,6 +41,7 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        triggerRef.current?.focus();
       }
     };
 
@@ -65,7 +68,9 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
       <div className="relative" ref={menuRef}>
         <button
           aria-expanded={open}
-          aria-haspopup="menu"
+          aria-label={`Account options for ${displayName}`}
+          aria-controls={open ? menuId : undefined}
+          ref={triggerRef}
           className="flex items-center space-x-3 rounded-xl p-1 text-left transition-colors duration-150 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733]"
           onClick={() => setOpen((current) => !current)}
           type="button"
@@ -88,14 +93,14 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
         </button>
 
         {open ? (
-          <div
+          <nav
             className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-white/10 bg-[#1B2233] p-1.5 text-white shadow-2xl"
-            role="menu"
+            aria-label="Account options"
+            id={menuId}
           >
             <Link
               className="block rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-[#FF5733] hover:text-[#121826] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733]"
               onClick={() => setOpen(false)}
-              role="menuitem"
               to={ROUTES.ADMIN_SETTINGS}
             >
               Settings
@@ -103,7 +108,6 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
             <Link
               className="block rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-[#FF5733] hover:text-[#121826] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733]"
               onClick={() => setOpen(false)}
-              role="menuitem"
               to={ROUTES.TERMS_AND_CONDITIONS}
             >
               Terms & Conditions
@@ -111,7 +115,6 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
             <Link
               className="block rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-[#FF5733] hover:text-[#121826] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733]"
               onClick={() => setOpen(false)}
-              role="menuitem"
               to={ROUTES.PRIVACY_POLICY}
             >
               Privacy Policy
@@ -119,7 +122,6 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
             <Link
               className="block rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-[#FF5733] hover:text-[#121826] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733]"
               onClick={() => setOpen(false)}
-              role="menuitem"
               to={ROUTES.HELP_CENTER}
             >
               Help Center
@@ -127,12 +129,11 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
             <button
               className="block w-full rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
               onClick={handleLogout}
-              role="menuitem"
               type="button"
             >
               Sign Out
             </button>
-          </div>
+          </nav>
         ) : null}
       </div>
     );

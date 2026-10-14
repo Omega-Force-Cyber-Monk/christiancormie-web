@@ -6,7 +6,8 @@ import { authenticatedUserSchema } from "@/features/auth/schemas/session.schema"
 import {
   initializationFailed,
   initializationStarted,
-  sessionUpdated,
+  identityVerified,
+  clearSession,
 } from "@/features/auth/store/auth.slice";
 import { logger } from "@/lib/logger/logger";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
@@ -25,7 +26,9 @@ export const initializeSession =
       authApi.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
     );
     try {
-      const user = authenticatedUserSchema.parse(await request.unwrap());
+      const parsed = authenticatedUserSchema.safeParse(await request.unwrap());
+      if (!parsed.success)
+        throw new Error("Unable to verify your account. Please try again.");
       const current = getState().auth;
       if (
         current.sessionId !== initial.sessionId ||
@@ -33,17 +36,15 @@ export const initializeSession =
         !current.refreshToken
       )
         return;
-      dispatch(
-        sessionUpdated({
-          accessToken: current.accessToken,
-          refreshToken: current.refreshToken,
-          expiresAt: current.expiresAt,
-          user,
-        }),
-      );
+      dispatch(identityVerified(parsed.data));
     } catch (error) {
       if (getState().auth.sessionId !== initial.sessionId) return;
-      dispatch(initializationFailed(normalizeApiError(error)));
+      const appError = normalizeApiError(error);
+      if (appError.kind === "AUTHENTICATION") {
+        dispatch(clearSession("invalid-session"));
+        return;
+      }
+      dispatch(initializationFailed(appError));
       logger.debug("Authentication initialization failed; credentials retained.");
     } finally {
       request.unsubscribe();

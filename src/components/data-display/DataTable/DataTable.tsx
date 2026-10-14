@@ -19,12 +19,12 @@ export function DataTable<TRow, TSortKey extends string = string>({
   sort,
   variant = "default",
 }: DataTableProps<TRow, TSortKey>) {
-  const isLegacyAdminBookings = variant === "legacyAdminBookings";
+  const isContrast = variant === "contrast";
 
   return (
     <section
       className={
-        isLegacyAdminBookings
+        isContrast
           ? "min-w-0 overflow-hidden rounded-xl border border-[#2e3443] bg-[#171e30] shadow-xl"
           : "min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm"
       }
@@ -33,7 +33,7 @@ export function DataTable<TRow, TSortKey extends string = string>({
       <div className="overflow-x-auto">
         <table
           className={
-            isLegacyAdminBookings
+            isContrast
               ? "w-full min-w-[1000px] text-left text-sm text-slate-200"
               : "min-w-full divide-y divide-[var(--border)]"
           }

@@ -32,7 +32,7 @@ export type DataTableProps<TRow, TSortKey extends string = string> = {
   columns: DataTableColumn<TRow, TSortKey>[];
   data: TRow[];
   getRowId: (row: TRow) => string;
-  variant?: "default" | "legacyAdminBookings";
+  variant?: "default" | "contrast";
   emptyMessage?: string;
   error?: AppError | null;
   isLoading?: boolean;

@@ -1,15 +1,21 @@
+const isFiniteNumber = (value: number | null | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
 export const formatNumber = (value: number | null | undefined) =>
-  Number(value ?? 0).toLocaleString();
+  isFiniteNumber(value) ? value.toLocaleString() : "N/A";
 
 export const formatCurrency = (value: number | null | undefined) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
+  isFiniteNumber(value)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)
+    : "N/A";
 
 export const formatPercentChange = (value: number | null | undefined) => {
-  if (value === null || value === undefined) return undefined;
+  if (!isFiniteNumber(value)) return undefined;
 
   return `${value >= 0 ? "+" : ""}${value}%`;
 };
@@ -17,17 +23,21 @@ export const formatPercentChange = (value: number | null | undefined) => {
 export const formatDate = (value: string | null | undefined) => {
   if (!value) return "N/A";
 
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "N/A";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 };
 
 export const formatRelativeTime = (value: string | null | undefined) => {
   if (!value) return "N/A";
 
-  const diffMs = Date.now() - new Date(value).getTime();
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "N/A";
+  const diffMs = Date.now() - timestamp;
   const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
 
   if (diffMinutes < 60) return `${diffMinutes}m ago`;
@@ -38,10 +48,11 @@ export const formatRelativeTime = (value: string | null | undefined) => {
   return `${Math.round(diffHours / 24)}d ago`;
 };
 
-export const getInitials = (name: string) =>
-  name
-    .split(" ")
+export const getInitials = (name: string | null | undefined) =>
+  (name ?? "")
+    .trim()
+    .split(/\s+/)
     .map((part) => part[0])
     .join("")
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase() || "?";

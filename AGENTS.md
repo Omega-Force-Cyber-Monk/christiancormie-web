@@ -1,2247 +1,310 @@
-**# AI Development Constitution**
-
-\`AGENTS.md\` is the canonical rule file for AI coding agents working in this repository.
-
-Read this file before making any changes.
-
-The purpose of this file is to prevent architectural drift, duplicated patterns, inconsistent file placement, unnecessary dependencies, and unrelated refactors as the project grows.
-
-If another project document conflicts with this file, follow \`AGENTS.md\`.
-
-**---**
-
-**# Architecture**
-
-\- Follow feature-first architecture.
-
-\- Keep Router separate from Redux.
-
-\- Keep Redux configuration in \`src/app\`.
-
-\- Keep route definitions and guards under \`src/router\`.
-
-\- Keep RTK Query endpoints inside their owning features.
-
-\- Use the shared \`baseApi\` from \`src/services/api/baseApi.ts\`.
-
-\- Never create duplicate dashboard layouts for roles.
-
-\- Use role-driven routing and navigation.
-
-\- Keep shared components generic.
-
-\- Keep business components in their owning features.
-
-The project must maintain clear separation between:
-
-\`\`\`text
-
-Application infrastructure
-
-Routing
-
-Layouts
-
-Business features
-
-Shared UI
-
-External services
-
-Configuration
-
-Utilities
-
-\`\`\`
-
-Do not collapse these responsibilities into a small number of large folders or files.
-
-**---**
-
-**# Folder Structure and File Ownership**
-
-The current high-level architecture follows this responsibility model:
-
-\`\`\`text
-
-src/
-
-├── app/
-
-├── components/
-
-├── config/
-
-├── constants/
-
-├── features/
-
-├── hooks/
-
-├── layouts/
-
-├── lib/
-
-├── router/
-
-├── services/
-
-├── styles/
-
-├── types/
-
-├── utils/
-
-├── App.tsx
-
-└── main.tsx
-
-\`\`\`
-
-Before creating a new file, determine which area owns the responsibility.
-
-Do not place files based only on convenience.
-
-**---**
-
-**## \`src/app\`**
-
-Use \`src/app\` for application-level state configuration.
-
-Examples:
-
-\`\`\`text
-
-src/app/
-
-├── store.ts
-
-├── hooks.ts
-
-└── rootReducer.ts
-
-\`\`\`
-
-This folder may contain:
-
-\- Redux store configuration
-
-\- root reducer configuration
-
-\- typed Redux hooks
-
-\- application-level Redux setup
-
-Do not place here:
-
-\- page components
-
-\- business feature logic
-
-\- feature API endpoints
-
-\- route definitions
-
-\- generic UI components
-
-\- Socket.IO feature logic
-
-Redux configuration belongs here, but business Redux slices should remain inside their owning feature when applicable.
-
-**---**
-
-**## \`src/router\`**
-
-Use \`src/router\` for routing infrastructure.
-
-This includes:
-
-\- central router configuration
-
-\- public routes
-
-\- role routes
-
-\- route guards
-
-\- route metadata
-
-\- document title integration
-
-\- URL search parameter helpers
-
-\- route-level error handling
-
-Examples:
-
-\`\`\`text
-
-src/router/
-
-├── routes/
-
-├── guards/
-
-├── metadata/
-
-├── search-params/
-
-└── RouteTitleManager.tsx
-
-\`\`\`
-
-Do not place Redux store configuration here.
-
-Do not place feature-specific business UI here.
-
-Do not place API endpoint implementations here.
-
-Route definitions must stay separate from \`App.tsx\`.
-
-**---**
-
-**## \`src/layouts\`**
-
-Use \`src/layouts\` for reusable application shells.
-
-Examples:
-
-\`\`\`text
-
-src/layouts/
-
-└── DashboardLayout/
-
-&#x20; ├── DashboardLayout.tsx
-
-&#x20; ├── Sidebar/
-
-&#x20; └── TopNavbar/
-
-\`\`\`
-
-Layouts define page structure such as:
-
-\`\`\`text
-
-DashboardLayout
-
-├── Sidebar
-
-├── TopNavbar
-
-└── Routed Main Content
-
-\`\`\`
-
-Do not create:
-
-\`\`\`text
-
-AdminLayout
-
-VendorLayout
-
-CustomerLayout
-
-VendorStaffLayout
-
-\`\`\`
-
-when the application shell is structurally the same.
-
-All roles should reuse the shared dashboard layout unless product requirements genuinely introduce a different layout.
-
-Role-specific behavior should normally come from:
-
-\- route configuration
-
-\- navigation configuration
-
-\- feature content
-
-not duplicate layout implementations.
-
-**---**
-
-**## \`src/features\`**
-
-Business-specific functionality belongs inside \`src/features\`.
-
-Example:
-
-\`\`\`text
-
-src/features/orders/
-
-├── api/
-
-├── components/
-
-├── hooks/
-
-├── pages/
-
-├── schemas/
-
-├── store/
-
-├── types/
-
-└── utils/
-
-\`\`\`
-
-Only create subfolders actually needed by the feature.
-
-Examples:
-
-\`\`\`text
-
-OrderCard
-
-→ src/features/orders/components/OrderCard.tsx
-
-useOrderFilters
-
-→ src/features/orders/hooks/useOrderFilters.ts
-
-orders.api.ts
-
-→ src/features/orders/api/orders.api.ts
-
-order.types.ts
-
-→ src/features/orders/types/order.types.ts
-
-order.schema.ts
-
-→ src/features/orders/schemas/order.schema.ts
-
-\`\`\`
-
-Do not move business-specific files into global folders merely because they might theoretically be reusable later.
-
-Feature ownership is the default.
-
-Promote code into a shared location only when genuine cross-feature reuse exists.
-
-**---**
-
-**## \`src/components\`**
-
-Use \`src/components\` only for reusable UI or reusable presentation infrastructure.
-
-Possible examples include:
-
-\`\`\`text
-
-src/components/
-
-├── forms/
-
-├── overlays/
-
-├── states/
-
-├── data-display/
-
-├── charts/
-
-├── common/
-
-└── ui/
-
-\`\`\`
-
-Appropriate examples:
-
-\- Button
-
-\- Modal
-
-\- Confirmation dialog
-
-\- DataTable
-
-\- EmptyState
-
-\- ErrorState
-
-\- Skeleton
-
-\- shared form primitives
-
-\- shared chart wrappers
-
-Do not place business-specific components here.
-
-Bad:
-
-\`\`\`text
-
-src/components/VendorOrderCard.tsx
-
-\`\`\`
-
-when the component is only used by the vendor/orders feature.
-
-Prefer:
-
-\`\`\`text
-
-src/features/orders/components/VendorOrderCard.tsx
-
-\`\`\`
-
-Shared components must remain generic.
-
-**---**
-
-**## \`src/services\`**
-
-Use \`src/services\` for shared external communication and infrastructure services.
-
-Examples:
-
-\`\`\`text
-
-src/services/
-
-├── api/
-
-└── socket/
-
-\`\`\`
-
-Appropriate responsibilities:
-
-\- shared RTK Query base API
-
-\- authenticated base query
-
-\- token refresh infrastructure
-
-\- centralized Socket.IO service
-
-Feature endpoints should remain inside the owning feature and inject into the shared \`baseApi\`.
-
-Do not create feature-specific REST clients inside this folder unless there is a clear architectural reason.
-
-Do not create raw API clients inside React components.
-
-Do not create random Socket.IO connections inside feature components.
-
-**---**
-
-**## \`src/config\`**
-
-Use \`src/config\` for centralized application configuration.
-
-Examples:
-
-\`\`\`text
-
-navigation configuration
-
-environment configuration
-
-application configuration
-
-\`\`\`
-
-This folder can contain configuration that controls application behavior.
-
-It should not contain feature business logic.
-
-Navigation configuration should remain separate from Sidebar rendering.
-
-The Sidebar should consume configuration rather than contain large amounts of role/business logic.
-
-**---**
-
-**## \`src/constants\`**
-
-Use \`src/constants\` for fixed application values that require a single source of truth.
-
-Examples:
-
-\`\`\`text
-
-roles
-
-route constants
-
-storage keys
-
-shared fixed values
-
-\`\`\`
-
-Prefer:
-
-\`\`\`ts
-
-USER_ROLES.ADMIN;
-
-\`\`\`
-
-over repeatedly writing:
-
-\`\`\`ts
-
-"ADMIN";
-
-\`\`\`
-
-Do not duplicate constant values across features unnecessarily.
-
-**---**
-
-**## \`src/hooks\`**
-
-Use \`src/hooks\` for generic React hooks reused across multiple unrelated features.
-
-Example:
-
-\`\`\`text
-
-src/hooks/useDebounce.ts
-
-\`\`\`
-
-If a hook belongs specifically to one feature, keep it with the feature.
-
-Example:
-
-\`\`\`text
-
-src/features/orders/hooks/useOrderFilters.ts
-
-\`\`\`
-
-Do not move feature hooks into the global hooks folder merely to shorten import paths.
-
-**---**
-
-**## \`src/utils\`**
-
-Use \`src/utils\` for small reusable helper functions.
-
-Examples:
-
-\- API error normalization helpers
-
-\- file helpers
-
-\- formatting helpers
-
-\- small pure transformation functions
-
-Utilities should generally be:
-
-\- small
-
-\- predictable
-
-\- reusable
-
-\- easy to test
-
-Feature-specific utilities should stay inside their feature.
-
-Example:
-
-\`\`\`text
-
-src/features/orders/utils/
-
-\`\`\`
-
-Do not use \`utils\` as a miscellaneous dumping folder.
-
-**---**
-
-**## \`src/lib\`**
-
-Use \`src/lib\` for reusable infrastructure wrappers or internal libraries.
-
-Example:
-
-\`\`\`text
-
-src/lib/logger/
-
-\`\`\`
-
-General distinction:
-
-\`\`\`text
-
-utils
-
-→ small helper functions
-
-lib
-
-→ reusable infrastructure wrappers
-
-\`\`\`
-
-Do not use \`lib\` as another miscellaneous folder.
-
-**---**
-
-**## \`src/types\`**
-
-Use \`src/types\` only for truly shared/global TypeScript types.
-
-Feature-owned domain types must remain inside their owning feature.
-
-Example:
-
-\`\`\`text
-
-Order
-
-OrderStatus
-
-OrderFilters
-
-\`\`\`
-
-should normally live inside:
-
-\`\`\`text
-
-src/features/orders/types/
-
-\`\`\`
-
-if they belong to the orders domain.
-
-Do not turn \`src/types\` into a dumping ground for every interface in the application.
-
-**---**
-
-**## \`src/styles\`**
-
-Use \`src/styles\` for global styling concerns.
-
-Examples:
-
-\- Tailwind entry/imports
-
-\- application-wide CSS
-
-\- global CSS variables
-
-\- theme tokens
-
-\- root/body styles
-
-Do not unnecessarily place feature-specific styling here.
-
-**---**
-
-**## \`App.tsx\`**
-
-\`App.tsx\` should remain small.
-
-Its responsibility is to compose application-level systems.
-
-It may include things such as:
-
-\- Error Boundary
-
-\- application router
-
-\- global toaster
-
-\- route title manager
-
-\- root-level providers
-
-Do not place here:
-
-\- full route definitions
-
-\- business feature logic
-
-\- large page implementations
-
-\- API calls
-
-\- feature-specific state logic
-
-**---**
-
-**## \`main.tsx\`**
-
-\`main.tsx\` is the application bootstrap entry point.
-
-It should initialize React and required root providers.
-
-Keep it focused on application startup.
-
-Do not place feature/business logic inside \`main.tsx\`.
-
-**---**
-
-**# Feature-Specific Assets**
-
-Feature-specific assets must stay inside their owning feature.
-
-Examples include:
-
-- images
-- SVGs
-- illustrations
-- icons that are unique to one feature
-- feature-specific backgrounds
-- local media used only by one domain
-
-Example:
-
-```text
-src/features/auth/assets/signup.svg
-```
-
-is preferred when the asset is only used by the authentication feature.
-
-Do not create or use a global:
-
-```text
-src/assets/
-```
-
-folder merely for convenience when an asset belongs to one feature.
-
-A global shared asset location should only be introduced when the same asset is genuinely reused by multiple unrelated features.
-
-Before placing an asset globally, ask:
-
-1. Is this asset used by only one feature?
-   - Yes → keep it inside that feature.
-2. Is it genuinely shared across multiple unrelated features?
-   - Yes → a shared asset location may be appropriate.
-3. Is it only theoretically reusable?
-   - Keep it feature-local.
-
-Do not move feature-specific assets into a shared folder simply to shorten import paths.
-
-Do not create empty asset folders preemptively.
-
-When migrating or copying an asset from another project:
-
-- migrate only assets actually required by the implemented feature
-- place each asset inside the owning feature when feature-specific
-- avoid copying entire source asset directories
-- preserve filenames when useful for traceability
-- update imports cleanly
-- remove obsolete empty asset folders created by the migration
-
-Example:
-
-```text
-Auth-only signup illustration
-→ src/features/auth/assets/signup.svg
-
-Orders-only empty-state illustration
-→ src/features/orders/assets/empty-orders.svg
-
-Truly shared company logo used by unrelated features
-→ shared location only if the existing architecture already provides or justifies one
-```
-
-The same ownership rule used for components, hooks, types, utilities, and schemas also applies to assets.
-
----
-
-**# Shared vs Feature-Specific Decision Rule**
-
-Before placing code in a shared folder, ask:
-
-**### 1. Is this code tied to one business feature?**
-
-If yes:
-
-\`\`\`text
-
-→ keep it inside the owning feature
-
-\`\`\`
-
-**### 2. Is it genuinely reused by multiple unrelated features?**
-
-If yes:
-
-\`\`\`text
-
-→ consider moving it to a shared folder
-
-\`\`\`
-
-**### 3. Is it only theoretically reusable?**
-
-If yes:
-
-\`\`\`text
-
-→ keep it feature-local
-
-\`\`\`
-
-Do not create shared abstractions based only on possible future reuse.
-
-Examples:
-
-\`\`\`text
-
-OrderFilter
-
-→ orders feature
-
-VendorProfileCard
-
-→ vendors feature
-
-useVendorSearch
-
-→ vendors feature
-
-Modal
-
-→ shared components
-
-DataTable
-
-→ shared components
-
-useDebounce
-
-→ shared hooks
-
-formatCurrency
-
-→ shared utils if broadly reused
-
-\`\`\`
-
-**---**
-
-**# Dependency Direction**
-
-Prefer dependency flow approximately like:
-
-\`\`\`text
-
-app
-
-&#x20;↓
-
-router / layouts
-
-&#x20;↓
-
-features
-
-&#x20;↓
-
-shared components / hooks / utils / lib
-
-&#x20;↓
-
-services / infrastructure where appropriate
-
-\`\`\`
-
-Avoid circular dependencies.
-
-Features should not arbitrarily import internal implementation details from unrelated features.
-
-If two unrelated features need the same generic functionality, consider extracting the genuinely shared part.
-
-Do not extract business-specific code just to avoid a cross-feature import.
-
-**---**
-
-**# Components**
-
-\- Keep components small and focused.
-
-\- Split large components by responsibility.
-
-\- Do not over-fragment trivial markup.
-
-\- Page components should compose feature components.
-
-\- Use semantic HTML and accessible buttons, labels, and navigation.
-
-A component should generally have one meaningful responsibility.
-
-Split a component when:
-
-\- the file becomes difficult to understand
-
-\- a section has independent behavior
-
-\- a section is reusable
-
-\- logic can be cleanly isolated
-
-\- a page is becoming too large
-
-Do not split every few lines of JSX into a new component.
-
-**---**
-
-**# Page Responsibility**
-
-Pages should primarily compose feature components.
-
-Prefer:
-
-\`\`\`tsx
-
-function OrdersPage() {
-
-&#x20; return (
-
-&#x20; <>
-
-&#x20; \<OrdersHeader />
-
-&#x20; \<OrdersFilters />
-
-&#x20; \<OrdersTable />
-
-&#x20; \</>
-
-&#x20; );
-
-}
-
-\`\`\`
-
-over putting:
-
-\- all table logic
-
-\- all filter logic
-
-\- modal implementations
-
-\- API normalization
-
-\- complex form handling
-
-directly inside the page.
-
-Pages coordinate features.
-
-They should not become giant implementation files.
-
-**---**
-
-**# TypeScript**
-
-\- Use strict TypeScript.
-
-\- Do not use unnecessary \`any\`.
-
-\- Prefer existing domain types over duplicate interfaces.
-
-\- Keep global types in \`src/types\` and feature-owned types inside the feature.
-
-Prefer:
-
-\- inference
-
-\- generics
-
-\- discriminated unions
-
-\- \`unknown\` when the actual type is unknown
-
-\- schema-inferred types where applicable
-
-Avoid duplicating the same domain model across multiple files.
-
-**---**
-
-**# State**
-
-\- Use local state for local UI concerns.
-
-\- Use Redux for meaningful shared client state.
-
-\- Use RTK Query for server state.
-
-\- Do not duplicate RTK Query server responses in normal Redux slices.
-
-\- Keep temporary development auth role mocking isolated to the auth feature.
-
-Use the following general rule:
-
-\`\`\`text
-
-Temporary component UI state
-
-→ local React state
-
-Shared client-side application state
-
-→ Redux Toolkit
-
-Backend/server state
-
-→ RTK Query
-
-Shareable navigation/filter state
-
-→ URL search parameters
-
-\`\`\`
-
-Examples of local state:
-
-\- modal open/close
-
-\- dropdown state
-
-\- unsaved local input
-
-\- temporary tab state
-
-Examples of RTK Query state:
-
-\- users
-
-\- orders
-
-\- vendors
-
-\- server pagination
-
-\- remote resource details
-
-Do not move server data into Redux slices merely because multiple components consume it.
-
-**---**
-
-**# Forms and Validation**
-
-\- Use React Hook Form for meaningful forms.
-
-\- Use Zod for validation.
-
-\- Keep Zod schemas close to their owning feature.
-
-\- Prefer schema-inferred TypeScript types when appropriate.
-
-\- Do not duplicate validation logic across components.
-
-\- Do not put large forms directly inside page components.
-
-\- Map backend field validation errors to the corresponding form fields.
-
-\- Form-level API errors must be displayed intentionally rather than only through toasts.
-
-Feature form example:
-
-\`\`\`text
-
-src/features/auth/
-
-├── components/
-
-│ └── LoginForm.tsx
-
-├── schemas/
-
-│ └── login.schema.ts
-
-└── types/
-
-\`\`\`
-
-Generic form primitives may live inside:
-
-\`\`\`text
-
-src/components/forms/
-
-\`\`\`
-
-Do not create a large generic form engine unless the application genuinely needs one.
-
-**---**
-
-**# Authentication and Sessions**
-
-\- Authentication lifecycle must be centralized.
-
-\- API authentication logic belongs in the RTK Query base-query layer.
-
-\- Do not manually implement refresh logic in individual API endpoints or components.
-
-\- Prevent multiple simultaneous token-refresh requests.
-
-\- A failed refresh must terminate the session cleanly.
-
-\- Avoid infinite 401 refresh loops.
-
-\- Never log tokens or sensitive authentication information.
-
-\- Frontend route guards provide UX access control only; backend APIs remain authoritative.
-
-Session ownership must remain clear.
-
-Avoid scattering:
-
-\- token updates
-
-\- logout handling
-
-\- refresh handling
-
-\- session cleanup
-
-across components.
-
-**---**
-
-**# Authorization Model**
-
-\- This project currently uses role-based authorization only.
-
-\- Supported roles are:
-
-&#x20; \- \`CUSTOMER\`
-
-&#x20; \- \`VENDOR\`
-
-&#x20; \- \`VENDOR_STAFF\`
-
-&#x20; \- \`ADMIN\`
-
-\- Do not introduce a fine-grained permission system such as \`view\`, \`create\`, \`update\`, \`delete\`, or capability strings unless the backend/product requirements explicitly introduce that concept later.
-
-\- Use centralized role constants and \`RoleGuard\` for protected routes.
-
-\- Use \`allowedRoles\` for role-specific navigation and UI visibility.
-
-\- Do not hardcode role strings throughout components.
-
-\- Frontend role checks are for UI/UX access control only; backend APIs must still enforce authorization.
-
-Current authorization is role-only.
-
-Do not add:
-
-\`\`\`text
-
-Permission
-
-requiredPermissions
-
-view permissions
-
-edit permissions
-
-delete permissions
-
-capability arrays
-
-\`\`\`
-
-unless actual backend/product requirements later introduce them.
-
-**---**
-
-**# APIs**
-
-\- Use the existing RTK Query \`baseApi\`.
-
-\- Inject feature endpoints into \`baseApi\`.
-
-\- Do not call \`fetch\` or Axios directly from React pages/components unless an exception is explicitly documented.
-
-\- Centralize authentication and API error-handling behavior.
-
-Feature APIs should normally look conceptually like:
-
-\`\`\`text
-
-src/features/orders/api/orders.api.ts
-
-&#x20; ↓
-
-shared baseApi
-
-&#x20; ↓
-
-auth base query
-
-&#x20; ↓
-
-backend
-
-\`\`\`
-
-Do not create an independent API client for every feature.
-
-If a different backend/base URL genuinely requires another API slice, document the architectural reason.
-
-**---**
-
-**# Errors**
-
-\- Normalize backend/API errors before presenting them to components.
-
-\- Components should not depend on arbitrary raw backend error shapes.
-
-\- Use the shared \`AppError\` architecture.
-
-\- Unexpected rendering failures must be handled by the application Error Boundary.
-
-\- Do not expose internal stack traces or raw server details to production users.
-
-\- Use field errors, form errors, error states, and toast notifications according to context.
-
-Use error presentation appropriately:
-
-\`\`\`text
-
-field validation error
-
-→ field
-
-form-level API error
-
-→ form
-
-page/resource loading failure
-
-→ ErrorState
-
-unexpected background/action failure
-
-→ toast where appropriate
-
-unexpected render/runtime failure
-
-→ Error Boundary
-
-\`\`\`
-
-Do not use toasts as the only error-handling mechanism.
-
-**---**
-
-**# UI States**
-
-Every asynchronous feature must intentionally support relevant states:
-
-\`\`\`text
-
-loading
-
-success
-
-empty
-
-no results
-
-error
-
-\`\`\`
-
-\- Reuse shared state components where appropriate.
-
-\- Do not create unrelated loading/error UI for every page.
-
-\- Use skeletons when preserving layout improves UX.
-
-Distinguish:
-
-\`\`\`text
-
-Empty
-
-→ there is no data
-
-No Results
-
-→ data may exist, but filters/search matched nothing
-
-\`\`\`
-
-**---**
-
-**# Dialogs and Overlays**
-
-\- Use the shared modal/dialog architecture.
-
-\- Do not create one-off inaccessible modals.
-
-\- Do not use \`window\.confirm()\`.
-
-\- Destructive actions must use the shared confirmation workflow.
-
-\- Overlays must support keyboard navigation, focus management, Escape behavior, ARIA semantics, and focus restoration.
-
-\- Mobile overlays must remain fully usable.
-
-Reuse the shared overlay system rather than creating another modal implementation inside a feature.
-
-**---**
-
-**# Confirmation Workflow**
-
-Destructive actions should use the shared confirmation workflow.
-
-Examples:
-
-\`\`\`text
-
-Delete item
-
-Deactivate user
-
-Remove vendor
-
-Cancel irreversible action
-
-\`\`\`
-
-Do not trigger destructive operations immediately from an accidental click.
-
-Confirmation UIs should support:
-
-\- confirmation
-
-\- cancellation
-
-\- loading/submitting state
-
-\- disabled controls while processing
-
-\- appropriate destructive styling
-
-Do not use browser-native confirmation dialogs.
-
-**---**
-
-**# Tables**
-
-\- Use the shared DataTable foundation where appropriate.
-
-\- DataTable components must not own feature-specific API requests.
-
-\- Keep fetching/filter business logic in the owning feature/page.
-
-\- Tables must support intentional loading, error, empty, and responsive behavior.
-
-\- Prefer server-driven pagination/filtering for large datasets.
-
-\- Do not introduce a heavyweight grid library without explicit need.
-
-Preferred flow:
-
-\`\`\`text
-
-Feature page / hook
-
-&#x20; ↓
-
-URL state
-
-&#x20; ↓
-
-RTK Query
-
-&#x20; ↓
-
-DataTable
-
-\`\`\`
-
-The shared DataTable should not know about:
-
-\`\`\`text
-
-/orders
-
-/vendors
-
-/customers
-
-/admin
-
-\`\`\`
-
-or feature-specific API endpoints.
-
-**---**
-
-**# URL State**
-
-\- Shareable navigation state such as pagination, filters, search, and sorting should use URL search parameters where appropriate.
-
-\- Changing filters/search/page size should reset pagination predictably.
-
-\- Parse URL parameters defensively.
-
-\- Do not store temporary visual UI state in the URL unnecessarily.
-
-Good examples:
-
-\`\`\`text
-
-?page=2
-
-&pageSize=20
-
-&search=pizza
-
-&status=ACTIVE
-
-&sort=createdAt
-
-&order=desc
-
-\`\`\`
-
-Do not store:
-
-\`\`\`text
-
-modalOpen=true
-
-hoveredRow=3
-
-dropdownOpen=true
-
-\`\`\`
-
-in the URL without a real navigation requirement.
-
-**---**
-
-**# Routing**
-
-\- Keep route definitions under \`src/router\`.
-
-\- Do not define application routing inside \`App.tsx\`.
-
-\- Use route guards and role constants.
-
-\- Lazy-load suitable page-level modules.
-
-\- Frontend authorization is a UX layer; backend APIs must enforce permissions independently.
-
-For this project, backend authorization is currently role-based.
-
-The word "permissions" above refers generally to backend authorization responsibility and must not be interpreted as requiring a frontend fine-grained permission system.
-
-**---**
-
-**# Route Metadata**
-
-\- Route-level concerns such as title, breadcrumb, roles, permissions, and navigation metadata should be centralized.
-
-\- Avoid duplicating route information across unrelated files.
-
-\- Not every route must appear in sidebar navigation.
-
-\- Document titles should come from the route metadata/title system, not random page effects.
-
-Important current-project clarification:
-
-The application currently uses role-based authorization only.
-
-Do not add fine-grained permission metadata merely because the architecture could theoretically support it.
-
-Current metadata should focus on actual requirements such as:
-
-\`\`\`text
-
-title
-
-breadcrumb
-
-allowedRoles
-
-navigation relationship
-
-\`\`\`
-
-Add permission-related metadata only if real product/backend requirements introduce permissions later.
-
-**---**
-
-**# Styling**
-
-\- Tailwind CSS is the primary styling system.
-
-\- Maintain fluid responsive behavior.
-
-\- Build mobile-first.
-
-\- Never introduce a second CSS framework without explicit approval.
-
-\- Reuse existing design tokens from \`src/styles/globals.css\`.
-
-\- Avoid arbitrary one-off styling when a reusable pattern already exists.
-
-Responsiveness must be considered whenever UI changes are made.
-
-Check:
-
-\- mobile
-
-\- tablet
-
-\- laptop
-
-\- desktop
-
-\- wide desktop
-
-Avoid fragile fixed-width layouts.
-
-**---**
-
-**# Icons**
-
-\- Use Lucide React.
-
-\- Do not add another icon library without explicit approval.
-
-Do not introduce:
-
-\- random SVG libraries
-
-\- emoji as application icons
-
-\- another icon system
-
-unless there is a documented requirement.
-
-**---**
-
-**# Charts**
-
-\- Use Recharts.
-
-\- Charts must remain responsive.
-
-Feature-specific charts should stay inside the owning feature unless genuinely reusable.
-
-Generic reusable chart wrappers may live in shared components.
-
-**---**
-
-**# Notifications**
-
-\- Use Sonner.
-
-\- Never use browser \`alert()\`.
-
-Use notifications intentionally.
-
-Do not use a toast when:
-
-\- a field error belongs under a field
-
-\- a page failed to load and should show an error state
-
-\- a form-level error belongs inside the form
-
-**---**
-
-**# Logging**
-
-\- Use the centralized logger.
-
-\- Do not commit random \`console.log()\` debugging statements.
-
-\- Debug logs must be disabled in production.
-
-\- Never log passwords, access tokens, refresh tokens, sensitive personal data, or payment information.
-
-\- Keep the logger compatible with future error-monitoring integration.
-
-Do not log complete request objects when they may contain sensitive headers or authentication information.
-
-**---**
-
-**# Socket**
-
-\- Use the centralized Socket.IO service in \`src/services/socket\`.
-
-\- Never create random socket connections inside components.
-
-\- Always clean up subscriptions and listeners.
-
-Feature components may subscribe through the approved service/hook architecture.
-
-Do not call raw:
-
-\`\`\`ts
-
-io(...)
-
-\`\`\`
-
-inside feature components.
-
-**---**
-
-**# Requests and Race Conditions**
-
-\- Prefer RTK Query lifecycle/cancellation functionality for RTK Query requests.
-
-\- Avoid custom request state that duplicates RTK Query behavior.
-
-\- Handle rapidly changing searches/filters carefully.
-
-\- Manual async operations should use cancellation where stale results could update the UI incorrectly.
-
-\- Prevent duplicate form submissions while a mutation is in progress.
-
-Avoid building custom request abstractions around RTK Query unless there is an actual requirement.
-
-**---**
-
-**# Debouncing**
-
-\- Use the shared typed debounce hook for debounced values.
-
-\- Do not install an external dependency solely for debounce behavior.
-
-\- Search input should generally debounce before server requests.
-
-\- Clean up timers correctly.
-
-Feature-specific search behavior should compose the shared debounce hook rather than implementing its own timers repeatedly.
-
-**---**
-
-**# File Uploads**
-
-\- Use shared upload components/utilities when practical.
-
-\- File type/size checks on the frontend are UX validation only.
-
-\- Backend validation remains mandatory.
-
-\- Do not create AWS-specific coupling in generic upload UI.
-
-\- Keep upload logic capable of supporting multipart or presigned uploads later.
-
-\- Never render potentially unsafe uploaded content without appropriate safeguards.
-
-Generic upload UI belongs in shared components.
-
-Feature upload behavior belongs in the owning feature.
-
-Example:
-
-\`\`\`text
-
-shared FileUpload component
-
-&#x20; ↓
-
-feature form
-
-&#x20; ↓
-
-feature mutation
-
-&#x20; ↓
-
-backend/storage
-
-\`\`\`
-
-**---**
-
-**# Accessibility**
-
-\- Interactive UI must work by keyboard.
-
-\- Use semantic elements.
-
-\- Provide accessible names for icon-only controls.
-
-\- Overlays require proper focus management.
-
-\- Do not disable focus outlines without an accessible replacement.
-
-\- Dynamic errors/statuses should be announced appropriately where useful.
-
-\- Mobile navigation must remain accessible.
-
-Accessibility requirements apply to newly created and modified components.
-
-**---**
-
-**# Architecture Boundaries**
-
-Before importing across features:
-
-1\. Determine whether the dependency actually belongs to the other feature.
-
-2\. Do not import internal/private implementation details of unrelated features.
-
-3\. Move genuinely reusable logic to an appropriate shared module.
-
-4\. Avoid circular dependencies.
-
-5\. Follow the established dependency direction.
-
-Do not create new architecture layers unless there is an actual problem they solve.
-
-Cross-feature imports should be treated carefully.
-
-If:
-
-\`\`\`text
-
-feature A
-
-\`\`\`
-
-needs an internal helper from:
-
-\`\`\`text
-
-feature B
-
-\`\`\`
-
-first determine whether:
-
-\- the helper is actually shared
-
-\- the responsibility belongs to another domain
-
-\- an abstraction should move to shared code
-
-Do not expose entire feature internals merely to satisfy another feature.
-
-**---**
-
-**# File Placement**
-
-Before creating a file:
-
-1\. Inspect the existing architecture.
-
-2\. Find the correct owning feature.
-
-3\. Reuse existing components, types, hooks, and utilities when appropriate.
-
-4\. Only create a shared abstraction if it is genuinely reusable.
-
-Also verify:
-
-5\. Whether a similar file already exists.
-
-6\. Whether the responsibility belongs to a feature or shared layer.
-
-7\. Whether creating the file introduces a duplicate architectural pattern.
-
-8\. Whether the new folder is actually necessary.
-
-9\. Whether the naming matches nearby files.
-
-10\. Whether the import direction remains valid.
-
-**---**
-
-**# AI File-Creation Decision Process**
-
-Before creating any file, the AI must reason through this placement sequence:
-
-\`\`\`text
-
-Is it business/domain-specific?
-
-├── Yes
-
-│ ↓
-
-│ Put it inside the owning feature
-
-│
-
-└── No
-
-&#x20; ↓
-
-Is it reusable UI?
-
-├── Yes → src/components
-
-└── No
-
-&#x20; ↓
-
-Is it a reusable React hook?
-
-├── Yes → src/hooks
-
-└── No
-
-&#x20; ↓
-
-Is it a small generic helper?
-
-├── Yes → src/utils
-
-└── No
-
-&#x20; ↓
-
-Is it infrastructure/wrapper logic?
-
-├── Yes → src/lib or src/services
-
-└── No
-
-&#x20; ↓
-
-Is it configuration?
-
-├── Yes → src/config
-
-└── No
-
-&#x20; ↓
-
-Is it a fixed constant?
-
-├── Yes → src/constants
-
-└── No
-
-&#x20; ↓
-
-Inspect the architecture again before creating a new category.
-
-\`\`\`
-
-Do not invent a new top-level folder without architectural justification.
-
-**---**
-
-**# Architecture Drift Prevention**
-
-Never introduce a second competing pattern for functionality already standardized in the repository.
-
-Before implementing something new, search for an existing implementation.
-
-Do not create:
-
-\`\`\`text
-
-another API client
-
-\`\`\`
-
-if \`baseApi\` already handles the responsibility.
-
-Do not create:
-
-\`\`\`text
-
-another modal system
-
-\`\`\`
-
-if shared modal infrastructure already exists.
-
-Do not create:
-
-\`\`\`text
-
-another table implementation
-
-\`\`\`
-
-if the shared DataTable fits the use case.
-
-Do not create:
-
-\`\`\`text
-
-another logger
-
-\`\`\`
-
-if centralized logging already exists.
-
-Do not create:
-
-\`\`\`text
-
-another debounce helper
-
-\`\`\`
-
-if \`useDebounce\` already exists.
-
-Do not create:
-
-\`\`\`text
-
-routing inside App.tsx
-
-\`\`\`
-
-when the router architecture already exists.
-
-Do not create:
-
-\`\`\`text
-
-raw socket connections
-
-\`\`\`
-
-when the Socket.IO service already exists.
-
-Extend existing architecture instead of creating parallel architecture.
-
-**---**
-
-**# Refactoring**
-
-When modifying an existing feature:
-
-\- Preserve current behavior unless requested otherwise.
-
-\- Do not rewrite unrelated code.
-
-\- Follow existing conventions.
-
-\- Remove obsolete code created by the change.
-
-\- Keep imports clean.
-
-\- Avoid duplicate implementations.
-
-Do not use a small task as an excuse to:
-
-\- rename unrelated files
-
-\- restructure unrelated folders
-
-\- replace working architecture
-
-\- switch libraries
-
-\- introduce a new design pattern globally
-
-Keep changes scoped.
-
-**---**
-
-**# Quality Gates**
-
-Before finishing any future task, run:
-
-\`\`\`bash
-
-npm run typecheck
-
-npm run lint
-
-npm run build
-
-\`\`\`
-
-Fix errors caused by the work.
-
-Do not claim completion while known TypeScript, build, or lint errors introduced by the task remain.
-
-If formatting is part of the project workflow, also run the appropriate formatting command.
-
-If tests exist for the affected area, run the relevant tests.
-
-Do not silence errors merely to make checks pass.
-
-Avoid:
-
-\`\`\`ts
-
-// @ts-ignore
-
-\`\`\`
-
-and broad:
-
-\`\`\`ts
-
-eslint - disable;
-
-\`\`\`
-
-unless there is a documented exceptional reason.
-
-**---**
-
-**# Dependency Rules**
-
-Before installing a dependency:
-
-\- Verify an existing dependency cannot reasonably solve the requirement.
-
-\- Use stable releases only.
-
-\- Do not install packages for trivial helpers.
-
-\- Do not change major dependencies unnecessarily.
-
-\- Document why a new dependency was necessary.
-
-Before adding any package:
-
-1\. Check whether the existing stack already solves the problem.
-
-2\. Prefer platform/browser capabilities for simple utilities.
-
-3\. Prefer focused dependencies over huge frameworks.
-
-4\. Use stable versions only.
-
-5\. Do not introduce overlapping libraries.
-
-6\. Explain meaningful new dependencies in the final summary.
-
-Do not add packages merely because they make a few lines of code shorter.
-
-**---**
-
-**# Naming and Consistency**
-
-Follow existing naming conventions before inventing new ones.
-
-Typical conventions include:
-
-\`\`\`text
-
-ComponentName.tsx
-
-useSomething.ts
-
-feature.api.ts
-
-feature.types.ts
-
-feature.schema.ts
-
-feature.slice.ts
-
-\`\`\`
-
-Inspect nearby files before naming new modules.
-
-Do not create filenames such as:
-
-\`\`\`text
-
-helper2.ts
-
-newFile.ts
-
-commonStuff.ts
-
-temp.ts
-
-finalVersion.ts
-
-\`\`\`
-
-Use names based on responsibility.
-
-**---**
-
-**# Reuse Before Creation**
-
-Before creating:
-
-\- a component
-
-\- a hook
-
-\- a type
-
-\- a utility
-
-\- a form primitive
-
-\- a loading state
-
-\- a modal
-
-\- a table
-
-\- an error helper
-
-\- an API wrapper
-
-search the existing repository first.
-
-Prefer extending existing patterns over creating nearly identical versions.
-
-Do not duplicate code merely because importing the existing abstraction requires understanding it.
-
-**---**
-
-**# AI Behavior**
-
-For every future prompt:
-
-1\. Read \`AGENTS.md\` before making changes.
-
-2\. Inspect existing related files before creating replacements.
-
-3\. Follow the current architecture.
-
-4\. Extend existing patterns rather than inventing parallel patterns.
-
-5\. Do not create duplicate components, hooks, types, or services.
-
-6\. Do not move files without architectural justification.
-
-7\. Do not perform unrelated refactors.
-
-8\. Keep changes scoped to the user's request.
-
-9\. Ensure responsive behavior.
-
-10\. Ensure TypeScript correctness.
-
-11\. Run quality checks before completion.
-
-In addition, before implementation:
-
-12\. Determine the owning feature.
-
-13\. Determine whether the requested code already exists in shared infrastructure.
-
-14\. Inspect similar existing implementations.
-
-15\. Decide whether the code is feature-specific or genuinely shared.
-
-16\. Preserve the established import boundaries.
-
-17\. Avoid adding abstractions before they are needed.
-
-18\. Avoid introducing another library when the existing stack already solves the problem.
-
-19\. Do not invent backend contracts or product requirements.
-
-20\. Clearly identify intentional backend integration placeholders when the required backend contract is unknown.
-
-**---**
-
-**# AI Completion Checklist**
-
-Before claiming that a task is complete, verify:
-
-\`\`\`text
-
-[ ] AGENTS.md was followed
-
-[ ] existing patterns were inspected
-
-[ ] file placement is correct
-
-[ ] no unnecessary shared abstraction was created
-
-[ ] no duplicate component/hook/type/service was created
-
-[ ] no architecture boundary was broken
-
-[ ] role-only authorization model was preserved
-
-[ ] responsive behavior was considered
-
-[ ] accessibility was considered
-
-[ ] TypeScript passes
-
-[ ] lint passes
-
-[ ] build passes
-
-\`\`\`
-
-If any item cannot be completed because of an external/backend dependency, state that clearly in the final summary.
-
-**---**
-
-**# Documentation Responsibilities**
-
-This file defines mandatory development rules.
-
-Use:
-
-\`\`\`text
-
-AGENTS.md
-
-\`\`\`
-
-for:
-
-\- architectural constraints
-
-\- AI behavior
-
-\- placement rules
-
-\- dependency rules
-
-\- development rules
-
-\- quality requirements
-
-A separate architecture documentation file such as:
-
-\`\`\`text
-
-docs/FOLDER_STRUCTURE.md
-
-\`\`\`
-
-may provide detailed educational explanations, examples, diagrams, and onboarding guidance.
-
-Recommended responsibility split:
-
-\`\`\`text
-
-AGENTS.md
-
-→ mandatory rules
-
-docs/FOLDER_STRUCTURE.md
-
-→ detailed architecture explanation
-
-README.md
-
-→ setup and onboarding
-
-\`\`\`
-
-\`AGENTS.md\` remains authoritative.
-
-If documentation conflicts with \`AGENTS.md\`, follow \`AGENTS.md\` and update the outdated documentation.
+# AI Development Constitution
+
+This is the canonical instruction file for AI agents working in `christinacormie-web`.
+Read it before every implementation task. Explicit user instructions take precedence;
+otherwise follow this file when project documents conflict.
+
+## 1. Project and current workflow
+
+Implement the complete static frontend from supplied full-page Figma SVGs first.
+Backend integration is a separate stage, allowed only after design approval and an
+explicit user request. Do not implement pages during documentation-only tasks.
+
+Inspect current code rather than relying on an old audit. Read
+[foundation readiness](docs/FOUNDATION_READINESS.md) and, for design tasks,
+[the Figma design-system reference](docs/FIGMA_DESIGN_SYSTEM.md). Preserve existing
+uncommitted work. README and folder guides are context, not authority to bypass these rules.
+
+## 2. Technology stack
+
+Use the existing React 19, strict TypeScript 6, Vite 8, React Router 8,
+Redux Toolkit/RTK Query, and Tailwind CSS 4 setup. Use React Hook Form with Zod for
+meaningful forms, Lucide React for ordinary interface icons, Recharts for charts,
+and Sonner for notifications. Keep Socket.IO centralized.
+
+Do not add a second UI framework, icon library, state manager, API client, or test
+framework. Before adding a dependency, check existing tools and browser/platform
+capabilities; use stable releases and explain a justified addition. New testing
+dependencies require explicit permission. Do not install packages for trivial helpers.
+
+## 3. Architecture and file ownership
+
+Keep the existing feature-first architecture and `@/` imports. Determine ownership
+and search for an equivalent implementation before creating a file.
+
+| Location         | Responsibility                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/app`        | Redux store, root reducer, typed hooks, listener/middleware wiring                                     |
+| `src/router`     | Route definitions, guards, metadata/titles, URL helpers, route errors                                  |
+| `src/layouts`    | Reusable shells; one `DashboardLayout` with sidebar and navbar                                         |
+| `src/features`   | Domain pages, components, API endpoints, hooks, schemas, state, types, utilities, mock data and assets |
+| `src/components` | Genuinely generic UI, forms, overlays, tables, states and charts                                       |
+| `src/services`   | Shared API/base-query/auth infrastructure and Socket.IO service                                        |
+| `src/config`     | Environment, application and role-driven navigation configuration                                      |
+| `src/constants`  | Single-source roles, routes, storage keys and fixed shared values                                      |
+| `src/hooks`      | Generic hooks reused across unrelated features                                                         |
+| `src/utils`      | Small generic helpers; keep domain-specific helpers in their feature                                   |
+| `src/lib`        | Infrastructure wrappers such as logging and existing test support                                      |
+| `src/types`      | Truly shared types; domain types stay feature-local                                                    |
+| `src/styles`     | Global CSS, Tailwind imports, existing theme variables                                                 |
+| `src/App.tsx`    | Small composition of error boundary, session bootstrap, router and toaster                             |
+| `src/main.tsx`   | React bootstrap and root providers                                                                     |
+
+Current implemented feature areas are `admin`, `auth`, `customer`, `dashboard`,
+`public`, `vendor`, and `vendor-staff`. Do not fill empty directories speculatively.
+Create only needed feature subfolders; match nearby names such as
+`ComponentName.tsx`, `useSomething.ts`, `feature.api.ts`, `feature.schema.ts`,
+and `feature.types.ts`.
+
+Keep pages focused on composition/orchestration. Separate substantial forms,
+data adaptation, table behavior and independent sections when useful; do not split
+trivial markup or invent a generic design framework. Keep imports clean, avoid
+cycles/private cross-feature dependencies, and extract shared code only for actual
+cross-feature reuse. No unrelated moves, renames, refactors or configuration rewrites.
+
+## 4. Routing, roles and session safeguards
+
+- Keep routes under `src/router`; never define them in `App.tsx` or Redux setup.
+- Use centralized `ROUTES` and `USER_ROLES`: `CUSTOMER`, `VENDOR`,
+  `VENDOR_STAFF`, `ADMIN`. Do not introduce roles or fine-grained permissions.
+- Preserve `AuthGuard`, `GuestGuard`, `RoleGuard`, `SessionGate` and the
+  role-home redirect. Use `allowedRoles` for guards/navigation. Existing route
+  metadata uses `requiredRoles`; do not extend its unused `requiredPermissions`
+  type field into a permission system.
+- Reuse `DashboardLayout` for structurally equivalent role shells. Role differences
+  belong in route/navigation configuration and feature content, not duplicate layouts.
+- Keep titles/breadcrumb metadata in the route metadata system; do not set
+  `document.title` in pages. Update relevant routes, constants, metadata and
+  navigation together; not every route needs a navigation item.
+- Do not bypass guards for static UI. Reuse the existing opt-in, development-only
+  mock auth in `features/auth` when the user's environment enables it. Never
+  enable mocks in production or edit the user's environment merely to access a page.
+- Preserve verified-identity gating: persisted roles are not verified identity.
+  Keep bootstrap/storage synchronization, initialization retry, and public-page access.
+- Distinguish definitive invalid-session responses from temporary network/server
+  failures. Preserve centralized refresh concurrency, stale-session protection,
+  bounded retries and logout cache/socket cleanup. Do not guess expiry units,
+  response schemas, role precedence or revocation contracts.
+
+Frontend guards provide UX control; backend authorization remains authoritative.
+
+## 5. Shared UI and completed foundations
+
+Search `src/components` and the owning feature before creating replacements.
+Reuse or safely extend existing foundations without compromising the supplied
+page design or breaking other consumers. Use a feature-specific component when
+reuse is unsuitable; promote it only for proven cross-feature reuse.
+
+- Use `Modal`, `useDialogLifecycle` and `dialogLifecycle` for overlays. Preserve
+  topmost Escape, focus trapping/restoration, background isolation, nested ordering,
+  scroll-lock cleanup and CSS-variable/typography inheritance through portals.
+- Use `ConfirmationDialog`/`useConfirmation` for destructive workflows. Keep
+  cancellation, inline failure/retry, pending state and duplicate-submit protection.
+  Never use `window.confirm()` or `alert()`.
+- Keep `DataTable` presentational. Reuse `DataTablePagination` and `getPagination`;
+  preserve valid page bounds, working page size and ARIA labels/sort announcements.
+  Existing `default` and `contrast` variants are visual variants, not business rules.
+- Reuse form controls and upload primitives; preserve unique field associations,
+  disabled behavior, safe previews and object-URL cleanup. Frontend file checks are
+  UX validation only; backend validation is still mandatory during integration.
+- Reuse loading, skeleton, empty, no-results and error states. Empty means no data;
+  no-results means filters matched none. Preserve announced status/errors.
+- Preserve defensive formatting: invalid dates do not throw, missing/invalid amounts
+  remain distinct from zero, and monetary values retain decimal precision.
+- Keep `AppError` normalization and the error boundary. Field errors belong at
+  fields, form errors in forms, resource errors in error states, and appropriate
+  background/action failures in Sonner. Do not expose raw server internals or stacks.
+
+## 6. Figma design-system authority
+
+[docs/FIGMA_DESIGN_SYSTEM.md](docs/FIGMA_DESIGN_SYSTEM.md) records actual values and
+relationships from all nine JSON exports. It is an inventory, not approval to
+activate a palette or redefine the application theme.
+
+The unresolved `Colors/Brand/500` values are `#8A2BE2` in Primitive Mode and
+`#FF6B35` in Primitive Style. Semantic values match Style where primitive aliases
+resolve by name; this does not approve Style. Alias IDs differ from the supplied
+primitive IDs, and dark mode references a missing `Colors/Base/transparent`.
+Report ambiguity rather than silently choosing or repairing a mode.
+
+Tailwind 4 is loaded through `@tailwindcss/vite` and `globals.css`; no custom
+`@theme` or Figma-token generator is implemented. Existing root/admin CSS variables
+are not automatically equivalent to Figma semantic names. Preserve current
+appearance until a design decision authorizes a change.
+
+Use approved semantic tokens for repeated properties; respect light/dark values,
+alpha, units, typography, spacing and radii. Do not invent exported names, values
+or CSS/Tailwind mappings. Preserve page-specific SVG details where shared tokens
+do not represent them. Never globally retheme the app to match one page.
+
+## 7. Visual reference priority
+
+This priority governs visual choices; it never overrides architecture, security,
+accessibility or the user's execution restrictions.
+
+1. **Supplied full-page Figma SVG:** primary reference for that page's hierarchy,
+   placement, alignment, text, dimensions, artwork, borders, shadows and spacing.
+2. **Approved Figma tokens:** shared color, typography and layout properties. If an
+   SVG conflicts, report it and preserve the SVG's page-specific detail without
+   silently changing the global token. Unapproved exports do not acquire priority.
+3. **Existing components and architecture:** reuse infrastructure; safely adapt
+   presentation when needed to match the approved page.
+4. **Existing UI patterns:** fill only details missing or ambiguous in the SVG.
+   Do not override clear SVG details with styling/content from unrelated screens.
+
+## 8. Full-page SVG to React workflow
+
+1. Read these rules and inspect the supplied SVG completely, including viewBox,
+   text or outlined text, groups, fills, opacity, clip paths, gradients and assets.
+2. Identify section hierarchy, repeated patterns, typography and logical layout.
+3. Inspect the target route/page, shared shell and comparable feature components.
+4. Search existing UI/types/hooks/utilities/assets; plan meaningful boundaries and
+   decide which details use approved tokens versus page-specific presentation.
+5. Build real React/TypeScript components with semantic HTML, Flexbox/Grid and
+   Tailwind. Keep artwork distinct from ordinary text and interactive controls.
+6. Implement Stage A interactions and responsive behavior; preserve desktop detail
+   and the shared accessibility/session foundations.
+7. Run permitted code checks, review the diff, and report ambiguities and the user's
+   manual visual checks. Never claim browser-verified or pixel-perfect fidelity.
+
+Never render the whole page as one SVG, background image or raster; do not paste
+Figma-generated page markup as the React implementation. Do not position the whole
+layout absolutely, assign fixed coordinates to every element, or turn normal text
+into images. Limited positioning for actual overlays/decorations is acceptable.
+
+### Asset ownership
+
+Retain original SVG artwork for logos, illustrations, decorative shapes, unique
+branded icons and complex artwork. Do not replace it with unrelated Lucide icons.
+Use Lucide for ordinary interface icons when its appearance matches the reference;
+a supplied artwork asset does not justify adding another icon library.
+
+Keep feature-only assets under `src/features/<feature>/assets`. Existing layout
+assets belong with their shell. Do not introduce `src/assets` for convenience or
+copy an entire source asset directory. A shared asset location requires actual
+reuse across unrelated features. Migrate only needed assets, preserve traceable
+filenames, update imports and remove obsolete empty folders created by the change.
+
+## 9. Stage A: static frontend (current default)
+
+- Build the complete visual layout, responsive components and typed fixture data.
+  Keep fixture values in the owning feature, separate from production data. Reuse
+  existing domain types or add feature-local UI types without inventing API contracts;
+  do not present sample data as a real account, transaction or backend contract.
+- Use local React state for local interactions: validation, search/filter/sort,
+  pagination, tabs, dropdowns, dialogs and preview actions. Use React Hook Form/Zod
+  for meaningful forms; keep schemas and schema-inferred types feature-local.
+- Use Redux only for meaningful shared client state; keep RTK Query for server state.
+  Use existing URL helpers for shareable search/filter/sort/pagination where useful,
+  reset pagination predictably and parse inputs defensively. Temporary hover,
+  dropdown and modal state normally remains local. Reuse `useDebounce` as needed.
+- Include loading presentation, success presentation, empty, no-results and error
+  states with an intentional local way to exercise states where appropriate.
+- Navigation and local controls must work. Backend-dependent actions must be an
+  explicitly labeled preview or communicate why integration is needed; no dead
+  controls, fake delivery/success claims or simulated irreversible operations.
+- Do not add API integrations, alter API contracts, connect sockets, upload remotely,
+  or call real backend mutations for static interactions. Existing integrations
+  remain intact outside the task; isolate the target's static data/action path from
+  them without deleting endpoints or weakening authentication.
+- A design update to an API-connected page is not permission to integrate new APIs.
+  Preserve existing integration outside the static path and explain that boundary.
+
+## 10. Stage B: backend integration (explicitly requested only)
+
+Design approval alone does not authorize integration. Wait for an explicit request
+and confirmed contracts, then replace fixtures while preserving the approved UI.
+
+- Inject feature endpoints into `src/services/api/baseApi.ts`; keep authentication,
+  headers, refresh and shared error behavior in the base-query/session layers.
+- No direct `fetch`/Axios in presentation components, duplicate API slices/clients,
+  invented endpoints, fields or status meanings. Document a justified alternative
+  backend/base URL before introducing another API slice.
+- Use RTK Query for requests, cache invalidation, lifecycle and cancellation; do not
+  copy server responses into ordinary Redux slices or duplicate request state.
+- Map normalized server field errors to form fields, provide contextual errors and
+  pending states, prevent duplicate submissions, and guard stale manual results.
+- Use confirmed server pagination/filtering for large datasets. Debounce server
+  search with the existing typed hook; reset pagination on filter/page-size changes.
+- Keep Socket.IO in `src/services/socket`; no raw `io()` in components. Clean up
+  listeners/subscriptions and do not guess socket authentication contracts.
+- Keep upload UI storage-provider-neutral; actual content/type/size/ownership checks
+  remain backend responsibilities. Never render unsafe uploaded content.
+
+Do not combine Stages A and B without explicit user authorization.
+
+## 11. Styling, responsiveness and accessibility
+
+Use Tailwind and existing theme infrastructure. Avoid unnecessary global CSS;
+keep page-specific changes scoped, fluid and mobile-first. Preserve the supplied
+desktop design and adapt columns/spacing at existing breakpoints for mobile, tablet,
+laptop, desktop and wide desktop. SVG widths are references, not fixed viewport
+requirements or automatically breakpoints. Prevent page-level horizontal overflow;
+wide tables may scroll horizontally. Keep controls/touch targets usable and preserve
+content hierarchy. For missing mobile references, follow established patterns;
+do not invent a radically different screen.
+
+Use semantic buttons, links, headings, forms and tables. Provide icon-only names,
+labels, visible focus, keyboard operation, meaningful disabled states, appropriate
+ARIA and announced error/status feedback. Preserve shared modal/mobile focus
+behavior. Do not trade away accessibility to copy SVG geometry.
+
+## 12. Development-server and browser restrictions
+
+Unless explicitly overridden by the user:
+
+- Never start/restart `npm run dev`, `vite`, `yarn dev`, `pnpm dev`, preview
+  servers or equivalent development/background servers, including programmatic
+  server initialization. Do not manage the developer's existing server.
+- Never open localhost or the application in a browser, use Playwright/Puppeteer/
+  Selenium/browser automation, capture UI screenshots, compare designs in-browser,
+  or perform interactive/responsive browser testing.
+- The user manages the development environment and manual UI review. Do not
+  repeatedly ask for permission to use these prohibited workflows.
+
+A production build is allowed; a development/preview server or browser test is not.
+
+## 13. Allowed validation and code quality
+
+For implementation changes, inspect scripts/helpers first, then run applicable
+non-browser checks: `npm run typecheck`, `npm run lint`, `npm run build`, targeted
+format checks and `git diff --check`. Use `npm.cmd` on PowerShell when necessary.
+Unit/regression tests are allowed only when they initialize no server or browser;
+never assume a `test` script is safe from its name.
+
+**Current test caveat:** `npm test` invokes Node's runner, but the regression files
+import `src/lib/testing/loadModule.mjs`, which calls Vite `createServer` in middleware
+mode. It has no application listener/HMR/WebSocket, yet initializes a development
+server and therefore must not run under the restriction above. Preserve the tests;
+report the limitation. Do not change the runner in an unrelated page task.
+
+Preserve strict typing, existing domain/schema types, safe formatting/errors and
+completed foundation fixes. Avoid unnecessary `any`, assertions, `@ts-ignore`,
+broad ESLint disables, duplicate logic and raw production error details. Use the
+central logger; production debug is disabled. Never log credentials, tokens,
+personal/payment data or complete sensitive request objects.
+
+Fix errors caused by the task; report pre-existing/external blockers accurately.
+Do not run repository-wide formatting writes: the nine Figma exports have known
+formatting differences and must not be rewritten incidentally. For documentation-
+only tasks, validate changed Markdown, local links and `git diff --check`; do not
+claim old TypeScript/build/test results were rerun.
+
+## 14. Definition of done and handoff
+
+Before finishing, confirm ownership/reuse, stage boundaries, guards, accessibility,
+responsive code, scoped changes and allowed checks. Preserve the existing foundation
+and do not invent product content, actions or backend requirements.
+
+Report:
+
+1. Page/feature implemented and route updated (or documentation-only scope).
+2. Components reused/created and static interactions implemented.
+3. Files changed and validation commands/results, including checks not run and why.
+4. Unresolved design/token/backend ambiguities and any static/integration boundary.
+5. Manual visual checks for the user: hierarchy, typography, spacing, artwork,
+   desktop fidelity, mobile/tablet layouts, overflow, states and keyboard behavior.
+
+Do not claim pixel-perfect, browser-verified or production-integrated completion
+without the corresponding evidence. Do not modify unrelated documentation merely
+because it is stale; `AGENTS.md` remains the development authority.

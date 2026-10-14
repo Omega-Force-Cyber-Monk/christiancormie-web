@@ -1,22 +1,16 @@
 import { Navigate, Outlet } from "react-router";
 
 import { useAppSelector } from "@/app/hooks";
-import { PageLoader } from "@/components/feedback/PageLoader";
+import { SessionGate } from "@/features/auth/components/SessionGate";
 import { ROUTES } from "@/constants/routes";
-import {
-  selectIsAuthenticated,
-  selectIsAuthHydrated,
-} from "@/features/auth/store/auth.selectors";
+import { selectIsAuthenticated } from "@/features/auth/store/auth.selectors";
 
 export function GuestGuard() {
-  const isHydrated = useAppSelector(selectIsAuthHydrated);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
-  if (!isHydrated) return <PageLoader />;
-
-  if (isAuthenticated) {
-    return <Navigate replace to={ROUTES.DASHBOARD} />;
-  }
-
-  return <Outlet />;
+  return (
+    <SessionGate>
+      {isAuthenticated ? <Navigate replace to={ROUTES.DASHBOARD} /> : <Outlet />}
+    </SessionGate>
+  );
 }

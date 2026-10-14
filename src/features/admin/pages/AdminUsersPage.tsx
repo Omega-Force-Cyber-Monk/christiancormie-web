@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/data-display/DataTable/DataTable";
+import { getPagination } from "@/components/data-display/DataTable/pagination";
 import type { DataTableColumn } from "@/components/data-display/DataTable/data-table.types";
 import { ConfirmationDialog } from "@/components/overlays/ConfirmationDialog/ConfirmationDialog";
 import { useConfirmation } from "@/components/overlays/ConfirmationDialog/useConfirmation";
@@ -29,8 +30,6 @@ import {
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 
 type AdminUser = AdminUsersManagementResponse["users"][number];
-
-const pageSize = 10;
 
 const columns: DataTableColumn<AdminUser>[] = [
   {
@@ -70,6 +69,7 @@ const columns: DataTableColumn<AdminUser>[] = [
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const { data, error, isError, isLoading, refetch } =
@@ -112,7 +112,11 @@ export default function AdminUsersPage() {
     );
   }, [data?.users, search]);
 
-  const paginatedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+  const pagination = getPagination(page, pageSize, filteredUsers.length);
+  const paginatedUsers = filteredUsers.slice(
+    pagination.startIndex,
+    pagination.endIndex,
+  );
 
   if (isLoading) return <AdminLoading />;
 
@@ -177,11 +181,14 @@ export default function AdminUsersPage() {
           </div>
         )}
         pagination={{
-          page,
+          page: pagination.page,
           pageSize,
           totalItems: filteredUsers.length,
           onPageChange: setPage,
-          onPageSizeChange: () => setPage(1),
+          onPageSizeChange: (size) => {
+            setPageSize(size);
+            setPage(1);
+          },
         }}
         search={{
           value: search,

@@ -8,6 +8,7 @@ export type AuthState = {
   refreshToken: string | null;
   sessionId: string | null;
   isHydrated: boolean;
+  isIdentityVerified: boolean;
   isInitializing: boolean;
   initializationError: AppError | null;
   expiresAt: number | null;

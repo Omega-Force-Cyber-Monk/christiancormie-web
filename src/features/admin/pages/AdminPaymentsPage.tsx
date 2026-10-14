@@ -98,13 +98,13 @@ export default function AdminPaymentsPage() {
               <div>
                 <dt className="text-[var(--text-muted)]">Revenue This Month</dt>
                 <dd className="font-medium">
-                  {formatCurrency(data?.summary.revenueThisMonth ?? 0)}
+                  {formatCurrency(data?.summary.revenueThisMonth)}
                 </dd>
               </div>
               <div>
                 <dt className="text-[var(--text-muted)]">Commission Earned</dt>
                 <dd className="font-medium">
-                  {formatCurrency(data?.summary.commissionEarned ?? 0)}
+                  {formatCurrency(data?.summary.commissionEarned)}
                 </dd>
               </div>
             </dl>

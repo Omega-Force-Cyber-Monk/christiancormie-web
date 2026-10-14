@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef } from "react";
 
 import { SAFE_PREVIEW_MIME_TYPES } from "@/utils/files/file.constants";
 
@@ -7,19 +7,20 @@ type FilePreviewProps = {
 };
 
 export function FilePreview({ file }: FilePreviewProps) {
-  const previewUrl = useMemo(() => {
-    if (!SAFE_PREVIEW_MIME_TYPES.includes(file.type as never)) return null;
-
-    return URL.createObjectURL(file);
-  }, [file]);
-
+  const imageRef = useRef<HTMLImageElement>(null);
+  const canPreview = SAFE_PREVIEW_MIME_TYPES.some((type) => type === file.type);
   useEffect(() => {
-    if (!previewUrl) return undefined;
+    const image = imageRef.current;
+    if (!canPreview || !image) return;
+    const url = URL.createObjectURL(file);
+    image.src = url;
+    return () => {
+      image.removeAttribute("src");
+      URL.revokeObjectURL(url);
+    };
+  }, [file, canPreview]);
 
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
-
-  if (!previewUrl) {
+  if (!canPreview) {
     return (
       <div className="grid size-12 place-items-center rounded-md bg-[var(--surface-muted)] text-xs text-[var(--text-muted)]">
         File
@@ -32,7 +33,7 @@ export function FilePreview({ file }: FilePreviewProps) {
       alt=""
       className="size-12 rounded-md object-cover"
       height={48}
-      src={previewUrl}
+      ref={imageRef}
       width={48}
     />
   );

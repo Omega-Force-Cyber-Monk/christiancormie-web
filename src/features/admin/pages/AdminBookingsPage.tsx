@@ -279,7 +279,7 @@ export default function AdminBookingsPage() {
           },
           placeholder: "Search bookings...",
         }}
-        variant="legacyAdminBookings"
+        variant="contrast"
       />
 
       <BookingDetailsModal

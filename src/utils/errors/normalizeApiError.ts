@@ -23,38 +23,50 @@ const statusToKind = (status?: number): AppErrorKind => {
 const normalizeFieldErrors = (errors: unknown): FieldErrors | undefined => {
   if (!errors || typeof errors !== "object" || Array.isArray(errors)) return undefined;
 
-  return Object.entries(errors).reduce<FieldErrors>((accumulator, [field, value]) => {
-    if (typeof value === "string") {
-      accumulator[field] = value;
-    } else if (Array.isArray(value) && typeof value[0] === "string") {
-      accumulator[field] = value[0];
-    }
+  const fieldErrors = Object.entries(errors).reduce<FieldErrors>(
+    (accumulator, [field, value]) => {
+      if (typeof value === "string") {
+        accumulator[field] = value;
+      } else if (Array.isArray(value) && typeof value[0] === "string") {
+        accumulator[field] = value[0];
+      }
 
-    return accumulator;
-  }, {});
+      return accumulator;
+    },
+    {},
+  );
+  return Object.keys(fieldErrors).length ? fieldErrors : undefined;
 };
 
 export const normalizeApiError = (error: unknown): AppError => {
-  const fetchError = error as Partial<FetchBaseQueryError>;
+  const fetchError =
+    error && typeof error === "object" ? (error as Partial<FetchBaseQueryError>) : {};
 
-  if (fetchError.status === "FETCH_ERROR") {
+  if (fetchError.status === "FETCH_ERROR" || fetchError.status === "TIMEOUT_ERROR") {
     return {
       kind: "NETWORK",
       message: "Network connection failed. Please check your connection.",
-      code: "FETCH_ERROR",
+      code: fetchError.status,
       details: fetchError.error,
     };
   }
 
   if (typeof fetchError.status === "number") {
-    const data = (fetchError.data ?? {}) as BackendErrorShape;
+    const data =
+      fetchError.data &&
+      typeof fetchError.data === "object" &&
+      !Array.isArray(fetchError.data)
+        ? (fetchError.data as BackendErrorShape)
+        : {};
     const fieldErrors = normalizeFieldErrors(data.errors);
     const message =
-      typeof data.message === "string"
-        ? data.message
-        : fieldErrors
-          ? "Please correct the highlighted fields."
-          : "The request could not be completed.";
+      fetchError.status >= 500
+        ? "The server could not complete the request. Please try again."
+        : typeof data.message === "string"
+          ? data.message
+          : fieldErrors
+            ? "Please correct the highlighted fields."
+            : "The request could not be completed.";
 
     return {
       kind: statusToKind(fetchError.status),
@@ -63,6 +75,14 @@ export const normalizeApiError = (error: unknown): AppError => {
       message,
       fieldErrors,
       details: data.details,
+    };
+  }
+
+  if (fetchError.status === "PARSING_ERROR" || fetchError.status === "CUSTOM_ERROR") {
+    return {
+      kind: "UNKNOWN",
+      code: fetchError.status,
+      message: "The request could not be completed. Please try again.",
     };
   }
 
