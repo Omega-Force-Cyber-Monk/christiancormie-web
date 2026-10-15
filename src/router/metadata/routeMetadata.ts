@@ -1,8 +1,44 @@
+import { matchPath } from "react-router";
+
 import { USER_ROLES } from "@/constants/roles";
 import { ROUTES } from "@/constants/routes";
 import type { RouteMetadata } from "@/router/metadata/route-metadata.types";
 
 export const routeMetadata: RouteMetadata[] = [
+  {
+    path: ROUTES.CUSTOMER_MESSAGE,
+    title: "Message",
+    breadcrumb: "Message",
+    requiredRoles: [USER_ROLES.CUSTOMER],
+    navigation: true,
+  },
+  {
+    path: ROUTES.CUSTOMER_COMMUNITY,
+    title: "Community",
+    breadcrumb: "Community",
+    requiredRoles: [USER_ROLES.CUSTOMER],
+    navigation: true,
+  },
+  {
+    path: ROUTES.CUSTOMER_FEED,
+    title: "Feed",
+    breadcrumb: "Feed",
+    requiredRoles: [USER_ROLES.CUSTOMER],
+    navigation: true,
+  },
+  {
+    path: ROUTES.CUSTOMER_PROFILE,
+    title: "View Profile",
+    breadcrumb: "View Profile",
+    requiredRoles: [USER_ROLES.CUSTOMER],
+  },
+  {
+    path: ROUTES.CUSTOMER_DISCOVER,
+    title: "Discover",
+    breadcrumb: "Discover",
+    requiredRoles: [USER_ROLES.CUSTOMER],
+    navigation: true,
+  },
   {
     path: ROUTES.LOGIN,
     title: "Sign in",
@@ -148,4 +184,9 @@ export const routeMetadata: RouteMetadata[] = [
 ];
 
 export const getRouteMetadata = (pathname: string) =>
-  routeMetadata.find((metadata) => metadata.path === pathname);
+  routeMetadata.find((metadata) => metadata.path === pathname) ??
+  routeMetadata.find(
+    (metadata) =>
+      metadata.path.includes("/:") &&
+      matchPath({ path: metadata.path, end: true }, pathname),
+  );

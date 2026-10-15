@@ -18,7 +18,7 @@ export function SidebarHeader({
 }: SidebarHeaderProps) {
   if (isLegacyAdmin) {
     return (
-      <div className="flex items-center justify-center px-4 pb-6 pt-8">
+      <div className="flex shrink-0 items-center justify-center px-4 pb-6 pt-8">
         <Link
           aria-label="Bite Drop Admin Panel"
           className="flex min-h-[52px] items-center justify-center"
@@ -41,7 +41,7 @@ export function SidebarHeader({
   }
 
   return (
-    <div className="flex h-16 items-center justify-between gap-3 border-b border-[var(--border)] px-4">
+    <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] px-4">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-[var(--text)]">
           {collapsed ? "CC" : appConfig.name}

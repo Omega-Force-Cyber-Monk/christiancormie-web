@@ -1,0 +1,156 @@
+/* Feed-specific geometry and colors from the supplied SVG. */
+.discover-shell.feed-shell > div > header {
+  min-height: 84px;
+}
+
+.discover-shell.feed-shell main {
+  padding-top: 6px;
+}
+
+.customer-feed-page {
+  padding-bottom: 38px;
+}
+
+.feed-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.feed-audience {
+  display: flex;
+  justify-self: end;
+  align-items: center;
+  align-self: start;
+  gap: 8px;
+}
+
+.feed-audience-button {
+  min-height: 40px;
+  border: 1px solid rgb(255 255 255 / 0.05);
+  border-radius: 20px;
+  background: #242d42;
+  padding: 8px 16px;
+  color: #b8c1d1;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.feed-audience-button--active {
+  border-color: transparent;
+  background: #ff5733;
+  color: #121826;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.feed-stream {
+  width: 100%;
+  max-width: 611px;
+  border-radius: 0 0 16px 16px;
+  background: #121826;
+  padding: 24px 16px 32px;
+}
+
+.feed-post {
+  border-bottom: 1px solid #414651;
+  padding-bottom: 14px;
+  scroll-margin-top: 104px;
+}
+
+.feed-post + .feed-post {
+  margin-top: 24px;
+}
+
+.feed-post-avatar {
+  object-position: 42% 50%;
+}
+
+.feed-post-copy {
+  margin-top: 14px;
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.feed-symbol {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: #fafafa;
+  vertical-align: -2px;
+}
+
+.feed-photo-button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 16px;
+}
+
+.feed-post-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 22px;
+  padding-left: 8px;
+}
+
+.feed-reaction {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.feed-photo-button:focus-visible,
+.feed-reaction:focus-visible,
+.feed-audience-button:focus-visible {
+  outline: 2px solid #2ed3d1;
+  outline-offset: 2px;
+}
+
+.feed-expanded-photo {
+  object-fit: contain;
+}
+
+.feed-preview-note {
+  margin-top: 16px;
+  color: #b8c1d1;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (min-width: 640px) {
+  .feed-stream {
+    padding: 44px 32px 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .discover-shell.feed-shell main {
+    padding-left: 40px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .feed-grid {
+    grid-template-columns: minmax(0, 611px) minmax(0, 1fr);
+    column-gap: 24px;
+  }
+
+  .feed-stream {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .feed-audience {
+    grid-row: 1;
+    grid-column: 2;
+    margin-top: 18px;
+  }
+}

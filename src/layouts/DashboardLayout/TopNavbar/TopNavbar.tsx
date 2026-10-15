@@ -1,14 +1,17 @@
 import { Menu } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { NavbarActions } from "@/layouts/DashboardLayout/TopNavbar/NavbarActions";
 import { UserMenu } from "@/layouts/DashboardLayout/TopNavbar/UserMenu";
 
 type TopNavbarProps = {
+  children?: ReactNode;
   isLegacyAdmin?: boolean;
   onOpenMobileSidebar: () => void;
 };
 
 export function TopNavbar({
+  children,
   isLegacyAdmin = false,
   onOpenMobileSidebar,
 }: TopNavbarProps) {
@@ -45,17 +48,21 @@ export function TopNavbar({
         >
           <Menu size={20} />
         </button>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-[var(--text)]">Dashboard</p>
-          <p className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
-            Role-aware workspace
-          </p>
+        {!children && (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-[var(--text)]">Dashboard</p>
+            <p className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
+              Role-aware workspace
+            </p>
+          </div>
+        )}
+      </div>
+      {children ?? (
+        <div className="flex items-center gap-2">
+          <NavbarActions />
+          <UserMenu />
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <NavbarActions />
-        <UserMenu />
-      </div>
+      )}
     </header>
   );
 }

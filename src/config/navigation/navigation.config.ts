@@ -2,9 +2,11 @@ import {
   Calendar,
   ClipboardList,
   Gift,
+  House,
   LayoutDashboard,
   MessageSquare,
   Package,
+  Rss,
   ShoppingBag,
   Star,
   Truck,
@@ -17,6 +19,30 @@ import { USER_ROLES } from "@/constants/roles";
 import { ROUTES } from "@/constants/routes";
 
 export const navigationItems: NavigationItem[] = [
+  {
+    label: "Message",
+    path: ROUTES.CUSTOMER_MESSAGE,
+    icon: MessageSquare,
+    allowedRoles: [USER_ROLES.CUSTOMER],
+  },
+  {
+    label: "Community",
+    path: ROUTES.CUSTOMER_COMMUNITY,
+    icon: MessageSquare,
+    allowedRoles: [USER_ROLES.CUSTOMER],
+  },
+  {
+    label: "Feed",
+    path: ROUTES.CUSTOMER_FEED,
+    icon: Rss,
+    allowedRoles: [USER_ROLES.CUSTOMER],
+  },
+  {
+    label: "Discover",
+    path: ROUTES.CUSTOMER_DISCOVER,
+    icon: House,
+    allowedRoles: [USER_ROLES.CUSTOMER],
+  },
   {
     label: "Dashboard",
     path: ROUTES.CUSTOMER_DASHBOARD,
