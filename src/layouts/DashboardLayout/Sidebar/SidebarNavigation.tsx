@@ -17,7 +17,7 @@ export function SidebarNavigation({
   return (
     <nav
       aria-label="Dashboard navigation"
-      className={`flex-1 overflow-y-auto ${
+      className={`min-h-0 flex-1 overflow-y-auto ${
         isLegacyAdmin ? "space-y-1 px-4 py-2" : "p-3"
       }`}
     >

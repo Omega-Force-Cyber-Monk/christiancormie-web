@@ -18,7 +18,7 @@ export function SidebarFooter({
 
   if (isLegacyAdmin) {
     return (
-      <div className="mt-auto p-4">
+      <div className="mt-auto shrink-0 p-4">
         <button
           aria-label="Sign out"
           className={`flex h-12 w-full items-center rounded-xl px-4 text-sm font-medium text-[#B8C1D1] transition-colors duration-150 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5733] ${
@@ -35,7 +35,7 @@ export function SidebarFooter({
   }
 
   return (
-    <div className="border-t border-[var(--border)] p-3">
+    <div className="shrink-0 border-t border-[var(--border)] p-3">
       <div
         className={`mb-3 min-w-0 rounded-md bg-[var(--surface-muted)] p-3 ${
           collapsed ? "text-center" : ""

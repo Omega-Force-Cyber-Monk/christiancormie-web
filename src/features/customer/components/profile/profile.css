@@ -1,0 +1,168 @@
+/* Profile-specific measurements from the supplied SVG; the shared palette is unchanged. */
+.customer-profile-page {
+  display: flow-root;
+  width: 100%;
+  max-width: 824px;
+  padding-bottom: 48px;
+}
+
+.profile-back {
+  display: flex;
+  width: fit-content;
+  margin-top: -20px;
+  margin-bottom: 16px;
+}
+
+.profile-card {
+  border: 1px solid #414651;
+  border-radius: 16px;
+  background: #121826;
+  padding-top: 24px;
+  padding-bottom: 28px;
+}
+
+.profile-summary {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.profile-avatar {
+  object-position: 42% 50%;
+}
+
+.profile-expanded-image {
+  object-fit: contain;
+}
+
+.profile-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 11px;
+  background: linear-gradient(90deg, #2ed3d1, #ff6b4a);
+  padding: 2px 8px;
+  color: #1b2233;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.profile-offer {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#183e48, #183e48) padding-box,
+    linear-gradient(90deg, #2ed3d1, #ff5733) border-box;
+}
+
+.profile-pill {
+  height: 42px;
+  min-width: 114px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 20px;
+  background: #242d42;
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.profile-follow {
+  border-color: transparent;
+  background: #ff5733;
+  color: #121826;
+}
+
+.profile-tabs {
+  margin: 36px 15px 0;
+}
+
+.profile-tab-panel {
+  padding: 20px 4px 0;
+}
+
+.profile-tab-panel--reviews {
+  padding-top: 30px;
+}
+
+.profile-review {
+  min-height: 148px;
+  border: 1px solid rgb(255 255 255 / 0.05);
+  border-radius: 16px;
+  background: #1b2233;
+  padding: 16px;
+}
+
+.profile-review--unbordered {
+  border-color: transparent;
+}
+
+.profile-menu-item {
+  display: flex;
+  min-height: 128px;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #121826;
+  border-radius: 16px;
+  background: #1b2233;
+  padding: 16px;
+}
+
+.profile-menu-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.profile-menu-description {
+  max-width: 210px;
+}
+
+.profile-menu-featured .profile-menu-description {
+  max-width: none;
+}
+
+.profile-sample-note {
+  margin: 24px 20px 0;
+  color: #b8c1d1;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (min-width: 640px) {
+  .profile-summary {
+    padding-right: 31px;
+    padding-left: 31px;
+  }
+
+  .profile-tab-panel {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .profile-menu-heading h3 {
+    min-width: 136px;
+  }
+
+  .profile-menu-featured .profile-menu-heading > p {
+    margin-right: 24px;
+    margin-left: auto;
+  }
+
+  .profile-sample-note {
+    margin-right: 31px;
+    margin-left: 31px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .customer-profile-page {
+    padding-bottom: 208px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-card {
+    min-height: 1306px;
+  }
+}

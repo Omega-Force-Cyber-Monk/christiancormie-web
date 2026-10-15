@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Outlet } from "react-router";
 
 import { useAppSelector } from "@/app/hooks";
@@ -14,7 +14,17 @@ import { storage } from "@/utils/storage";
 const getInitialCollapsedState = () =>
   storage.get(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "true";
 
-export function DashboardLayout() {
+type DashboardLayoutProps = {
+  className?: string;
+  sidebarContent?: (onNavigate?: () => void) => ReactNode;
+  navbarContent?: ReactNode;
+};
+
+export function DashboardLayout({
+  className = "",
+  sidebarContent,
+  navbarContent,
+}: DashboardLayoutProps) {
   const role = useAppSelector(selectCurrentRole);
   const navigation = getNavigationForRole(role);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
@@ -22,6 +32,7 @@ export function DashboardLayout() {
   );
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isAdmin = role === USER_ROLES.ADMIN;
+  const desktopSidebarCollapsed = !isAdmin && !sidebarContent && isSidebarCollapsed;
   const closeMobileSidebar = useCallback(() => setIsMobileSidebarOpen(false), []);
 
   const handleToggleCollapsed = () => {
@@ -34,31 +45,43 @@ export function DashboardLayout() {
 
   return (
     <div
-      className={`flex bg-[var(--background)] ${
-        isAdmin ? "legacy-admin-shell h-screen overflow-hidden" : "min-h-dvh"
+      className={`flex bg-[var(--background)] ${className} ${
+        isAdmin ? "legacy-admin-shell h-dvh overflow-hidden" : "min-h-dvh"
+      } ${
+        isAdmin
+          ? "[--dashboard-sidebar-width:16rem]"
+          : desktopSidebarCollapsed
+            ? "[--dashboard-sidebar-width:5rem]"
+            : "[--dashboard-sidebar-width:18rem]"
       }`}
     >
       <Sidebar
-        collapsed={isAdmin ? false : isSidebarCollapsed}
+        collapsed={desktopSidebarCollapsed}
         isLegacyAdmin={isAdmin}
         items={navigation}
         onToggleCollapsed={handleToggleCollapsed}
-      />
+      >
+        {sidebarContent?.()}
+      </Sidebar>
       <MobileSidebar
         isLegacyAdmin={isAdmin}
         items={navigation}
         onClose={closeMobileSidebar}
         open={isMobileSidebarOpen}
-      />
+      >
+        {sidebarContent?.(closeMobileSidebar)}
+      </MobileSidebar>
       <div
-        className={`flex min-w-0 flex-1 flex-col ${
-          isAdmin ? "h-screen overflow-hidden" : ""
+        className={`flex min-w-0 flex-1 flex-col transition-[margin-left] duration-200 lg:ml-[var(--dashboard-sidebar-width)] ${
+          isAdmin ? "h-dvh overflow-hidden" : ""
         }`}
       >
         <TopNavbar
           isLegacyAdmin={isAdmin}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-        />
+        >
+          {navbarContent}
+        </TopNavbar>
         <main
           className={`min-w-0 flex-1 overflow-x-hidden ${
             isAdmin
