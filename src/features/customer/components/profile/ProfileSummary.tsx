@@ -49,7 +49,10 @@ export function ProfileSummary({ onPreview, onReviews }: ProfileSummaryProps) {
           ))}
         </dl>
       </div>
-      <h1 className="mt-6 flex items-center gap-2 text-xl leading-7 font-bold">
+      <h1
+        className="mt-6 flex items-center gap-2 text-xl leading-7 font-bold focus:outline-none"
+        tabIndex={-1}
+      >
         {profile.name}
         <img
           alt="Verified badge in design sample"
@@ -139,8 +142,8 @@ export function ProfileSummary({ onPreview, onReviews }: ProfileSummaryProps) {
       </Button>
       <p aria-live="polite" className="sr-only" role="status">
         {following
-          ? "Following Taco Paradise in this local preview. No account was updated."
-          : "Not following Taco Paradise in this local preview."}
+          ? `Following ${profile.name} in this local preview. No account was updated.`
+          : `Not following ${profile.name} in this local preview.`}
       </p>
     </header>
   );

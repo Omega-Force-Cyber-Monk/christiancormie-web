@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { CheckCircle2, Copy, EyeOff, Flag } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { Modal } from "@/components/overlays/Modal/Modal";
 
 import { Button } from "@/components/ui/Button";
 import type { CommunityPost } from "@/features/customer/data/community.data";
@@ -37,20 +38,39 @@ export function CommunityReportPreview({
     defaultValues: { reason: communityReportReasons[0] },
   });
   const [completed, setCompleted] = useState(false);
+  const [stage, setStage] = useState<"actions" | "report" | "reported">("actions");
+  const titleId = useId();
+  useEffect(() => {
+    document.getElementById(titleId)?.focus();
+  }, [stage, titleId]);
   const [status, setStatus] = useState("");
 
   return (
-    <aside aria-label="Reporting workflow preview" className="community-workflow">
+    <Modal
+      isOpen={selected !== null}
+      onClose={onCancel}
+      titleId={titleId}
+      panelClassName="community-drawer"
+      showCloseButton
+    >
+      <h2 className="sr-only" tabIndex={-1} id={titleId}>
+        {stage === "actions"
+          ? `Post actions for ${selected?.author ?? ""}`
+          : stage === "report"
+            ? "Report post"
+            : "Report preview submitted"}
+      </h2>
       <section
         aria-label="Selected post actions"
         className="community-actions-panel"
+        hidden={stage !== "actions"}
         id="community-post-actions"
         tabIndex={-1}
       >
         <button
           className="community-action-row"
           disabled={!selected}
-          onClick={() => document.getElementById("community-report-form")?.focus()}
+          onClick={() => setStage("report")}
           type="button"
         >
           <span className="bg-[#FF6B4A]/10 text-[#FF5733]">
@@ -96,6 +116,7 @@ export function CommunityReportPreview({
       <form
         aria-labelledby="community-report-title"
         className="community-report-panel"
+        hidden={stage !== "report"}
         id="community-report-form"
         onSubmit={(event) => {
           void handleSubmit(({ reason }) => {
@@ -106,6 +127,7 @@ export function CommunityReportPreview({
               return;
             }
             setCompleted(true);
+            setStage("reported");
             setStatus(
               `Report preview complete for ${selected.author}: ${reason}. No report was sent or queued.`,
             );
@@ -143,8 +165,7 @@ export function CommunityReportPreview({
             className="community-report-button"
             onClick={() => {
               reset();
-              setCompleted(false);
-              setStatus("Report preview cancelled. Nothing was sent.");
+              onCancel();
             }}
           >
             Cancel
@@ -166,6 +187,7 @@ export function CommunityReportPreview({
       <section
         aria-labelledby="community-confirmation-title"
         className="community-confirmation"
+        hidden={stage !== "reported"}
         id="community-report-confirmation"
         tabIndex={-1}
       >
@@ -183,15 +205,15 @@ export function CommunityReportPreview({
         </h2>
         <p className="mt-2 text-xs leading-4 text-[#2ED3D1]">
           {completed
-            ? "Local preview complete � nothing sent."
-            : "Example confirmation � no report submitted."}
+            ? "Local preview complete · nothing sent."
+            : "Example confirmation · no report submitted."}
         </p>
         <blockquote
           className="mt-5 text-sm leading-6 text-[#B8C1D1]"
           aria-label="Example confirmation wording from the design"
         >
-          Thanks for letting us know. Our team will review this post. If it violates
-          community guidelines it will be removed.
+          Thanks for letting us know. This report preview stays on this page. No report
+          has been sent for moderation.
         </blockquote>
         <p className="mt-5 text-sm leading-5 text-[#B8C1D1]">
           In the meantime you can hide the post so you don't see it again.
@@ -216,6 +238,6 @@ export function CommunityReportPreview({
             ? "Choose a post's three-dot button to enable reporting actions."
             : "These panels preview the reporting workflow; no moderation takes place.")}
       </p>
-    </aside>
+    </Modal>
   );
 }

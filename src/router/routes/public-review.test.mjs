@@ -5,7 +5,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { createElement as h } from "react";
 import { renderToPipeableStream } from "react-dom/server";
 import { Provider } from "react-redux";
-import { MemoryRouter, matchRoutes, useRoutes } from "react-router";
+import { MemoryRouter, Navigate, matchRoutes, useRoutes } from "react-router";
 
 import { rootReducer } from "../../app/rootReducer.ts";
 import { env } from "../../config/env.ts";
@@ -14,8 +14,10 @@ import { ROUTES } from "../../constants/routes.ts";
 import { authSessionMiddleware } from "../../features/auth/store/auth.middleware.ts";
 import {
   identityVerified,
+  clearSession,
   initializationFailed,
   sessionRestored,
+  sessionStarted,
 } from "../../features/auth/store/auth.slice.ts";
 import {
   selectCurrentRole,
@@ -28,6 +30,7 @@ import { AuthGuard } from "../guards/AuthGuard.tsx";
 import { CustomerReviewGuard } from "../guards/CustomerReviewGuard.tsx";
 import { RoleGuard } from "../guards/RoleGuard.tsx";
 import { appRoutes } from "./app.routes.tsx";
+import { getRoleHomeRoute } from "../utils/getRoleHomeRoute.ts";
 
 const reviewPaths = [
   ROUTES.CUSTOMER_DISCOVER,
@@ -111,13 +114,82 @@ test("public review is opt-in when its build-time variable is absent", () => {
   assert.equal(env.enablePublicReview, false);
 });
 
-test("restored navigation keeps Dashboard and Showers/Drizzles in their original order", async () => {
+test("customer login and restored sessions resolve home only after verification, including login after logout", async () => {
+  await withReview(false, async () => {
+    const store = createStore();
+    const user = {
+      id: "customer-home-test",
+      name: "Test",
+      email: "test@example.invalid",
+      role: "CUSTOMER",
+    };
+    const tokens = {
+      accessToken: "home-test-access",
+      refreshToken: "home-test-refresh",
+      sessionId: "home-test-session",
+      user,
+    };
+    for (const action of [
+      sessionStarted(tokens),
+      sessionRestored(tokens),
+      sessionStarted(tokens),
+    ]) {
+      store.dispatch(action);
+      assert.equal(selectCurrentRole(store.getState()), null);
+      assert.equal(selectIsAuthenticated(store.getState()), false);
+      const pending = await renderAt(ROUTES.DASHBOARD, store);
+      assert.ok(pending.includes('role="status"'));
+      store.dispatch(identityVerified(user));
+      assert.equal(
+        getRoleHomeRoute(selectCurrentRole(store.getState())),
+        ROUTES.CUSTOMER_DISCOVER,
+      );
+      assert.ok(
+        (await renderAt(ROUTES.CUSTOMER_DISCOVER, store)).includes(
+          'class="discover-page"',
+        ),
+      );
+      store.dispatch(clearSession());
+      assert.equal(getRoleHomeRoute(selectCurrentRole(store.getState())), ROUTES.LOGIN);
+    }
+  });
+});
+
+test("other role home destinations remain unchanged", () => {
+  assert.equal(getRoleHomeRoute("ADMIN"), ROUTES.ADMIN_DASHBOARD);
+  assert.equal(getRoleHomeRoute("VENDOR"), ROUTES.VENDOR_DASHBOARD);
+  assert.equal(getRoleHomeRoute("VENDOR_STAFF"), ROUTES.VENDOR_STAFF_DASHBOARD);
+});
+
+test("the obsolete customer URL replaces history with Discover; Discover has one canonical leaf and no redirect loop", () => {
+  assert.equal(ROUTES.CUSTOMER_DASHBOARD, ROUTES.CUSTOMER_DISCOVER);
+  const legacyMatches = matchRoutes(appRoutes, ROUTES.CUSTOMER_DASHBOARD_REDIRECT);
+  const redirect = legacyMatches.at(-1).route.element;
+  assert.equal(redirect.type, Navigate);
+  assert.equal(redirect.props.replace, true);
+  assert.equal(redirect.props.to, ROUTES.CUSTOMER_DISCOVER);
+  const canonical = matchRoutes(appRoutes, redirect.props.to);
+  assert.notEqual(canonical.at(-1).route.element.type, Navigate);
+  assert.equal(canonical.at(-1).route.path, ROUTES.CUSTOMER_DISCOVER);
+  function countDiscover(routes) {
+    return routes.reduce(
+      (total, route) =>
+        total +
+        Number(route.path === ROUTES.CUSTOMER_DISCOVER) +
+        countDiscover(route.children ?? []),
+      0,
+    );
+  }
+  assert.equal(countDiscover(appRoutes), 1);
+});
+
+test("customer sidebar matches the updated navigation order and keeps Discover active", async () => {
   const navigation = getNavigationForRole("CUSTOMER");
   assert.deepEqual(
     navigation.map((item) => item.label),
-    ["Message", "Community", "Feed", "Discover", "Dashboard", "Orders"],
+    ["Message", "Community", "Feed", "Discover", "Orders"],
   );
-  assert.equal(navigation[4].path, ROUTES.CUSTOMER_DASHBOARD);
+  assert.equal(navigation[3].path, ROUTES.CUSTOMER_DISCOVER);
   await withReview(true, async () => {
     const store = createStore();
     const html = await renderAt(ROUTES.CUSTOMER_DISCOVER, store);
@@ -125,15 +197,19 @@ test("restored navigation keeps Dashboard and Showers/Drizzles in their original
       /<nav aria-label="Discover navigation"[\s\S]*?<\/nav>/,
     )?.[0];
     assert.ok(sidebar);
+    assert.match(sidebar, /aria-current="page"[^>]*href="\/discover"/);
+    assert.doesNotMatch(sidebar, />Showers<|>Drizzles</);
+    assert.match(sidebar, /disabled=""[^>]*title="No active session to sign out"/);
     const labels = [
       "Discover",
       "Feed",
       "Community",
       "Message",
-      "Showers",
-      "Drizzles",
+      "Profile",
+      "Create post",
       "Leaderboard",
       "Settings",
+      "Sign out",
     ];
     let previous = -1;
     for (const label of labels) {
@@ -141,6 +217,12 @@ test("restored navigation keeps Dashboard and Showers/Drizzles in their original
       assert.ok(position > previous, `${label} must retain its sidebar order`);
       previous = position;
     }
+    const signedIn = await renderAt(ROUTES.CUSTOMER_DISCOVER, createStore("CUSTOMER"));
+    assert.match(
+      signedIn,
+      /<button[^>]*title="Sign out"[^>]*>[\s\S]*?Sign out<\/button>/,
+    );
+    assert.doesNotMatch(signedIn, /disabled=""[^>]*title="Sign out"/);
   });
 });
 
@@ -154,7 +236,7 @@ test("only the four review paths use the opt-in guard; profile and dashboards ke
   }
   for (const path of [
     "/profile/taco-paradise",
-    ROUTES.CUSTOMER_DASHBOARD,
+    ROUTES.CUSTOMER_DASHBOARD_REDIRECT,
     ROUTES.CUSTOMER_ORDERS,
     ROUTES.ADMIN_DASHBOARD,
     ROUTES.ADMIN_USERS,
@@ -238,8 +320,11 @@ test("anonymous profile and dashboard visits remain blocked while review is enab
   await withReview(true, async () => {
     const store = createStore();
     for (const path of [
+      ROUTES.CUSTOMER_SETTINGS,
+      ROUTES.CUSTOMER_LEADERBOARD,
+      ROUTES.CUSTOMER_CREATE_POST,
       "/profile/taco-paradise",
-      ROUTES.CUSTOMER_DASHBOARD,
+      ROUTES.CUSTOMER_DASHBOARD_REDIRECT,
       ROUTES.ADMIN_DASHBOARD,
       ROUTES.VENDOR_DASHBOARD,
       ROUTES.VENDOR_STAFF_DASHBOARD,
@@ -257,9 +342,30 @@ test("verified customers keep access with review either on or off; other authent
         assert.ok(
           (await renderAt(path, customer)).includes(`class="${pageMarkers[index]}"`),
         );
+      assert.ok(
+        (await renderAt(ROUTES.CUSTOMER_CREATE_POST, customer)).includes(
+          'class="create-post-page"',
+        ),
+      );
+      assert.ok(
+        (await renderAt(ROUTES.CUSTOMER_LEADERBOARD, customer)).includes(
+          'class="customer-leaderboard-page"',
+        ),
+      );
+      assert.ok(
+        (await renderAt(ROUTES.CUSTOMER_SETTINGS, customer)).includes(
+          'class="customer-settings-page"',
+        ),
+      );
       for (const role of ["ADMIN", "VENDOR", "VENDOR_STAFF"]) {
         const store = createStore(role);
-        for (const path of reviewPaths) assert.equal(await renderAt(path, store), "");
+        for (const path of [
+          ...reviewPaths,
+          ROUTES.CUSTOMER_CREATE_POST,
+          ROUTES.CUSTOMER_LEADERBOARD,
+          ROUTES.CUSTOMER_SETTINGS,
+        ])
+          assert.equal(await renderAt(path, store), "");
         assert.equal(selectCurrentRole(store.getState()), role);
       }
     });

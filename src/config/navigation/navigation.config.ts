@@ -1,17 +1,23 @@
 import {
   Calendar,
+  Activity,
+  Zap,
   ClipboardList,
   Gift,
   House,
   LayoutDashboard,
   MessageSquare,
   Package,
+  Plus,
   Rss,
   ShoppingBag,
   Star,
   Truck,
   Users,
+  UserRound,
   Wallet,
+  Trophy,
+  Settings,
 } from "lucide-react";
 
 import type { NavigationItem } from "@/config/navigation/navigation.types";
@@ -19,6 +25,18 @@ import { USER_ROLES } from "@/constants/roles";
 import { ROUTES } from "@/constants/routes";
 
 export const navigationItems: NavigationItem[] = [
+  {
+    label: "Settings",
+    path: ROUTES.VENDOR_SETTINGS,
+    icon: Settings,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Leaderboard",
+    path: ROUTES.VENDOR_LEADERBOARD,
+    icon: Trophy,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
   {
     label: "Message",
     path: ROUTES.CUSTOMER_MESSAGE,
@@ -44,16 +62,22 @@ export const navigationItems: NavigationItem[] = [
     allowedRoles: [USER_ROLES.CUSTOMER],
   },
   {
-    label: "Dashboard",
-    path: ROUTES.CUSTOMER_DASHBOARD,
-    icon: LayoutDashboard,
-    allowedRoles: [USER_ROLES.CUSTOMER],
-  },
-  {
     label: "Orders",
     path: ROUTES.CUSTOMER_ORDERS,
     icon: ShoppingBag,
     allowedRoles: [USER_ROLES.CUSTOMER],
+  },
+  {
+    label: "Drops",
+    path: ROUTES.VENDOR_DROPS,
+    icon: Zap,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Feed",
+    path: ROUTES.VENDOR_FEED,
+    icon: Rss,
+    allowedRoles: [USER_ROLES.VENDOR],
   },
   {
     label: "Dashboard",
@@ -62,9 +86,33 @@ export const navigationItems: NavigationItem[] = [
     allowedRoles: [USER_ROLES.VENDOR],
   },
   {
-    label: "Orders",
+    label: "Requests",
     path: ROUTES.VENDOR_ORDERS,
     icon: ClipboardList,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Create post",
+    path: ROUTES.VENDOR_CREATE_POST,
+    icon: Plus,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Message",
+    path: ROUTES.VENDOR_MESSAGE,
+    icon: MessageSquare,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Earnings & Analytics",
+    path: ROUTES.VENDOR_EARNINGS,
+    icon: Activity,
+    allowedRoles: [USER_ROLES.VENDOR],
+  },
+  {
+    label: "Profile",
+    path: ROUTES.VENDOR_PROFILE,
+    icon: UserRound,
     allowedRoles: [USER_ROLES.VENDOR],
   },
   {

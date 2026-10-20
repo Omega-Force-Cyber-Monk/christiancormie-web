@@ -13,3 +13,4 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 coverage
+design-references

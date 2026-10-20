@@ -1,44 +1,60 @@
 import {
   Bell,
-  Circle,
   House,
+  LogOut,
   MapPin,
   MessageCircle,
   MessageSquare,
+  Plus,
   Rss,
+  Settings,
+  Trophy,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useMatch } from "react-router";
+import { Link, useMatch, useNavigate, useSearchParams } from "react-router";
 
+import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { Modal } from "@/components/overlays/Modal/Modal";
 import { ROUTES } from "@/constants/routes";
 import logo from "@/features/customer/assets/discover/discover-logo.svg";
+import { selectIsAuthenticated } from "@/features/auth/store/auth.selectors";
+import { clearSession } from "@/features/auth/store/auth.slice";
 import { DashboardLayout } from "@/layouts/DashboardLayout/DashboardLayout";
+import {
+  parseSettingsSection,
+  settingsTitles,
+} from "@/features/customer/data/settings.data";
 import "@/features/customer/components/discover/discover.css";
 
-const previewNavigation = [
-  { label: "Showers", icon: Circle },
-  { label: "Drizzles", icon: Circle },
-  { label: "Leaderboard", icon: Circle },
-];
-
 export default function DiscoverLayout() {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const authenticated = useAppSelector(selectIsAuthenticated);
   const isDiscoverPage = useMatch(ROUTES.CUSTOMER_DISCOVER) !== null;
   const isFeedPage = useMatch(ROUTES.CUSTOMER_FEED) !== null;
   const isCommunityPage = useMatch(ROUTES.CUSTOMER_COMMUNITY) !== null;
   const isMessagePage = useMatch(ROUTES.CUSTOMER_MESSAGE) !== null;
+  const isCreatePostPage = useMatch(ROUTES.CUSTOMER_CREATE_POST) !== null;
+  const isLeaderboardPage = useMatch(ROUTES.CUSTOMER_LEADERBOARD) !== null;
+  const isSettingsPage = useMatch(ROUTES.CUSTOMER_SETTINGS) !== null;
+  const [searchParams] = useSearchParams();
+  const profileMatch = useMatch(ROUTES.CUSTOMER_PROFILE);
+  const isMemberProfilePage =
+    profileMatch?.pathname === ROUTES.CUSTOMER_OWN_PROFILE ||
+    profileMatch?.pathname === ROUTES.CUSTOMER_PUBLIC_PROFILE;
   const [preview, setPreview] = useState<string | null>(null);
 
   return (
     <>
       <DashboardLayout
-        className={`discover-shell${isFeedPage ? " feed-shell" : ""}${isCommunityPage ? " community-shell" : ""}${isMessagePage ? " message-shell" : ""}`}
+        className={`discover-shell${isFeedPage ? " feed-shell" : ""}${isCommunityPage ? " community-shell" : ""}${isMessagePage ? " message-shell" : ""}${isMemberProfilePage ? " member-profile-shell" : ""}${isCreatePostPage ? " create-post-shell" : ""}${isLeaderboardPage ? " leaderboard-shell" : ""}${isSettingsPage ? " settings-shell" : ""}`}
         sidebarContent={(onNavigate) => (
           <>
-            <div className="mx-6 shrink-0 border-b border-[#242D42] pt-9 pb-3.5">
+            <div className="mx-6 shrink-0 border-b border-[#242D42] pt-9 pb-3">
               <Link
                 aria-label="Bite Drop Discover"
-                className="inline-flex focus-visible:outline focus-visible:outline-2"
+                className="flex w-fit focus-visible:outline focus-visible:outline-2"
                 onClick={onNavigate}
                 to={ROUTES.CUSTOMER_DISCOVER}
               >
@@ -56,7 +72,7 @@ export default function DiscoverLayout() {
               <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
                 <Link
                   aria-current={isDiscoverPage ? "page" : undefined}
-                  className={`discover-nav-item ${isFeedPage || isCommunityPage || isMessagePage ? "text-[#B6B7BC] hover:bg-white/5" : "bg-[#FF5733]/[0.08] text-[#FF5733]"}`}
+                  className={`discover-nav-item mb-1 ${isFeedPage || isCommunityPage || isMessagePage || isMemberProfilePage || isCreatePostPage || isLeaderboardPage || isSettingsPage ? "text-[#B6B7BC] hover:bg-white/5" : "bg-[#FF5733]/[0.08] text-[#FF5733]"}`}
                   onClick={onNavigate}
                   to={ROUTES.CUSTOMER_DISCOVER}
                 >
@@ -90,34 +106,59 @@ export default function DiscoverLayout() {
                   <MessageSquare aria-hidden="true" size={19} />
                   Message
                 </Link>
-                {previewNavigation.map(({ label, icon: Icon }) => (
-                  <button
-                    className="discover-nav-item text-[#B6B7BC] hover:bg-white/5"
-                    key={label}
-                    onClick={() => {
-                      onNavigate?.();
-                      setPreview(
-                        isFeedPage && label === "Showers" ? "Create post" : label,
-                      );
-                    }}
-                    type="button"
-                  >
-                    <Icon aria-hidden="true" size={19} />
-                    {isFeedPage && label === "Showers" ? "Create post" : label}
-                  </button>
-                ))}
+                <Link
+                  aria-current={isMemberProfilePage ? "page" : undefined}
+                  className={`discover-nav-item ${isMemberProfilePage ? "bg-[#FF5733]/[0.08] text-[#FF5733]" : "text-[#B6B7BC] hover:bg-white/5"}`}
+                  to={ROUTES.CUSTOMER_OWN_PROFILE}
+                  onClick={onNavigate}
+                >
+                  <Users aria-hidden="true" size={19} />
+                  Profile
+                </Link>
+                <Link
+                  aria-current={isCreatePostPage ? "page" : undefined}
+                  className={`discover-nav-item ${isCreatePostPage ? "bg-[#FF5733]/[0.08] text-[#FF5733]" : "text-[#B6B7BC] hover:bg-white/5"}`}
+                  to={ROUTES.CUSTOMER_CREATE_POST}
+                  onClick={onNavigate}
+                >
+                  <Plus aria-hidden="true" size={19} />
+                  Create post
+                </Link>
+                <Link
+                  aria-current={isLeaderboardPage ? "page" : undefined}
+                  className={`discover-nav-item ${isLeaderboardPage ? "bg-[#FF5733]/[0.08] text-[#FF5733]" : "text-[#B6B7BC] hover:bg-white/5"}`}
+                  to={ROUTES.CUSTOMER_LEADERBOARD}
+                  onClick={onNavigate}
+                >
+                  <Trophy aria-hidden="true" size={19} />
+                  Leaderboard
+                </Link>
               </div>
-              <button
-                className="discover-nav-item mt-auto shrink-0 text-[#B6B7BC] hover:bg-white/5"
-                onClick={() => {
-                  onNavigate?.();
-                  setPreview("Settings");
-                }}
-                type="button"
-              >
-                <Circle aria-hidden="true" size={19} />
-                Settings
-              </button>
+              <div className="mt-auto shrink-0 space-y-1 pt-4">
+                <Link
+                  aria-current={isSettingsPage ? "page" : undefined}
+                  className={`discover-nav-item w-full ${isSettingsPage ? "bg-[#FF5733]/[0.08] text-[#FF5733]" : "text-[#B6B7BC] hover:bg-white/5"}`}
+                  onClick={onNavigate}
+                  to={ROUTES.CUSTOMER_SETTINGS}
+                >
+                  <Settings aria-hidden="true" size={19} />
+                  Settings
+                </Link>
+                <button
+                  className="discover-nav-item w-full text-[#FF5733] hover:bg-[#FF5733]/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!authenticated}
+                  onClick={() => {
+                    onNavigate?.();
+                    dispatch(clearSession());
+                    void navigate(ROUTES.LOGIN, { replace: true });
+                  }}
+                  title={authenticated ? "Sign out" : "No active session to sign out"}
+                  type="button"
+                >
+                  <LogOut aria-hidden="true" size={19} />
+                  Sign out
+                </button>
+              </div>
             </nav>
           </>
         )}
@@ -125,18 +166,32 @@ export default function DiscoverLayout() {
           <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-lg leading-8 font-semibold sm:text-2xl">
-                {isMessagePage
-                  ? "Message"
-                  : isCommunityPage
-                    ? "Community"
-                    : "Good morning Alex"}
+                {isSettingsPage
+                  ? settingsTitles[parseSettingsSection(searchParams.get("section"))]
+                  : isLeaderboardPage
+                    ? "Leaderboard"
+                    : isCreatePostPage
+                      ? "Create Post"
+                      : isMemberProfilePage
+                        ? "Profile"
+                        : isMessagePage
+                          ? "Message"
+                          : isCommunityPage
+                            ? "Community"
+                            : "Good morning Alex"}
               </p>
-              {!isFeedPage && !isCommunityPage && !isMessagePage && (
-                <p className="mt-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                  <MapPin aria-hidden="true" className="text-[#2ED3D1]" size={16} />
-                  San Francisco, CA
-                </p>
-              )}
+              {!isFeedPage &&
+                !isCommunityPage &&
+                !isMessagePage &&
+                !isCreatePostPage &&
+                !isLeaderboardPage &&
+                !isSettingsPage &&
+                !isMemberProfilePage && (
+                  <p className="mt-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <MapPin aria-hidden="true" className="text-[#2ED3D1]" size={16} />
+                    San Francisco, CA
+                  </p>
+                )}
             </div>
             <div className="flex shrink-0 items-center gap-4">
               <button
@@ -156,7 +211,9 @@ export default function DiscoverLayout() {
               <button
                 aria-label="Sample profile: Alex"
                 className="grid size-9 place-items-center rounded-full bg-[#FF5733] text-xs font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => setPreview("Profile")}
+                onClick={() => {
+                  void navigate(ROUTES.CUSTOMER_OWN_PROFILE);
+                }}
                 type="button"
               >
                 A
@@ -179,15 +236,13 @@ export default function DiscoverLayout() {
               This screen is a static customer design preview.{" "}
               {preview === "Profile"
                 ? "Alex and the San Francisco location are sample content from the design."
-                : preview === "Create post"
-                  ? "Creating and publishing posts requires backend integration. No post will be published from this preview."
-                  : `${preview} functionality is not connected in this preview.`}
+                : `${preview} functionality is not connected in this preview.`}
             </p>
             <Link
               className="mt-5 inline-flex min-h-11 items-center text-sm text-[#2ED3D1] underline focus-visible:outline"
-              to={ROUTES.CUSTOMER_DASHBOARD}
+              to={ROUTES.CUSTOMER_DISCOVER}
             >
-              Go to customer dashboard
+              Go to Discover
             </Link>
           </div>
         </Modal>

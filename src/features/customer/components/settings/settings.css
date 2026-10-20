@@ -1,0 +1,452 @@
+/* Settings SVG-specific colors and geometry; no global theme changes. */
+.settings-shell > div > header {
+  min-height: 84px;
+}
+.settings-shell main {
+  padding-top: 20px;
+}
+.customer-settings-page {
+  min-width: 0;
+}
+.settings-menu {
+  width: 100%;
+  max-width: 390px;
+  min-height: 742px;
+  border-radius: 16px;
+  background: #121826;
+  padding: 20px 16px;
+}
+.settings-menu-item {
+  display: flex;
+  min-height: 52px;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding-right: 12px;
+  border-radius: 8px;
+  text-align: left;
+}
+.settings-menu-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+}
+.settings-menu-item--general .settings-menu-icon {
+  background: rgb(255 87 51 / 4%);
+}
+.settings-menu-item:hover {
+  background: rgb(255 255 255 / 4%);
+}
+.settings-section-toolbar {
+  display: flex;
+  width: 100%;
+  max-width: 422px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.settings-back {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 16px;
+  background: #121826;
+}
+.settings-request {
+  width: 100%;
+  max-width: 810px;
+  border-radius: 24px;
+  background: #121826;
+  padding: 32px;
+}
+.settings-issue {
+  width: 100%;
+  max-width: 422px;
+  border-radius: 16px;
+  background: #121826;
+  padding: 32px;
+}
+.settings-primary,
+.settings-secondary {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 20px;
+  padding: 10px 18px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.settings-primary {
+  background: #ff5733;
+  color: #080808;
+}
+.settings-secondary {
+  background: #1b2233;
+  color: #fafafa;
+}
+.settings-primary:disabled,
+.settings-secondary:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.settings-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+.settings-form-actions button {
+  flex: 1 1 auto;
+}
+.settings-notice {
+  border: 1px solid rgb(0 211 223 / 30%);
+  border-radius: 20px;
+  background: rgb(46 211 209 / 10%);
+  padding: 16px;
+  color: #00d3df;
+  font-size: 14px;
+  line-height: 20px;
+}
+.settings-textarea {
+  display: block;
+  min-height: 80px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #29303e;
+  border-radius: 16px;
+  background: #121826;
+  padding: 12px 16px;
+  color: #fafafa;
+  font-size: 12px;
+  line-height: 18px;
+}
+.settings-request input,
+.settings-issue input,
+.settings-form-card input {
+  min-height: 50px;
+  border: 1px solid #29303e;
+  border-radius: 20px;
+  background: #121826;
+  padding: 12px 16px;
+  color: #fafafa;
+  font-size: 16px;
+}
+.settings-request textarea {
+  min-height: 60px;
+}
+.settings-field-with-icon {
+  position: relative;
+}
+.settings-field-with-icon > svg {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  color: #00d3df;
+}
+.settings-field-with-icon label {
+  display: block;
+  padding-left: 24px;
+}
+.settings-request label,
+.settings-issue label,
+.settings-form-card label {
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 500;
+}
+.settings-request .settings-primary {
+  min-height: 54px;
+  margin-top: 12px;
+  border-radius: 16px;
+}
+.settings-issue input,
+.settings-issue textarea {
+  border: 0;
+  border-radius: 12px;
+  background: #1b2233;
+  font-size: 14px;
+}
+.settings-issue textarea {
+  min-height: 150px;
+}
+.settings-issue .settings-primary {
+  margin-top: 8px;
+  border-radius: 12px;
+}
+.settings-dialog {
+  position: relative;
+  width: min(422px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #121826;
+  padding: 32px;
+  color: #fafafa;
+}
+.settings-dialog > button[aria-label="Close dialog"] {
+  top: 0;
+  right: 0;
+  border-radius: 50%;
+  background: #121826;
+  color: #fafafa;
+}
+.settings-dialog--points {
+  width: min(340px, calc(100vw - 32px));
+  padding: 0 0 16px;
+}
+.settings-dialog--password {
+  width: min(375px, calc(100vw - 32px));
+  padding: 16px;
+}
+.settings-dialog--conversation {
+  width: min(430px, calc(100vw - 32px));
+  padding: 28px 20px;
+}
+.settings-form-card {
+  border: 1px solid #30384a;
+  border-radius: 16px;
+  background: #242d42;
+  padding: 20px;
+}
+.settings-form-card:has(input[name="fullName"]) {
+  padding: 24px;
+}
+.settings-dialog--password input {
+  background: #1b2233;
+}
+.settings-profile-photo {
+  position: relative;
+  display: block;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border: 1px solid rgb(255 87 51 / 30%);
+  border-radius: 16px;
+}
+.settings-profile-photo > img {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  object-fit: cover;
+}
+.settings-photo-camera {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ff5733;
+}
+.settings-edit-profile {
+  min-height: 50px;
+  width: 100%;
+  border: 1px solid rgb(255 87 51 / 30%);
+  border-radius: 20px;
+  background: #1b2233;
+  color: #ff5733;
+  font-size: 16px;
+  font-weight: 500;
+}
+.settings-delete {
+  display: flex;
+  min-height: 56px;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  border-radius: 16px;
+  background: #1b2233;
+  padding: 12px 28px;
+  color: #ff5733;
+}
+.settings-points-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #b8c1d1;
+  font-size: 14px;
+}
+.settings-points-table thead {
+  background: #242d42;
+  font-size: 12px;
+  text-align: left;
+}
+.settings-points-table thead th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  line-height: 16px;
+}
+.settings-points-table th,
+.settings-points-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 5%);
+  font-weight: 400;
+  text-align: left;
+}
+.settings-points-table td {
+  text-align: right;
+  font-weight: 700;
+}
+.settings-support-list {
+  display: flex;
+  width: 100%;
+  max-width: 372px;
+  flex-direction: column;
+  gap: 32px;
+  border-radius: 16px;
+  background: #121826;
+  padding: 20px 16px 32px;
+}
+.settings-ticket {
+  display: block;
+  width: 100%;
+  border-radius: 16px;
+  background: #1b2233;
+  padding: 16px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.settings-ticket-status {
+  float: right;
+  margin-left: 8px;
+  border-radius: 12px;
+  padding: 5px 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.settings-ticket-status--replied {
+  background: #dcfae6;
+  color: #008548;
+}
+.settings-ticket-status--pending {
+  background: #242d42;
+  color: #ff5733;
+}
+.settings-ticket-status--resolved {
+  background: #d5d6d9;
+  color: #242d42;
+  font-weight: 400;
+}
+.settings-chat-messages {
+  max-height: min(510px, 50dvh);
+  overflow-y: auto;
+  padding: 12px 16px;
+  border-top: 1px solid #343c4c;
+}
+.settings-chat-bubble {
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 16px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.settings-chat-bubble--support {
+  border-radius: 0 28px 28px;
+  background: #090909;
+  color: #b8c1d1;
+}
+.settings-chat-bubble--you {
+  margin-left: auto;
+  border-radius: 20px;
+  background: #ff6b35;
+  color: #080808;
+}
+.settings-chat-bubble--you > p:last-child {
+  text-align: right;
+}
+.settings-chat-input {
+  min-width: 0;
+  min-height: 52px;
+  width: 100%;
+  flex: 1;
+  border: 1px solid #777467;
+  border-radius: 16px;
+  background: #090909;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.settings-chat-send {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: #ff6b35;
+  color: #080808;
+}
+.settings-chat-attach {
+  display: grid;
+  width: 40px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  color: #b8c1d1;
+}
+.settings-attachment {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.customer-settings-page :is(button, input, textarea):focus-visible,
+.settings-dialog :is(button, input, textarea):focus-visible {
+  outline: 2px solid #2ed3d1;
+  outline-offset: 3px;
+}
+@media (min-width: 1200px) and (min-height: 650px) {
+  .settings-dialog {
+    position: fixed;
+    top: 125px;
+    left: min(738px, calc(100vw - 454px));
+    max-height: calc(100dvh - 150px);
+  }
+  .settings-dialog--points {
+    left: min(728px, calc(100vw - 372px));
+  }
+  .settings-dialog--password {
+    left: min(726px, calc(100vw - 407px));
+  }
+  .settings-dialog--conversation {
+    top: 177px;
+    left: min(720px, calc(100vw - 462px));
+    max-height: calc(100dvh - 201px);
+  }
+}
+@media (max-width: 639px) {
+  .settings-menu {
+    min-height: 540px;
+  }
+  .settings-request,
+  .settings-issue {
+    padding: 20px 16px;
+  }
+  .settings-dialog {
+    padding: 24px 16px;
+  }
+  .settings-dialog--points {
+    padding: 0 0 16px;
+  }
+  .settings-form-card,
+  .settings-form-card:has(input[name="fullName"]) {
+    padding: 16px;
+  }
+  .settings-dialog--password .settings-form-actions {
+    flex-direction: column;
+  }
+  .settings-chat-messages {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}

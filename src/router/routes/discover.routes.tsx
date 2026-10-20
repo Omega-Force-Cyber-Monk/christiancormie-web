@@ -56,6 +56,24 @@ export const discoverRoutes: RouteObject[] = [
             ),
             children: [
               {
+                path: ROUTES.CUSTOMER_SETTINGS,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerSettingsPage"),
+                ),
+              },
+              {
+                path: ROUTES.CUSTOMER_LEADERBOARD,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerLeaderboardPage"),
+                ),
+              },
+              {
+                path: ROUTES.CUSTOMER_CREATE_POST,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerCreatePostPage"),
+                ),
+              },
+              {
                 path: ROUTES.CUSTOMER_PROFILE,
                 element: lazyRoute(
                   () => import("@/features/customer/pages/CustomerProfilePage"),

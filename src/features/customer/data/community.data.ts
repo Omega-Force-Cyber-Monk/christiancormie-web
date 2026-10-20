@@ -1,6 +1,8 @@
 import anthonyAvatar from "@/features/customer/assets/community/community-anthony-avatar.jpg";
 import sarahAvatar from "@/features/customer/assets/profile/profile-review-david-smith.jpg";
 import calloutImage from "@/features/customer/assets/community/community-callout-food.jpg";
+import type { FileUploadItemValue } from "@/components/forms/FileUpload/file-upload.types";
+import type { CommunityComposerValues } from "@/features/customer/schemas/community.schema";
 
 export const communityCategories = [
   "All",
@@ -9,7 +11,10 @@ export const communityCategories = [
   "Callout",
   "For sale",
 ] as const;
-export type CommunityCategory = Exclude<(typeof communityCategories)[number], "All">;
+export type CommunityCategory =
+  | Exclude<(typeof communityCategories)[number], "All">
+  | "Hiring / jobs"
+  | "Community help";
 export type CommunityPost = {
   id: string;
   author: string;
@@ -23,6 +28,20 @@ export type CommunityPost = {
   likes: number;
   comments: number;
   own: boolean;
+  status?: "Ongoing" | "Posted" | "Requested" | "Completed";
+  attachments?: FileUploadItemValue[];
+  composerValues?: CommunityComposerValues;
+  acceptedQuoteId?: string;
+  issue?: string;
+  ignoredQuoteIds?: string[];
+  callout?: {
+    title: string;
+    venue: string;
+    date: string;
+    expected: string;
+    spots: number;
+    interested: number;
+  };
   request?: {
     occasion: string;
     date: string;

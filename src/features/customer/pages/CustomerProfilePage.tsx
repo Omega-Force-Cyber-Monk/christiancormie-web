@@ -15,6 +15,8 @@ import {
   type ProfileTab,
 } from "@/features/customer/components/profile/ProfileTabs";
 import { sampleTruckProfile as profile } from "@/features/customer/data/profile.data";
+import { sampleMemberProfile } from "@/features/customer/data/member-profile.data";
+import CustomerMemberProfilePage from "@/features/customer/pages/CustomerMemberProfilePage";
 import "@/features/customer/components/profile/profile.css";
 
 const actionPreviews = {
@@ -40,7 +42,7 @@ const actionPreviews = {
   },
 };
 
-export default function CustomerProfilePage() {
+function TruckProfilePage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
@@ -147,4 +149,11 @@ export default function CustomerProfilePage() {
       </Modal>
     </div>
   );
+}
+
+export default function CustomerProfilePage() {
+  const { id } = useParams();
+  if (id === "me" || id === sampleMemberProfile.id)
+    return <CustomerMemberProfilePage own={id === "me"} />;
+  return <TruckProfilePage key={id} />;
 }
