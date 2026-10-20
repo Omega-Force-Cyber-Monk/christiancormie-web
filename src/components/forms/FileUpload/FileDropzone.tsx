@@ -1,10 +1,11 @@
-import type { ChangeEvent, DragEvent } from "react";
+import type { ChangeEvent, DragEvent, ReactNode } from "react";
 
 type FileDropzoneProps = {
   disabled?: boolean;
   accept?: string;
   multiple?: boolean;
   onFilesSelected: (files: File[]) => void;
+  children?: ReactNode;
 };
 
 export function FileDropzone({
@@ -12,6 +13,7 @@ export function FileDropzone({
   accept,
   multiple = false,
   onFilesSelected,
+  children,
 }: FileDropzoneProps) {
   const handleFiles = (files: FileList | null) => {
     if (!files || disabled) return;
@@ -37,8 +39,12 @@ export function FileDropzone({
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >
-      <span className="font-medium text-[var(--text)]">Choose files</span>
-      <span>or drag and drop them here</span>
+      {children ?? (
+        <>
+          <span className="font-medium text-[var(--text)]">Choose files</span>
+          <span>or drag and drop them here</span>
+        </>
+      )}
       <input
         className="sr-only"
         accept={accept}

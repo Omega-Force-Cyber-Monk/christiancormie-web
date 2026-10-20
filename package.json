@@ -8,8 +8,8 @@
     "node": ">=22.22.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node api.js && vite",
+    "build": "node api.js && tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "node src/lib/testing/runTests.mjs",

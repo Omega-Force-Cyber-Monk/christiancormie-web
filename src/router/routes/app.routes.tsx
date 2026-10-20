@@ -11,7 +11,7 @@ import { ErrorPage } from "@/router/routes/ErrorPage";
 import { lazyRoute } from "@/router/routes/lazyRoute";
 import { publicRoutes } from "@/router/routes/public.routes";
 import { RouteTitleManager } from "@/router/RouteTitleManager";
-import { vendorRoutes } from "@/router/routes/vendor.routes";
+import { vendorHomeRoutes, vendorRoutes } from "@/router/routes/vendor.routes";
 import { vendorStaffRoutes } from "@/router/routes/vendor-staff.routes";
 
 export const appRoutes: RouteObject[] = [
@@ -31,16 +31,18 @@ export const appRoutes: RouteObject[] = [
         children: [
           {
             path: "dashboard",
-            element: <DashboardLayout />,
             children: [
+              ...vendorHomeRoutes,
               {
-                index: true,
-                element: <DashboardRedirect />,
+                element: <DashboardLayout />,
+                children: [
+                  { index: true, element: <DashboardRedirect /> },
+                  ...customerRoutes,
+                  ...vendorRoutes,
+                  ...vendorStaffRoutes,
+                  ...adminRoutes,
+                ],
               },
-              ...customerRoutes,
-              ...vendorRoutes,
-              ...vendorStaffRoutes,
-              ...adminRoutes,
             ],
           },
         ],

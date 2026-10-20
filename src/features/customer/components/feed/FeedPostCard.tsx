@@ -1,11 +1,18 @@
 import { Clock, Heart, MapPin, MessageCircle, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import { generatePath, Link } from "react-router";
 
 import { ROUTES } from "@/constants/routes";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
-import { FeedCommentForm } from "@/features/customer/components/feed/FeedCommentForm";
+import tacoSymbol from "@/features/customer/assets/feed/comment-taco.png";
+import fireSymbol from "@/features/customer/assets/feed/comment-fire.png";
+import { FeedCommentsDialog } from "@/features/customer/components/feed/FeedCommentsDialog";
+import { createFeedComments } from "@/features/customer/data/feed-comments.data";
 import type { FeedPost } from "@/features/customer/data/feed.data";
+import {
+  feedCommentsReducer,
+  getFeedCommentCount,
+} from "@/features/customer/utils/feedComments";
 
 type FeedPostCardProps = {
   post: FeedPost;
@@ -16,10 +23,18 @@ type FeedPostCardProps = {
 export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
   const [liked, setLiked] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [comments, setComments] = useState<string[]>([]);
+  const [comments, dispatchComments] = useReducer(
+    feedCommentsReducer,
+    post.id,
+    createFeedComments,
+  );
   const [announcement, setAnnouncement] = useState("");
   const headingId = `feed-post-${post.id}-title`;
-  const commentsId = `feed-post-${post.id}-comments`;
+  const commentCount = getFeedCommentCount(
+    post.commentCount,
+    createFeedComments(post.id).length,
+    comments,
+  );
 
   return (
     <article aria-labelledby={headingId} className="feed-post" id={post.id}>
@@ -58,8 +73,8 @@ export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
         </div>
       </header>
       <p className="feed-post-copy">
-        {post.textBeforeSymbol} <span aria-hidden="true" className="feed-symbol" />{" "}
-        {post.textAfterSymbol} <span aria-hidden="true" className="feed-symbol" />
+        {post.textBeforeSymbol} <img alt="" src={tacoSymbol} className="feed-symbol" />{" "}
+        {post.textAfterSymbol} <img alt="" src={fireSymbol} className="feed-symbol" />
       </p>
       <button
         aria-label={`Enlarge photo in ${post.author} post`}
@@ -93,15 +108,15 @@ export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
           <span>{post.likes + Number(liked)}</span>
         </button>
         <button
-          aria-controls={commentsId}
           aria-expanded={commentsOpen}
-          aria-label={`${commentsOpen ? "Hide" : "Show"} comments for ${post.author} post`}
+          aria-haspopup="dialog"
+          aria-label={`Show comments for ${post.author} post`}
           className="feed-reaction text-[#B8C1D1]"
-          onClick={() => setCommentsOpen((current) => !current)}
+          onClick={() => setCommentsOpen(true)}
           type="button"
         >
           <MessageCircle aria-hidden="true" size={24} />
-          <span>{post.commentCount + comments.length}</span>
+          <span>{commentCount}</span>
         </button>
         <button
           aria-label={`Share link to ${post.author} sample post`}
@@ -112,38 +127,25 @@ export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
           <Share2 aria-hidden="true" size={24} />
         </button>
       </div>
-      <section
-        aria-label="Local comment preview"
-        className="mt-3 rounded-xl border border-white/10 p-4"
-        hidden={!commentsOpen}
-        id={commentsId}
-      >
-        <h3 className="text-sm font-semibold">Comments preview</h3>
-        <p className="mt-2 text-sm leading-5 text-[#B8C1D1]">
-          The design shows {post.commentCount} sample comments; their text was not
-          supplied.
-        </p>
-        {comments.length > 0 && (
-          <ul aria-label="Local preview comments" className="mt-3 space-y-3">
-            {comments.map((comment, index) => (
-              <li className="rounded-lg bg-white/5 p-3" key={index}>
-                <p className="text-xs text-[#2ED3D1]">You · Local preview</p>
-                <p className="mt-1 text-sm break-words whitespace-pre-wrap">
-                  {comment}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-        <FeedCommentForm
-          onPreview={(text) => {
-            setComments((current) => [...current, text]);
-            setAnnouncement(
-              "Comment added to this page's local preview. Nothing was published.",
-            );
-          }}
-        />
-      </section>
+      <FeedCommentsDialog
+        isOpen={commentsOpen}
+        post={post}
+        comments={comments}
+        count={commentCount}
+        onClose={() => setCommentsOpen(false)}
+        onLike={(id) => dispatchComments({ type: "like", id })}
+        onAdd={(text, parentId) => {
+          dispatchComments({
+            type: "add",
+            id: `${post.id}-${crypto.randomUUID()}`,
+            text,
+            parentId,
+          });
+          setAnnouncement(
+            `${parentId ? "Reply" : "Comment"} added to this local preview. Nothing was published.`,
+          );
+        }}
+      />
       <p aria-live="polite" className="sr-only" role="status">
         {announcement}
       </p>

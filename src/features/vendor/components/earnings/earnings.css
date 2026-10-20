@@ -1,0 +1,500 @@
+﻿/* Vendor Earnings & Analytics presentation from the supplied three SVGs. */
+.vendor-home-shell.vendor-earnings-shell > div > header {
+  min-height: 84px;
+}
+.vendor-home-shell.vendor-earnings-shell main {
+  padding: 37px 38px 64px;
+}
+.vendor-earnings-page {
+  width: 100%;
+  min-width: 0;
+  max-width: 764px;
+}
+.vendor-earnings-page--analytics {
+  max-width: 1064px;
+}
+.vendor-earnings-surface {
+  background: #121826;
+  padding: 35px 32px 26px;
+}
+.vendor-earnings-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.vendor-earnings-tabs button {
+  min-height: 49px;
+  border-radius: 12px;
+  background: #242d42;
+  padding: 12px;
+  color: #b8c1d1;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.vendor-earnings-tabs button[aria-selected="true"] {
+  background: #ff5733;
+  color: #080a10;
+}
+.vendor-earnings-overview {
+  display: grid;
+  gap: 28px;
+  margin-top: 43px;
+}
+.vendor-payment-methods {
+  border-radius: 18px;
+  background: #090909;
+  padding: 16px 20px 20px;
+}
+.vendor-bank-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 15px;
+  background: rgb(255 87 51 / 10%);
+  color: #ff5733;
+}
+.vendor-method-default {
+  border-radius: 999px;
+  background: rgb(255 87 51 / 10%);
+  padding: 5px 9px;
+  color: #ff5733;
+  font-size: 12px;
+  line-height: 16px;
+}
+.vendor-recent-transactions {
+  border-radius: 18px;
+  background: #1b2233;
+  padding: 20px;
+}
+.vendor-transaction {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #242d42;
+  padding: 19px 0;
+}
+.vendor-transaction:first-child {
+  padding-top: 3px;
+}
+.vendor-transaction-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.vendor-transaction-status--processing {
+  color: #ff5733;
+}
+.vendor-transaction-status--completed {
+  color: #00c983;
+}
+.vendor-analytics-overview {
+  margin-top: 56px;
+  padding: 0 16px 24px;
+}
+.vendor-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.vendor-metric-card {
+  min-width: 0;
+  border: 1px solid #34363e;
+  border-radius: 17px;
+  background: #1b2233;
+  padding: 16px;
+}
+.vendor-metric-label {
+  color: #b6b7bc;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.vendor-metric-chart {
+  min-width: 0;
+}
+.vendor-top-locations li {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #34363e;
+}
+.vendor-top-locations li:last-child {
+  border-bottom: 0;
+}
+.vendor-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  background: rgb(0 200 255 / 10%);
+  padding: 3px 8px;
+  color: #25d3d5;
+  font-size: 11px;
+  line-height: 14px;
+}
+.vendor-trend--followers {
+  background: rgb(255 184 0 / 10%);
+  color: #ffb800;
+  font-weight: 600;
+}
+.vendor-credit-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 26px;
+  border: 1px solid #17576a;
+  border-radius: 17px;
+  background: #102d3b;
+  padding: 35px;
+}
+.vendor-credit-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 13px;
+  background: rgb(46 211 209 / 18%);
+  color: #00d7e1;
+}
+.vendor-credit-expand {
+  display: grid;
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: rgb(46 211 209 / 18%);
+  color: #b8c1d1;
+}
+.vendor-credit-toggle {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  background: #25c9cb;
+  padding: 10px 12px;
+  color: #080a10;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.vendor-credit-toggle:hover {
+  background: #2ed3d1;
+}
+.vendor-redemptions {
+  margin-top: 24px;
+  border: 1px solid #174459;
+  border-radius: 24px;
+  background: #1b2233;
+  padding: 16px;
+}
+.vendor-redemption-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.vendor-redemption-stats > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid rgb(0 200 255 / 15%);
+  border-radius: 14px;
+  background: rgb(0 200 255 / 5%);
+  padding: 12px;
+}
+.vendor-redemption-stats dt {
+  color: #7d889a;
+  font-size: 12px;
+  line-height: 18px;
+}
+.vendor-redemption-stats dd {
+  order: -1;
+  color: #25d3d5;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 800;
+}
+.vendor-redemption-stats > div:nth-child(2) {
+  border-color: rgb(0 200 130 / 20%);
+  background: rgb(0 200 130 / 5%);
+}
+.vendor-redemption-stats > div:nth-child(2) dd {
+  color: #32cd8b;
+}
+.vendor-redemption-stats > div:nth-child(3) {
+  border-color: rgb(255 184 0 / 15%);
+  background: rgb(255 184 0 / 5%);
+}
+.vendor-redemption-stats > div:nth-child(3) dd {
+  color: #ffb800;
+}
+.vendor-redemption-row {
+  display: flex;
+  min-width: 0;
+  min-height: 57px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #242d42;
+  padding: 10px 0;
+}
+.vendor-redemption-row:last-child {
+  border-bottom: 0;
+}
+.vendor-redemption-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 11px;
+  background: rgb(0 200 255 / 15%);
+  color: #25d3d5;
+}
+.vendor-redemption-icon--manual {
+  background: rgb(189 63 255 / 15%);
+  color: #bd3fff;
+}
+.vendor-redemption-icon--self {
+  background: rgb(0 200 130 / 15%);
+  color: #2ed893;
+}
+.vendor-credit-growth {
+  margin-top: 16px;
+  border: 1px solid #12576b;
+  border-radius: 15px;
+  background: linear-gradient(110deg, rgb(0 200 255 / 8%), rgb(0 200 130 / 6%));
+  padding: 12px 10px;
+}
+.vendor-earnings-primary,
+.vendor-earnings-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.vendor-earnings-primary {
+  background: #ff5733;
+  color: white;
+}
+.vendor-earnings-secondary {
+  border: 1px solid #414651;
+  background: #1b2233;
+  color: white;
+}
+.vendor-earnings-primary:disabled {
+  opacity: 0.6;
+}
+.vendor-credits-modal {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: min(358px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #2ed3d1;
+  border-radius: 20px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 38px,
+      rgb(255 255 255 / 4%) 38px 58px
+    ),
+    linear-gradient(180deg, #2ed3d1, #ff5733);
+  padding: 17px 16px;
+  color: white;
+  font-size: 12px;
+  line-height: 16px;
+  box-shadow: 0 20px 80px #0008;
+}
+.vendor-credits-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: rgb(0 65 75 / 28%);
+  padding: 2px 0;
+}
+.vendor-credits-modal-header .vendor-credit-icon {
+  background: #00c8f099;
+}
+.vendor-credits-modal-header .vendor-credit-expand {
+  color: white;
+}
+.vendor-credits-modal-toggle {
+  display: flex;
+  min-height: 48px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+  border-radius: 16px;
+  background: #596174;
+  padding: 10px 12px;
+  color: white;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.vendor-credits-modal-toggle:hover {
+  background: #414b60;
+}
+.vendor-credit-help,
+.vendor-credit-benefits,
+.vendor-credit-methods {
+  margin-top: 16px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 16px;
+  background: rgb(18 60 62 / 45%);
+  padding: 12px;
+}
+.vendor-credits-modal h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 800;
+}
+.vendor-credits-modal img {
+  height: 16px;
+  width: 16px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.vendor-credit-help ol,
+.vendor-credit-benefits ul {
+  display: grid;
+  gap: 8px;
+}
+.vendor-credit-help li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+}
+.vendor-credit-help strong {
+  font-weight: 800;
+}
+.vendor-credit-benefits {
+  border-color: rgb(255 184 0 / 60%);
+  background: linear-gradient(145deg, rgb(80 50 0 / 65%), rgb(0 70 90 / 50%));
+}
+.vendor-credit-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.vendor-credit-benefits li img {
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+}
+.vendor-credit-benefits strong {
+  color: #fff0a8;
+  font-weight: 800;
+}
+.vendor-credit-methods {
+  border-color: #bd3fff;
+  background: rgb(117 16 141 / 60%);
+}
+.vendor-credit-methods ul {
+  display: grid;
+  gap: 8px;
+}
+.vendor-credit-methods li {
+  border-radius: 15px;
+  background: rgb(255 255 255 / 12%);
+  padding: 8px 10px;
+}
+.vendor-credit-methods li img {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 3px;
+}
+.vendor-earnings-page :is(button, input, a):focus-visible,
+.vendor-credits-modal button:focus-visible {
+  outline: 2px solid #2ed3d1;
+  outline-offset: 3px;
+}
+.vendor-credits-modal button:focus-visible {
+  outline-color: white;
+}
+@media (max-width: 1279px) {
+  .vendor-analytics-overview {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  .vendor-credit-card {
+    padding: 20px;
+  }
+}
+@media (max-width: 1023px) {
+  .vendor-home-shell.vendor-earnings-shell main {
+    padding: 24px 16px 56px;
+  }
+  .vendor-earnings-surface {
+    padding: 24px 20px;
+  }
+}
+@media (max-width: 767px) {
+  .vendor-analytics-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vendor-earnings-surface {
+    padding: 20px 16px;
+  }
+  .vendor-earnings-tabs {
+    gap: 10px;
+  }
+  .vendor-earnings-overview {
+    margin-top: 28px;
+  }
+  .vendor-analytics-overview {
+    margin-top: 28px;
+  }
+  .vendor-credit-card {
+    gap: 24px;
+  }
+  .vendor-payment-methods,
+  .vendor-recent-transactions {
+    padding: 16px;
+  }
+  .vendor-redemptions {
+    padding: 12px;
+  }
+  .vendor-redemption-stats {
+    gap: 8px;
+  }
+  .vendor-redemption-stats > div {
+    padding: 10px 8px;
+  }
+  .vendor-redemption-stats dt {
+    font-size: 10px;
+  }
+  .vendor-redemption-stats dd {
+    font-size: 18px;
+  }
+  .vendor-redemption-row {
+    gap: 8px;
+  }
+}

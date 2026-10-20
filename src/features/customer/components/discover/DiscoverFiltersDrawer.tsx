@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 
 import { Modal } from "@/components/overlays/Modal/Modal";
 import { Button } from "@/components/ui/Button";
+import { discoverArtwork } from "@/features/customer/data/discover-booking.data";
 import {
   defaultDiscoverFilters,
   discoverCuisines,
@@ -82,7 +83,11 @@ export function DiscoverFiltersDrawer({
                   type="checkbox"
                 />
                 <span className="discover-cuisine-tile">
-                  <span aria-hidden="true" className="size-6 bg-white" />
+                  <img
+                    alt=""
+                    className="size-6 object-contain"
+                    src={discoverArtwork(`2-filter-${cuisine.toLowerCase()}.png`)}
+                  />
                   <span className="text-sm leading-5">{cuisine}</span>
                 </span>
               </label>

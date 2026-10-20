@@ -9,11 +9,8 @@ const priceFormatter = new Intl.NumberFormat("en-US", {
 export function ProfileMenu() {
   return (
     <ul aria-label="Sample menu" className="space-y-4">
-      {profileMenu.map((item, index) => (
-        <li
-          className={`profile-menu-item ${index === 0 ? "profile-menu-featured" : ""}`}
-          key={item.id}
-        >
+      {profileMenu.map((item) => (
+        <li className="profile-menu-item profile-menu-featured" key={item.id}>
           <TruckImage
             alt={item.name}
             className="size-20 shrink-0 rounded-full border border-[#FF5733] sm:size-24"

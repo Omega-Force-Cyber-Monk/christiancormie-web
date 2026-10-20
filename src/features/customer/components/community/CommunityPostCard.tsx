@@ -12,6 +12,7 @@ import { useState } from "react";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
 import { FeedCommentForm } from "@/features/customer/components/feed/FeedCommentForm";
 import type { CommunityPost } from "@/features/customer/data/community.data";
+import { FilePreview } from "@/components/forms/FileUpload/FilePreview";
 
 type CommunityPostCardProps = {
   post: CommunityPost;
@@ -73,7 +74,7 @@ export function CommunityPostCard({
           </div>
           <p className="mt-1 text-xs leading-4 text-[#B8C1D1]">
             {post.age}
-            {kind !== "request" && ` � ${post.city}`}
+            {kind !== "request" && ` · ${post.city}`}
           </p>
         </div>
         <span className={`community-category community-category--${kind}`}>
@@ -93,6 +94,16 @@ export function CommunityPostCard({
         <p className="mt-3 inline-flex rounded-full bg-[#2ED3D1]/10 px-3 py-2 text-sm leading-4 font-semibold text-[#2ED3D1]">
           {post.request.occasion}
         </p>
+      )}
+      {post.attachments && post.attachments.length > 0 && (
+        <ul className="mt-4 space-y-2" aria-label="Local post attachments">
+          {post.attachments.map((attachment) => (
+            <li className="flex min-w-0 items-center gap-3 text-sm" key={attachment.id}>
+              <FilePreview file={attachment.file} />
+              <span className="break-all">{attachment.file.name}</span>
+            </li>
+          ))}
+        </ul>
       )}
       <p className="mt-3 text-base leading-[26px] text-[#E7E8E9]">
         {post.body.map((line, index) => (
@@ -204,7 +215,7 @@ export function CommunityPostCard({
                   key={index}
                 >
                   <span className="block text-xs text-[#2ED3D1]">
-                    You � Local preview
+                    You · Local preview
                   </span>
                   {comment}
                 </li>

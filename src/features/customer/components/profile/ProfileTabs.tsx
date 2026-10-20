@@ -4,7 +4,10 @@ import { useRef } from "react";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
 import { ProfileMenu } from "@/features/customer/components/profile/ProfileMenu";
 import { ProfileReviews } from "@/features/customer/components/profile/ProfileReviews";
-import { profileMenu } from "@/features/customer/data/profile.data";
+import {
+  discoverArtwork,
+  discoverGallery,
+} from "@/features/customer/data/discover-booking.data";
 
 export type ProfileTab = "menu" | "gallery" | "reviews";
 const tabs = [
@@ -66,7 +69,7 @@ export function ProfileTabs({ active, onChange, onImage }: ProfileTabsProps) {
       {tabs.map(({ id, label }) => (
         <div
           aria-labelledby={`profile-tab-${id}`}
-          className={`profile-tab-panel ${id === "reviews" ? "profile-tab-panel--reviews" : ""}`}
+          className={`profile-tab-panel profile-tab-panel--${id}`}
           hidden={active !== id}
           id={`profile-panel-${id}`}
           key={id}
@@ -77,26 +80,36 @@ export function ProfileTabs({ active, onChange, onImage }: ProfileTabsProps) {
           {id === "menu" && <ProfileMenu />}
           {id === "gallery" && (
             <>
-              <p className="mb-4 text-sm text-[#B8C1D1]">
-                Sample photos supplied with the design.
-              </p>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {profileMenu.map((item) => (
-                  <button
-                    aria-label={`Enlarge ${item.name} photo`}
-                    className="overflow-hidden rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
-                    key={item.id}
-                    onClick={() => onImage({ src: item.image, name: item.name })}
-                    type="button"
-                  >
-                    <TruckImage
-                      alt={item.name}
-                      className="aspect-square w-full"
-                      name={item.name}
-                      src={item.image}
+              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
+                {discoverGallery.map((item, index) =>
+                  item ? (
+                    <button
+                      aria-label={`Enlarge ${item.name} photo`}
+                      className="overflow-hidden rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
+                      key={item.image}
+                      onClick={() =>
+                        onImage({
+                          src: discoverArtwork(item.image) ?? "",
+                          name: item.name,
+                        })
+                      }
+                      type="button"
+                    >
+                      <TruckImage
+                        alt={item.name}
+                        className="aspect-[250/164] w-full"
+                        name={item.name}
+                        src={discoverArtwork(item.image) ?? ""}
+                      />
+                    </button>
+                  ) : (
+                    <div
+                      key={`placeholder-${index}`}
+                      aria-hidden="true"
+                      className="aspect-[250/164] bg-[#1B2233]"
                     />
-                  </button>
-                ))}
+                  ),
+                )}
               </div>
             </>
           )}
