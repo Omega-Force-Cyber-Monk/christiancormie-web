@@ -60,7 +60,6 @@ try {
         "https://example.invalid/api/v1",
       ),
       "import.meta.env.VITE_SOCKET_URL": JSON.stringify(""),
-      "import.meta.env.VITE_ENABLE_MOCK_AUTH": JSON.stringify("false"),
     },
     build: {
       ssr: true,

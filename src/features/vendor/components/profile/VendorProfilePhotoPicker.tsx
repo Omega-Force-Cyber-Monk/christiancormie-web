@@ -9,23 +9,22 @@ export function VendorProfilePhotoPicker({
   source,
   onChange,
   avatar = false,
+  disabled = false,
 }: {
   source?: ProfilePhotoSource;
   onChange: (file: File) => void;
   avatar?: boolean;
+  disabled?: boolean;
 }) {
   const [error, setError] = useState<string>();
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
   const select = (files: File[]) => {
+    if (disabled) return;
     const file = files[0];
     if (!file) return;
     const invalid = validateProfilePhoto(file);
-    setError(
-      invalid
-        ? `${invalid} Choose JPG, PNG or WebP up to 5 MB for this preview.`
-        : undefined,
-    );
+    setError(invalid ? `${invalid} Choose JPG, PNG or WebP up to 5 MB.` : undefined);
     if (!invalid) onChange(file);
   };
   return (
@@ -41,6 +40,7 @@ export function VendorProfilePhotoPicker({
             type="button"
             className="vendor-profile-avatar-upload"
             aria-label="Change profile picture"
+            disabled={disabled}
             onClick={() => input.current?.click()}
           >
             <VendorProfilePhoto source={source} alt="" />
@@ -79,7 +79,9 @@ export function VendorProfilePhotoPicker({
           </span>
         </FileDropzone>
       )}
-      <p className="sr-only">Images remain local. JPG, PNG or WebP up to 5 MB.</p>
+      <p className="sr-only">
+        Local preview until upload and save are confirmed. JPG, PNG or WebP up to 5 MB.
+      </p>
       <FormError id={id} message={error} />
     </div>
   );

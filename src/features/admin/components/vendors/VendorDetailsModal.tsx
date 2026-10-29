@@ -59,7 +59,7 @@ export function VendorDetailsModal({
                 {getVendorStatusBadge(vendor.status)}
               </div>
               <p className="mt-1 text-xs text-[#8091a7]">
-                Vendor ID: {vendor.id || "V-1847"}
+                Vendor ID: {vendor.id || "N/A"}
               </p>
             </div>
             <button
@@ -150,7 +150,7 @@ export function VendorDetailsModal({
                           {document.title}
                         </div>
                         <div className="mt-1 text-xs text-[#8091a7]">
-                          Uploaded {document.uploadedDate}
+                          Submitted {document.uploadedDate}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

@@ -2,16 +2,92 @@
 import { FilePreview } from "@/components/forms/FileUpload/FilePreview";
 import { getVendorPostCategory } from "@/features/vendor/data/create-posts.data";
 import type { LocalVendorPost } from "@/features/vendor/utils/createPostsState";
+import type { CommunityPost } from "@/features/community/schemas/community.schema";
+import { remoteMedia } from "@/utils/files/remoteMedia";
+import { CommunityPostInteractions } from "@/features/community/components/CommunityPostInteractions";
 
 export function VendorPostReview({
   post,
   onEdit,
   onNew,
+  remote,
+  rewardStatus,
+  editable = false,
+  onDelete,
+  interactive = false,
 }: {
-  post: LocalVendorPost;
+  post?: LocalVendorPost;
   onEdit: () => void;
   onNew: () => void;
+  remote?: CommunityPost;
+  rewardStatus?: string;
+  editable?: boolean;
+  onDelete?: () => void;
+  interactive?: boolean;
 }) {
+  if (remote)
+    return (
+      <section className="vendor-post-review">
+        <CheckCircle2 className="mb-5 text-[#2ED3D1]" size={36} aria-hidden="true" />
+        <h1 className="text-xl font-semibold">Community post saved</h1>
+        <p role="status" className="my-4 text-sm leading-6 text-[#B8C1D1]">
+          The saved backend record is shown below.
+          {rewardStatus ? ` Reward status: ${rewardStatus}.` : ""}
+        </p>
+        <h2 className="mb-3 text-lg font-semibold">{remote.title}</h2>
+        <p className="whitespace-pre-wrap text-sm leading-6">{remote.description}</p>
+        {remote.media?.length ? (
+          <ul className="mt-5 space-y-3" aria-label="Published attachments">
+            {remote.media.map((item) => {
+              const url = remoteMedia(item.mediaUrl);
+              return url ? (
+                <li key={item.id} className="flex items-center gap-3">
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm underline"
+                  >
+                    {item.mediaType === "IMAGE" ? (
+                      <img
+                        src={url}
+                        alt="Published Community attachment"
+                        className="max-h-48 rounded-xl object-contain"
+                      />
+                    ) : (
+                      "View saved PDF attachment"
+                    )}
+                  </a>
+                </li>
+              ) : null;
+            })}
+          </ul>
+        ) : null}
+        <p className="mt-4 text-xs text-[#B8C1D1]">
+          {remote.category} · {remote.status}
+        </p>
+        {interactive && <CommunityPostInteractions post={remote} />}
+        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+          <button
+            className="vendor-post-secondary"
+            type="button"
+            disabled={!editable}
+            onClick={onEdit}
+          >
+            Edit post
+          </button>
+          <button className="vendor-post-submit" type="button" onClick={onNew}>
+            Create another post
+          </button>
+          {onDelete && (
+            <button className="vendor-post-secondary" type="button" onClick={onDelete}>
+              Delete post
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  if (!post) return null;
   const category = getVendorPostCategory(
     post.kind === "truck" ? "truck" : post.values.category,
   );

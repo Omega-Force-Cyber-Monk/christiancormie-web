@@ -1,65 +1,92 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router";
+import { useForm, useWatch } from "react-hook-form";
+import { Link } from "react-router";
 import { toast } from "sonner";
 
 import { FormField } from "@/components/forms/FormField";
 import { Button } from "@/components/ui/Button";
 import { ROUTES } from "@/constants/routes";
-import { useRegisterMutation } from "@/features/auth/api/auth.api";
+import {
+  useRegisterCustomerMutation,
+  useRegisterVendorMutation,
+} from "@/features/auth/api/auth.api";
+import { EmailVerificationForm } from "./EmailVerificationForm";
 import {
   signupSchema,
+  toCustomerRegistration,
+  toVendorRegistration,
   type SignupFormValues,
 } from "@/features/auth/schemas/signup.schema";
 import { applyServerFieldErrors } from "@/utils/errors/applyServerFieldErrors";
-import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { normalizeAuthError } from "@/features/auth/utils/authErrors";
 
 export function SignupForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [registerAccount, { isLoading }] = useRegisterMutation();
-  const navigate = useNavigate();
+  const [registerCustomer, customer] = useRegisterCustomerMutation();
+  const [registerVendor, vendor] = useRegisterVendorMutation();
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const isLoading = customer.isLoading || vendor.isLoading;
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
     setError,
+    control,
+    getValues,
+    resetField,
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       name: "",
-      businessName: "N/A",
-      address_Pickup_Location: "N/A",
+      accountType: "CUSTOMER",
+      businessName: "",
+      dateOfBirth: "",
       phone: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
+  const accountType = useWatch({ control, name: "accountType" });
 
   const onSubmit = async (values: SignupFormValues) => {
     setFormError(null);
 
     try {
-      await registerAccount({
-        name: values.name,
-        businessName: values.businessName || "N/A",
-        address_Pickup_Location: values.address_Pickup_Location || "N/A",
-        phone: values.phone,
-        email: values.email,
-        password: values.password,
-      }).unwrap();
-      toast.success("Account created. Please log in.");
-      void navigate(ROUTES.LOGIN);
+      if (isLoading) return;
+      const result =
+        values.accountType === "CUSTOMER"
+          ? await registerCustomer(toCustomerRegistration(values)).unwrap()
+          : await registerVendor(toVendorRegistration(values)).unwrap();
+      resetField("password");
+      resetField("confirmPassword");
+      setVerificationEmail(result.email);
     } catch (error) {
-      const appError = normalizeApiError(error);
-      applyServerFieldErrors(appError, setError);
+      const appError = normalizeAuthError(error);
+      applyServerFieldErrors(appError, setError, [
+        "name",
+        "businessName",
+        "dateOfBirth",
+        "phone",
+        "email",
+        "password",
+        "confirmPassword",
+      ]);
       setFormError(appError.message);
       toast.error(appError.message);
     }
   };
+
+  if (verificationEmail !== null)
+    return (
+      <EmailVerificationForm
+        email={verificationEmail}
+        onBack={() => setVerificationEmail(null)}
+      />
+    );
 
   return (
     <form
@@ -76,13 +103,41 @@ export function SignupForm() {
           {formError}
         </div>
       ) : null}
+      <fieldset className="flex gap-4" disabled={isSubmitting || isLoading}>
+        <legend className="mb-2 text-sm">Account type</legend>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="radio" value="CUSTOMER" {...register("accountType")} />
+          Customer
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="radio" value="VENDOR" {...register("accountType")} />
+          Vendor
+        </label>
+      </fieldset>
       <FormField error={errors.name?.message} label="Full Name" {...register("name")} />
-      <FormField
-        error={errors.phone?.message}
-        label="Phone Number"
-        type="tel"
-        {...register("phone")}
-      />
+      {accountType === "CUSTOMER" ? (
+        <FormField
+          label="Date of Birth"
+          type="date"
+          autoComplete="bday"
+          error={errors.dateOfBirth?.message}
+          {...register("dateOfBirth")}
+        />
+      ) : (
+        <>
+          <FormField
+            label="Business Name (optional)"
+            error={errors.businessName?.message}
+            {...register("businessName")}
+          />
+          <FormField
+            error={errors.phone?.message}
+            label="Phone Number"
+            type="tel"
+            {...register("phone")}
+          />
+        </>
+      )}
       <FormField
         autoComplete="email"
         error={errors.email?.message}
@@ -126,6 +181,14 @@ export function SignupForm() {
           Log in
         </Link>
       </p>
+      <button
+        className="w-full text-sm text-[var(--primary)]"
+        type="button"
+        disabled={isSubmitting || isLoading}
+        onClick={() => setVerificationEmail(getValues("email"))}
+      >
+        Verify an existing account
+      </button>
     </form>
   );
 }

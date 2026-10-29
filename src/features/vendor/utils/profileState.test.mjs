@@ -1,4 +1,5 @@
-﻿import assert from "node:assert/strict";
+import { memberStore } from "../../social/utils/member.test-fixtures.mjs";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { File } from "node:buffer";
 import { PassThrough } from "node:stream";
@@ -28,6 +29,7 @@ import {
   validateProfilePhoto,
 } from "./profileState.ts";
 import { VendorProfileSummary } from "../components/profile/VendorProfileSummary.tsx";
+import { itemDto } from "./truckMenu.test-fixtures.mjs";
 import { VendorProfileMenu } from "../components/profile/VendorProfileMenu.tsx";
 import {
   VendorProfileGallery,
@@ -277,26 +279,29 @@ test("gallery opens supplied media only, retains selection, wraps navigation and
   assert.equal(nextProfileGalleryId("missing", 1), photos[0].id);
   state = reduce(state, { type: "gallery", id: null });
   assert.equal(state.galleryId, null);
-  const html = renderToStaticMarkup(h(VendorProfileGallery, { onOpen: noop }));
-  assert.equal((html.match(/<button /g) ?? []).length, 5);
-  assert.equal((html.match(/gallery-placeholder/g) ?? []).length, 4);
+  const store = memberStore("VENDOR");
+  const html = renderToStaticMarkup(h(Provider, { store }, h(VendorProfileGallery)));
+  assert.match(html, /Loading vendor identity/);
+  assert.doesNotMatch(html, /gallery-placeholder/);
+  store.dispatch(baseApi.util.resetApiState());
 });
 test("profile summary reproduces selected identity, stats and compact review state without changing account identity", () => {
   const state = initialVendorProfileState();
   const html = renderToStaticMarkup(
-    h(VendorProfileSummary, { values: state.values, photo: state.photo, onEdit: noop }),
+    h(VendorProfileSummary, {
+      values: state.values,
+      photo: state.photo,
+      onEdit: noop,
+      meta: { capacity: 125, followers: 12, rating: 4.85, verified: false },
+    }),
   );
   for (const text of [
     "Taco Paradise",
     "Mexican Street Food",
     "Union Square, SF",
-    "Credit Accepted",
-    "Open until 9:00 PM",
-    "200+ guests",
-    "1,240",
-    "4.9",
-    "#12",
-    "20% off all orders before 2PM",
+    "125 maximum guests",
+    "12",
+    "4.85",
     "Edit Profile",
   ])
     assert.ok(html.includes(text), text);
@@ -306,6 +311,7 @@ test("profile summary reproduces selected identity, stats and compact review sta
       photo: state.photo,
       compact: true,
       onEdit: noop,
+      meta: { capacity: 125, followers: 12, rating: 4.85, verified: false },
     }),
   );
   assert.match(compact, /vendor-profile-summary--compact/);
@@ -324,7 +330,15 @@ test("all menu controls, editor form fields, retained selections and original cu
   const state = initialVendorProfileState();
   const menu = renderToStaticMarkup(
     h(VendorProfileMenu, {
-      items: state.menu,
+      items: state.menu.map((item, index) =>
+        itemDto({
+          id: `44444444-4444-4444-8444-44444444444${index}`,
+          name: item.name,
+          description: item.description,
+          price: String(item.priceCents / 100),
+          status: item.available ? "AVAILABLE" : "UNAVAILABLE",
+        }),
+      ),
       onAdd: noop,
       onEdit: noop,
       onDelete: noop,
@@ -358,10 +372,10 @@ test("all menu controls, editor form fields, retained selections and original cu
     "Guest Capacity",
     "Cuisine Types",
     "Change profile picture",
-    'maxLength="50"',
+    'maxLength="255"',
   ]) {
-    if (text === 'maxLength="50"')
-      assert.match(editor, /maxLength="50"|maxlength="50"/);
+    if (text === 'maxLength="255"')
+      assert.match(editor, /maxLength="255"|maxlength="255"/);
     else assert.ok(editor.includes(text), text);
   }
   for (const cuisine of profileCuisineOptions)
@@ -378,16 +392,20 @@ test("add and edit menu forms expose price, photo selection, description limits 
     "Add Menu Item",
     "Photo",
     "Item name",
-    "Price (USD)",
+    "Price (major units; currency unavailable)",
     "Description",
     "Save item",
-    "0 / 120",
-    "nothing is published",
+    "0 characters",
+    "Permanent item deletion is unavailable",
   ])
     assert.ok(add.includes(text), text);
   const edit = renderToStaticMarkup(
     h(VendorMenuItemForm, {
-      item: state.menu[0],
+      item: itemDto({
+        name: state.menu[0].name,
+        price: "4.99",
+        description: state.menu[0].description,
+      }),
       titleId: "menu-title",
       onClose: noop,
       onSave: noop,
@@ -397,12 +415,13 @@ test("add and edit menu forms expose price, photo selection, description limits 
   assert.match(edit, /value="Baja Fish Taco"/);
   assert.match(edit, /value="4.99"/);
 });
-test("all four supplied reviews render with five stars and original text", () => {
-  const html = renderToStaticMarkup(h(VendorProfileReviews));
-  for (const review of profileReviews) assert.ok(html.includes(review.name));
-  assert.equal((html.match(/5 out of 5 stars/g) ?? []).length, 4);
-  assert.match(html, /Fresh ingredients/);
-  assert.match(html, /best ribeye/);
+test("review content waits for verified truck context instead of fixture rows", () => {
+  const store = memberStore("VENDOR");
+  const html = renderToStaticMarkup(h(Provider, { store }, h(VendorProfileReviews)));
+  assert.match(html, /Loading truck identity/);
+  assert.doesNotMatch(html, /Sarah Johnson/);
+  assert.equal(profileReviews.length, 4);
+  store.dispatch(baseApi.util.resetApiState());
 });
 function RouteTree() {
   return useRoutes(appRoutes);
@@ -426,6 +445,7 @@ function renderAt(role, query = "") {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -457,7 +477,7 @@ function renderAt(role, query = "") {
     );
   });
 }
-test("Vendor Profile preserves verified authentication, Vendor-only role guard, shared shell and active navigation", async () => {
+test("profile retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_PROFILE);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -473,12 +493,11 @@ test("Vendor Profile preserves verified authentication, Vendor-only role guard, 
   assert.match(html, /vendor-profile-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/profile"/);
-  assert.match(html, /Taco Paradise/);
-  assert.match(html, /Baja Fish Taco/);
-  assert.match(html, /role="tablist"/);
-  assert.match(await renderAt("VENDOR", "?tab=gallery"), /Profile gallery/);
-  assert.match(await renderAt("VENDOR", "?tab=reviews"), /Sarah Johnson/);
-  assert.match(await renderAt("VENDOR", "?tab=unknown"), /Baja Fish Taco/);
+  assert.doesNotMatch(html, /Taco Paradise|Baja Fish Taco/);
+  assert.match(html, /Loading/);
+  assert.match(await renderAt("VENDOR", "?tab=gallery"), /Loading/);
+  assert.match(await renderAt("VENDOR", "?tab=reviews"), /Loading/);
+  assert.match(await renderAt("VENDOR", "?tab=unknown"), /Loading/);
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role, "?tab=gallery"), "");
   assert.equal(profileFixture.name, "Taco Paradise");

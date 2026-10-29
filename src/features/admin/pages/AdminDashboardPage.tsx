@@ -12,17 +12,32 @@ import { RecentActivityList } from "@/features/admin/components/dashboard/Recent
 import { dashboardCardIcons } from "@/features/admin/components/dashboard/dashboardCardIcons";
 import { useGetAdminDashboardQuery } from "@/features/admin/api/admin.api";
 import {
-  formatCurrency,
   formatNumber,
   formatPercentChange,
   formatRelativeTime,
 } from "@/features/admin/utils/adminFormat";
+import { bookingMoney } from "@/features/admin/utils/adminBookings";
 
 export default function AdminDashboardPage() {
-  const { data, isError, isLoading } = useGetAdminDashboardQuery();
+  const {
+    currentData: data,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminDashboardQuery();
 
   if (isLoading) {
     return <AdminDashboardLoading cards={8} charts={2} rows={5} />;
+  }
+  if (isError && !data) {
+    return (
+      <AdminDashboardError
+        onRetry={() => {
+          void refetch();
+        }}
+      />
+    );
   }
 
   const cards = data
@@ -53,13 +68,13 @@ export default function AdminDashboardPage() {
         },
         {
           title: "Revenue This Month",
-          amount: formatCurrency(data.cards.revenueThisMonth.value),
+          amount: bookingMoney(data.cards.revenueThisMonth.value),
           change: formatPercentChange(data.cards.revenueThisMonth.changePercent),
           icon: dashboardCardIcons.revenueThisMonth,
         },
         {
           title: "Commission Earned",
-          amount: formatCurrency(data.cards.commissionEarned.value),
+          amount: bookingMoney(data.cards.commissionEarned.value),
           change: formatPercentChange(data.cards.commissionEarned.changePercent),
           icon: dashboardCardIcons.commissionEarned,
         },
@@ -70,7 +85,7 @@ export default function AdminDashboardPage() {
           icon: dashboardCardIcons.pendingPayouts,
         },
         {
-          title: "Active Disputes",
+          title: "Active Review Reports",
           amount: formatNumber(data.cards.activeDisputes.value),
           badge: { text: "Needs Review" as const, type: "review" as const },
           icon: dashboardCardIcons.activeDisputes,
@@ -89,15 +104,12 @@ export default function AdminDashboardPage() {
   }));
 
   const recentActivity = data?.recentActivity.map((item) => {
-    const [name, ...actionParts] = item.title.split(" ");
-
     return {
-      id: item.id,
-      name,
-      action: actionParts.join(" ") || item.type.toLowerCase(),
+      id: `${item.type}:${item.id}`,
+      title: item.title ?? "Activity",
       details: item.subtitle,
       time: formatRelativeTime(item.createdAt),
-      badge: item.status ? ("review" as const) : undefined,
+      status: item.status,
     };
   });
 
@@ -110,8 +122,18 @@ export default function AdminDashboardPage() {
 
       <div className="space-y-6">
         {isError ? (
-          <AdminDashboardError message="Unable to load dashboard data." />
+          <AdminDashboardError
+            message="Unable to refresh dashboard data. Previously loaded data is shown."
+            onRetry={() => {
+              void refetch();
+            }}
+          />
         ) : null}
+        {isFetching && data && <p role="status">Refreshing dashboard…</p>}
+        <p className="text-sm text-[var(--text-muted)]">
+          Currency is not provided for dashboard revenue, commission or activity
+          amounts. Activity descriptions use the backend-provided text.
+        </p>
 
         <section aria-label="Dashboard Metrics">
           <DashboardMetricsGrid data={cards} />

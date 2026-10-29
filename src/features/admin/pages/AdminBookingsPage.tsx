@@ -1,5 +1,5 @@
 import { Calendar, CreditCard, Eye, MapPin, Truck, User } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { PageHeader } from "@/components/common/PageHeader";
 import { DataTable } from "@/components/data-display/DataTable/DataTable";
@@ -18,21 +18,18 @@ import type {
   BookingRecord,
   MessageRecipient,
 } from "@/features/admin/components/bookings/bookings.types";
-import {
-  formatCurrency,
-  formatDate,
-  formatNumber,
-} from "@/features/admin/utils/adminFormat";
+import { formatCurrency, formatNumber } from "@/features/admin/utils/adminFormat";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 
-const pageSize = 5;
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
+import { toAdminBooking } from "@/features/admin/utils/adminBookings";
 
 const columns: DataTableColumn<BookingRecord>[] = [
   {
     id: "id",
     header: "Booking ID",
     accessor: (booking) => (
-      <span className="text-sm font-semibold text-slate-100">{booking.id}</span>
+      <span className="text-sm font-semibold text-slate-100">{booking.displayId}</span>
     ),
   },
   {
@@ -110,23 +107,9 @@ const columns: DataTableColumn<BookingRecord>[] = [
   },
 ];
 
-const toBookingStatus = (status: string): BookingRecord["status"] => {
-  const normalized = status.toLowerCase();
-  if (
-    normalized === "confirmed" ||
-    normalized === "pending" ||
-    normalized === "ongoing" ||
-    normalized === "disputed"
-  ) {
-    return normalized;
-  }
-
-  return "pending";
-};
-
 export default function AdminBookingsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const list = useAdminList(5);
+
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
   const [messageRecipient, setMessageRecipient] = useState<MessageRecipient>({
     name: "N/A",
@@ -134,48 +117,16 @@ export default function AdminBookingsPage() {
     conversationId: "N/A",
   });
   const [isMessageOpen, setIsMessageOpen] = useState(false);
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminBookingsManagementQuery();
-
-  const bookings: BookingRecord[] = useMemo(
-    () =>
-      data?.bookings.map((booking) => ({
-        id: booking.bookingNumber,
-        customerName: booking.customer.name,
-        vendorName: booking.vendor.name,
-        date: formatDate(booking.event.date),
-        location: booking.event.location,
-        amount: formatCurrency(booking.payment?.totalAmount),
-        fee: formatCurrency(booking.payment?.commissionAmount),
-        paymentModel:
-          booking.payment?.paymentModel === "PREPAID" ? "Prepaid" : "Deposit",
-        pricingModel:
-          booking.payment?.pricingModel === "PER_PERSON" ? "Per person" : "Flat fee",
-        status: toBookingStatus(booking.status),
-        badgeCount: booking.actions?.canViewDetails ? 1 : undefined,
-      })) ?? [],
-    [data?.bookings],
-  );
-
-  const filteredBookings = useMemo(() => {
-    const term = search.toLowerCase();
-    return bookings.filter(
-      (booking) =>
-        booking.id.toLowerCase().includes(term) ||
-        booking.customerName.toLowerCase().includes(term) ||
-        booking.vendorName.toLowerCase().includes(term) ||
-        booking.location.toLowerCase().includes(term) ||
-        booking.status.toLowerCase().includes(term),
-    );
-  }, [bookings, search]);
-
-  const totalPages = Math.ceil(filteredBookings.length / pageSize) || 1;
-  const validPage = Math.min(Math.max(1, page), totalPages);
-  const paginatedBookings = filteredBookings.slice(
-    (validPage - 1) * pageSize,
-    validPage * pageSize,
-  );
-
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminBookingsManagementQuery(list.query);
+  const result = adminPage(data?.bookings, list.pageSize);
+  const bookings = result.rows.map(toAdminBooking);
   const summaryCards = data
     ? [
         {
@@ -189,7 +140,7 @@ export default function AdminBookingsPage() {
         },
         {
           title: "Pending Payment Release",
-          amount: formatNumber(data.summary.pendingPaymentRelease),
+          amount: "N/A",
           icon: <CreditCard className="size-5 text-orange-500" />,
         },
         { title: "Disputed", amount: formatNumber(data.summary.disputed) },
@@ -233,26 +184,32 @@ export default function AdminBookingsPage() {
       </div>
 
       <div>
-        {isError ? <ErrorState error={normalizeApiError(error)} /> : null}
+        {isError ? (
+          <ErrorState
+            error={normalizeApiError(error)}
+            onRetry={() => {
+              void refetch();
+            }}
+          />
+        ) : null}
         <BookingSummaryCards data={summaryCards} />
       </div>
 
       <DataTable
         columns={columns}
-        data={paginatedBookings}
+        data={bookings}
         emptyMessage={
-          search ? `No bookings found matching "${search}"` : "No bookings found"
+          list.search
+            ? `No bookings found matching "${list.search}"`
+            : "No bookings found"
         }
         getRowId={(booking) => booking.id}
+        isLoading={isFetching && !data}
         pagination={{
-          page: validPage,
-          pageSize,
-          totalItems: filteredBookings.length,
-          onPageChange: setPage,
-          onPageSizeChange: () => setPage(1),
-          showPageNumbers: true,
+          ...list.pagination,
+          hasNextPage: result.hasNextPage,
+          isFetching,
           showPageSizeSelector: false,
-          showResultRange: true,
         }}
         rowActions={(booking) => (
           <div className="flex justify-center">
@@ -272,11 +229,8 @@ export default function AdminBookingsPage() {
           </div>
         )}
         search={{
-          value: search,
-          onChange: (value) => {
-            setSearch(value);
-            setPage(1);
-          },
+          value: list.search,
+          onChange: list.setSearch,
           placeholder: "Search bookings...",
         }}
         variant="contrast"

@@ -10,10 +10,14 @@ export function VendorPostAttachments({
   files,
   onChange,
   recommended = false,
+  integrated = false,
+  disabled = false,
 }: {
   files: FileUploadItemValue[];
   onChange: (items: FileUploadItemValue[]) => void;
   recommended?: boolean;
+  integrated?: boolean;
+  disabled?: boolean;
 }) {
   const [error, setError] = useState<string>();
   const id = useId();
@@ -31,6 +35,7 @@ export function VendorPostAttachments({
         </span>
       </p>
       <FileDropzone
+        disabled={disabled}
         multiple
         accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf"
         onFilesSelected={(selected) => {
@@ -49,13 +54,16 @@ export function VendorPostAttachments({
         <span className="mt-2 text-xs">JPG, PNG, or PDF</span>
       </FileDropzone>
       <p id={`${id}-hint`} className="mt-2 text-xs text-[#B8C1D1]">
-        Local preview only. Up to 5 MB per file; nothing is uploaded.
+        {integrated
+          ? "Up to 10 MB per file. Selected files upload before publication."
+          : "Local preview only. Up to 10 MB per file; nothing is uploaded."}
       </p>
       <FormError message={error} />
       {files.length > 0 && (
         <ul className="mt-3 space-y-2">
           {files.map((item) => (
             <FileUploadItem
+              disabled={disabled}
               key={item.id}
               item={item}
               onRemove={(id) => {

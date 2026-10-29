@@ -4,9 +4,9 @@ import { useId, useState } from "react";
 import { Modal } from "@/components/overlays/Modal/Modal";
 import { Button } from "@/components/ui/Button";
 import { discoverArtwork } from "@/features/customer/data/discover-booking.data";
+import { safeImage } from "@/features/customer/utils/discoveryAdapters";
 import {
   defaultDiscoverFilters,
-  discoverCuisines,
   getDiscoverFilterCount,
   type DiscoverFilters,
 } from "@/features/customer/utils/discoverFilters";
@@ -15,12 +15,20 @@ type DiscoverFiltersDrawerProps = {
   filters: DiscoverFilters;
   onApply: (filters: DiscoverFilters) => void;
   onClose: () => void;
+  cuisines: { id: string; name: string; iconUrl?: string | null }[];
+  cuisineError: boolean;
+  cuisinesLoading: boolean;
+  onRetryCuisines: () => void;
 };
 
 export function DiscoverFiltersDrawer({
   filters,
   onApply,
   onClose,
+  cuisines,
+  cuisineError,
+  cuisinesLoading,
+  onRetryCuisines,
 }: DiscoverFiltersDrawerProps) {
   const [draft, setDraft] = useState(filters);
   const titleId = useId();
@@ -32,7 +40,7 @@ export function DiscoverFiltersDrawer({
       ...current,
       cuisines: current.cuisines.includes(cuisine)
         ? current.cuisines.filter((value) => value !== cuisine)
-        : [...current.cuisines, cuisine],
+        : [cuisine],
     }));
   }
 
@@ -73,22 +81,38 @@ export function DiscoverFiltersDrawer({
           <legend className="mb-[14px] text-lg leading-6 font-medium">
             Cuisine Type
           </legend>
+          <p className="mb-3 text-xs text-[#B8C1D1]">
+            Choose one cuisine. Distance applies to nearby results.
+          </p>
+          {cuisineError && (
+            <Button onClick={onRetryCuisines}>Retry loading cuisines</Button>
+          )}
+          {cuisinesLoading && <p role="status">Loading cuisines…</p>}
+          {!cuisinesLoading && !cuisineError && !cuisines.length && (
+            <p>No cuisine categories available.</p>
+          )}
           <div className="grid grid-cols-3 gap-x-2 gap-y-3">
-            {discoverCuisines.map((cuisine) => (
-              <label className="discover-cuisine-option" key={cuisine}>
+            {cuisines.map((cuisine) => (
+              <label className="discover-cuisine-option" key={cuisine.id}>
                 <input
-                  checked={draft.cuisines.includes(cuisine)}
+                  checked={draft.cuisines.includes(cuisine.id)}
                   className="peer sr-only"
-                  onChange={() => toggleCuisine(cuisine)}
+                  onChange={() => toggleCuisine(cuisine.id)}
                   type="checkbox"
                 />
                 <span className="discover-cuisine-tile">
-                  <img
-                    alt=""
-                    className="size-6 object-contain"
-                    src={discoverArtwork(`2-filter-${cuisine.toLowerCase()}.png`)}
-                  />
-                  <span className="text-sm leading-5">{cuisine}</span>
+                  {(safeImage(cuisine.iconUrl) ||
+                    discoverArtwork(`2-filter-${cuisine.name.toLowerCase()}.png`)) && (
+                    <img
+                      alt=""
+                      className="size-6 object-contain"
+                      src={
+                        safeImage(cuisine.iconUrl) ||
+                        discoverArtwork(`2-filter-${cuisine.name.toLowerCase()}.png`)
+                      }
+                    />
+                  )}
+                  <span className="text-sm leading-5">{cuisine.name}</span>
                 </span>
               </label>
             ))}

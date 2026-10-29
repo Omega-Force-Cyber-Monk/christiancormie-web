@@ -2,10 +2,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useId, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { FormError } from "@/components/forms/FormError";
-import composerAvatar from "@/features/vendor/assets/home/Home-truck.webp";
 import { vendorFeedTextSchema } from "@/features/vendor/utils/feedState";
 
-export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void }) {
+export function VendorFeedComposer({
+  onPost,
+  disabled = false,
+  avatar = "",
+}: {
+  onPost: (text: string) => void | boolean | Promise<boolean>;
+  disabled?: boolean;
+  avatar?: string;
+}) {
   const id = useId();
   const pending = useRef(false);
   const {
@@ -27,8 +34,8 @@ export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void 
         event.preventDefault();
         if (pending.current) return;
         pending.current = true;
-        void handleSubmit((values) => {
-          onPost(values.text);
+        void handleSubmit(async (values) => {
+          if ((await onPost(values.text)) === false) return;
           reset();
         })(event).finally(() => {
           pending.current = false;
@@ -36,7 +43,7 @@ export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void 
       }}
     >
       <img
-        src={composerAvatar}
+        src={avatar || undefined}
         alt=""
         className="size-[50px] shrink-0 rounded-full border border-[#FF5733] object-cover"
       />
@@ -45,6 +52,7 @@ export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void 
           Share a location drop, menu item, or promo
         </label>
         <textarea
+          disabled={isSubmitting || disabled}
           {...register("text")}
           id={id}
           className="vendor-feed-compose-input"
@@ -55,12 +63,12 @@ export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void 
         <FormError id={`${id}-error`} message={errors.text?.message} />
         {text.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[#B8C1D1]">Local preview only.</p>
+            <p className="text-xs text-[#B8C1D1]">Publish a truck update.</p>
             <div className="flex gap-2">
               <button
                 type="button"
                 className="min-h-11 rounded-xl px-3 text-sm"
-                disabled={isSubmitting}
+                disabled={isSubmitting || disabled}
                 onClick={() => reset()}
               >
                 Cancel
@@ -68,7 +76,7 @@ export function VendorFeedComposer({ onPost }: { onPost: (text: string) => void 
               <button
                 type="submit"
                 className="min-h-11 rounded-xl bg-[#FF5733] px-4 text-sm font-semibold text-black"
-                disabled={isSubmitting}
+                disabled={isSubmitting || disabled}
               >
                 {isSubmitting ? "Adding…" : "Post"}
               </button>

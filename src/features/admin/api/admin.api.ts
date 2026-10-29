@@ -10,9 +10,20 @@ import type {
   AdminVendorsManagementResponse,
 } from "@/features/admin/types/admin.types";
 import { baseApi } from "@/services/api/baseApi";
+import type { AdminTruckRequestDto } from "@/features/admin/types/admin.dto";
 
 export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getAdminTruckRequests: builder.query<AdminTruckRequestDto[], AdminListQuery | void>(
+      {
+        query: (params) => ({
+          url: "admin/vendors/truck-requests",
+          method: "GET",
+          params: params ?? undefined,
+        }),
+        providesTags: ["AdminVendors"],
+      },
+    ),
     getAdminDashboard: builder.query<AdminDashboardResponse, void>({
       query: () => ({ url: "admin/dashboard", method: "GET" }),
       providesTags: ["AdminDashboard"],
@@ -109,8 +120,12 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["AdminUsers"],
     }),
     updateTruckRequestStatus: builder.mutation<
-      { id: string; status: string; adminNotes?: string; reviewedAt?: string },
-      { requestId: string; status: string; notes?: string }
+      AdminTruckRequestDto,
+      {
+        requestId: string;
+        status: "PENDING" | "COMMUNICATED" | "DISMISSED";
+        notes?: string;
+      }
     >({
       query: ({ requestId, ...body }) => ({
         url: `admin/vendors/truck-requests/${requestId}`,
@@ -130,6 +145,7 @@ export const adminApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAdminTruckRequestsQuery,
   useApprovePayoutMutation,
   useGetAdminBookingsManagementQuery,
   useGetAdminCommunityManagementQuery,

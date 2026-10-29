@@ -1,12 +1,12 @@
-import { MapPin } from "lucide-react";
+﻿import { MapPin } from "lucide-react";
 import { useId, useState } from "react";
+import { useAppSelector } from "@/app/hooks";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useGetSocialPlacesQuery } from "@/features/social/api/socialFeed.api";
+import { useGetMemberConnectionsQuery } from "@/features/social/api/socialProfile.api";
 import { NoResultsState } from "@/components/states/NoResultsState";
-import {
-  checkInLocations,
-  tagFriends,
-} from "@/features/customer/data/create-post.data";
-import { filterPostOptions } from "@/features/customer/utils/createPost";
-
+import { ErrorState } from "@/components/states/ErrorState";
+import { Button } from "@/components/ui/Button";
 export function PostDetailsPicker({
   screen,
   locationId,
@@ -20,31 +20,58 @@ export function PostDetailsPicker({
   onLocation: (id: string) => void;
   onFriend: (id: string) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const searchId = useId();
-  const locations = filterPostOptions(checkInLocations, query);
-  const friends = filterPostOptions(tagFriends, query);
+  const [search, setSearch] = useState("");
+  const debounced = useDebounce(search);
+  const [page, setPage] = useState({ search: "", offset: 0 });
+  const offset = page.search === debounced ? page.offset : 0;
+  const id = useId();
+  const userId = useAppSelector((s) =>
+    s.auth.isIdentityVerified ? s.auth.user?.id : undefined,
+  );
+  const places = useGetSocialPlacesQuery(
+    { search: debounced, offset },
+    { skip: screen !== "location" || !userId },
+  );
+  const following = useGetMemberConnectionsQuery(
+    {
+      userId: userId ?? "",
+      direction: "following",
+      search: debounced,
+      offset,
+      limit: 20,
+    },
+    { skip: screen !== "friends" || !userId },
+  );
+  const query = screen === "location" ? places : following;
+  const more =
+    screen === "location"
+      ? places.currentData?.length === 20
+      : following.currentData?.nextOffset != null;
   return (
     <div
       className={`post-picker ${screen === "friends" ? "post-picker--friends" : ""}`}
     >
-      <label className="sr-only" htmlFor={searchId}>
+      <label className="sr-only" htmlFor={id}>
         {screen === "location" ? "Search locations" : "Search friends"}
       </label>
       <input
-        id={searchId}
+        id={id}
         type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder={
           screen === "location" ? "Search locations..." : "Search friends..."
         }
         className="post-search"
       />
       <div className="post-picker-list">
-        {screen === "location" ? (
-          locations.length ? (
-            locations.map((item) => (
+        {query.isLoading || (query.isFetching && !query.currentData) ? (
+          <p role="status">Loading options…</p>
+        ) : query.isError ? (
+          <ErrorState onRetry={() => void query.refetch()} />
+        ) : screen === "location" ? (
+          places.currentData?.length ? (
+            places.currentData.map((item) => (
               <button
                 className="post-location-option"
                 key={item.id}
@@ -61,21 +88,38 @@ export function PostDetailsPicker({
           ) : (
             <NoResultsState />
           )
-        ) : friends.length ? (
-          friends.map((friend) => (
-            <label className="post-friend-option" key={friend.id}>
-              <span className="post-avatar">{friend.initials}</span>
-              <span className="flex-1">{friend.name}</span>
+        ) : following.currentData?.items.length ? (
+          following.currentData.items.map((item) => (
+            <label className="post-friend-option" key={item.userId}>
+              <span className="post-avatar">{item.displayName.slice(0, 2)}</span>
+              <span className="flex-1">{item.displayName}</span>
               <input
                 type="checkbox"
-                checked={friendIds.includes(friend.id)}
-                onChange={() => onFriend(friend.id)}
+                disabled={!friendIds.includes(item.userId) && friendIds.length >= 20}
+                checked={friendIds.includes(item.userId)}
+                onChange={() => onFriend(item.userId)}
               />
             </label>
           ))
         ) : (
           <NoResultsState />
         )}
+      </div>
+      <div className="mt-4 flex gap-3">
+        <Button
+          disabled={offset === 0 || query.isFetching}
+          onClick={() =>
+            setPage({ search: debounced, offset: Math.max(0, offset - 20) })
+          }
+        >
+          Previous options
+        </Button>
+        <Button
+          disabled={!more || query.isFetching}
+          onClick={() => setPage({ search: debounced, offset: offset + 20 })}
+        >
+          More options
+        </Button>
       </div>
       {screen === "friends" && (
         <p className="mt-4 text-sm text-[#B8C1D1]" role="status">

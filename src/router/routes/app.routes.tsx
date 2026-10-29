@@ -33,16 +33,23 @@ export const appRoutes: RouteObject[] = [
             path: "dashboard",
             children: [
               ...vendorHomeRoutes,
-              {
-                element: <DashboardLayout />,
-                children: [
-                  { index: true, element: <DashboardRedirect /> },
-                  ...customerRoutes,
-                  ...vendorRoutes,
-                  ...vendorStaffRoutes,
-                  ...adminRoutes,
-                ],
-              },
+              { index: true, element: <DashboardRedirect /> },
+              // Check each role before mounting its shared shell.
+              ...[
+                ...customerRoutes,
+                ...vendorRoutes,
+                ...vendorStaffRoutes,
+                ...adminRoutes,
+              ].map((route): RouteObject =>
+                route.index
+                  ? route
+                  : {
+                      ...route,
+                      children: [
+                        { element: <DashboardLayout />, children: route.children },
+                      ],
+                    },
+              ),
             ],
           },
         ],

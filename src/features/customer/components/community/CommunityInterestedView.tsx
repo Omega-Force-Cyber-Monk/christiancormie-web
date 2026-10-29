@@ -7,8 +7,29 @@ import {
   communityInterestedTrucks,
   type CommunityInterestedTruck,
 } from "@/features/customer/data/community-requests.data";
+import type { CommunityPost } from "@/features/community/schemas/community.schema";
+import { ConnectedCommunityInterests } from "@/features/community/components/ConnectedCommunityInterests";
 
-export function CommunityInterestedView({
+type PreviewProps = {
+  postId: string;
+  decisions: Record<string, "invited" | "declined">;
+  onDecision: (truckId: string, decision: "invited" | "declined") => void;
+  onBack: () => void;
+};
+export function CommunityInterestedView(
+  props: PreviewProps | { livePost: CommunityPost; onBack: () => void },
+) {
+  return "livePost" in props ? (
+    <ConnectedCommunityInterests
+      key={props.livePost.id}
+      post={props.livePost}
+      onBack={props.onBack}
+    />
+  ) : (
+    <LegacyCommunityInterestedView {...props} />
+  );
+}
+function LegacyCommunityInterestedView({
   postId,
   decisions,
   onDecision,

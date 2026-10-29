@@ -1,49 +1,10 @@
 import type { RouteObject } from "react-router";
-
 import { USER_ROLES } from "@/constants/roles";
 import { ROUTES } from "@/constants/routes";
 import { RoleGuard } from "@/router/guards/RoleGuard";
 import { AuthGuard } from "@/router/guards/AuthGuard";
-import { CustomerReviewGuard } from "@/router/guards/CustomerReviewGuard";
 import { lazyRoute } from "@/router/routes/lazyRoute";
-
 export const discoverRoutes: RouteObject[] = [
-  {
-    element: <CustomerReviewGuard />,
-    children: [
-      {
-        element: lazyRoute(
-          () => import("@/features/customer/components/discover/DiscoverLayout"),
-        ),
-        children: [
-          {
-            path: ROUTES.CUSTOMER_MESSAGE,
-            element: lazyRoute(
-              () => import("@/features/customer/pages/CustomerMessagePage"),
-            ),
-          },
-          {
-            path: ROUTES.CUSTOMER_COMMUNITY,
-            element: lazyRoute(
-              () => import("@/features/customer/pages/CustomerCommunityPage"),
-            ),
-          },
-          {
-            path: ROUTES.CUSTOMER_FEED,
-            element: lazyRoute(
-              () => import("@/features/customer/pages/CustomerFeedPage"),
-            ),
-          },
-          {
-            path: ROUTES.CUSTOMER_DISCOVER,
-            element: lazyRoute(
-              () => import("@/features/customer/pages/CustomerDiscoverPage"),
-            ),
-          },
-        ],
-      },
-    ],
-  },
   {
     element: <AuthGuard />,
     children: [
@@ -55,6 +16,30 @@ export const discoverRoutes: RouteObject[] = [
               () => import("@/features/customer/components/discover/DiscoverLayout"),
             ),
             children: [
+              {
+                path: ROUTES.CUSTOMER_MESSAGE,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerMessagePage"),
+                ),
+              },
+              {
+                path: ROUTES.CUSTOMER_COMMUNITY,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerCommunityPage"),
+                ),
+              },
+              {
+                path: ROUTES.CUSTOMER_FEED,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerFeedPage"),
+                ),
+              },
+              {
+                path: ROUTES.CUSTOMER_DISCOVER,
+                element: lazyRoute(
+                  () => import("@/features/customer/pages/CustomerDiscoverPage"),
+                ),
+              },
               {
                 path: ROUTES.CUSTOMER_SETTINGS,
                 element: lazyRoute(

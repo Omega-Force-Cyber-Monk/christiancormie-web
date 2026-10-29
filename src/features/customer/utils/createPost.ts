@@ -1,4 +1,3 @@
-import { SAFE_PREVIEW_MIME_TYPES } from "@/utils/files/file.constants";
 import { validateFile } from "@/utils/files/validateFile";
 import type { PostDraft, PostMedia } from "@/features/customer/data/create-post.data";
 import { createPostSchema } from "@/features/customer/schemas/create-post.schema";
@@ -7,9 +6,13 @@ export function addPostPhotos(current: PostMedia[], files: File[], id: () => str
   const errors: string[] = [];
   const media = [...current];
   for (const file of files) {
+    if (media.length >= 10) {
+      errors.push("Select no more than 10 images.");
+      break;
+    }
     const error = validateFile(file, {
-      allowedMimeTypes: SAFE_PREVIEW_MIME_TYPES,
-      allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+      allowedMimeTypes: ["image/jpeg", "image/png"],
+      allowedExtensions: ["jpg", "jpeg", "png"],
     });
     if (error) errors.push(`${file.name}: ${error}`);
     else media.push({ id: id(), name: file.name, kind: "file", file });

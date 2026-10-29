@@ -75,7 +75,8 @@ const refreshSession = async (
     return { refreshed: false, error: result.error };
   }
 
-  const session = sessionResponseSchema.safeParse(result.data);
+  // The backend auth user is not the verified /users/me UI identity.
+  const session = sessionResponseSchema.omit({ user: true }).safeParse(result.data);
   if (!session.success) {
     logger.debug("Session refresh returned an invalid response; credentials retained.");
     return {
@@ -120,9 +121,17 @@ export const authBaseQuery: ApiBaseQuery = async (args, api, extraOptions) => {
   const requestUrl = (typeof args === "string" ? args : args.url)
     .replace(/^\/+/, "")
     .split("?")[0];
-  const isPublicAuth = ["auth/login", "auth/create-user", "auth/refresh"].includes(
-    requestUrl,
-  );
+  // Logout is authenticated with a captured token, but must never wait for or
+  // trigger refresh, retry with a new session, or clear that session on a 401.
+  if (requestUrl === "auth/logout") return rawBaseQuery(args, api, extraOptions);
+  const isPublicAuth = [
+    "auth/login",
+    "auth/register/customer",
+    "auth/register/vendor",
+    "auth/verify-email",
+    "auth/resend-verification-code",
+    "auth/refresh",
+  ].includes(requestUrl);
   if (isPublicAuth) return rawBaseQuery(args, api, extraOptions);
 
   const pending = refreshFlights.get(api.dispatch);
@@ -138,6 +147,17 @@ export const authBaseQuery: ApiBaseQuery = async (args, api, extraOptions) => {
 
   const snapshot = getAuth(api);
   const result = await rawBaseQuery(args, api, extraOptions);
+  // This endpoint also uses 401 for a valid session with an incorrect current password.
+  // Only its exact service diagnostic bypasses refresh; expired JWTs retain normal retry.
+  if (
+    requestUrl === "auth/change-password" &&
+    result.error?.status === 401 &&
+    result.error.data &&
+    typeof result.error.data === "object" &&
+    "message" in result.error.data &&
+    result.error.data.message === "Current password is incorrect"
+  )
+    return result;
   if (result.error?.status !== 401 || getAuth(api).sessionId !== snapshot.sessionId)
     return result;
 

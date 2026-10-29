@@ -1,5 +1,5 @@
 import { ArrowLeft, MapPin } from "lucide-react";
-import { useId, useState, type PointerEvent } from "react";
+import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { Button } from "@/components/ui/Button";
 import mapImage from "@/features/customer/assets/discover/discover-map.png";
@@ -14,14 +14,20 @@ export function CommunityLocationView({
   value,
   onApply,
   onBack,
+  unavailable = false,
 }: {
   value: CommunityLocation;
   onApply: (value: CommunityLocation, asDefault: boolean) => void;
   onBack: () => void;
+  unavailable?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState("");
   const id = useId();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
   function move(event: PointerEvent<HTMLButtonElement>) {
     const box = event.currentTarget.getBoundingClientRect();
     setDraft((current) => ({
@@ -46,12 +52,15 @@ export function CommunityLocationView({
           <ArrowLeft size={20} />
         </Button>
         <div>
-          <h1>Your location</h1>
+          <h1 ref={heading} tabIndex={-1}>
+            Your location
+          </h1>
           <p>Set your community area</p>
         </div>
       </div>
       <div className="community-form-panel">
         <button
+          disabled={unavailable}
           type="button"
           className="community-map"
           aria-label="Reposition sample location pin. Click, drag, or use arrow keys."
@@ -82,24 +91,29 @@ export function CommunityLocationView({
           }}
         >
           <img src={mapImage} alt="Sample San Francisco map from the design" />
-          <span
-            className="community-map-pin"
-            style={{ left: `${draft.pin.x}%`, top: `${draft.pin.y}%` }}
-          >
-            <MapPin aria-hidden="true" size={38} fill="#FF5733" />
-          </span>
+          {!unavailable && (
+            <span
+              className="community-map-pin"
+              style={{ left: `${draft.pin.x}%`, top: `${draft.pin.y}%` }}
+            >
+              <MapPin aria-hidden="true" size={38} fill="#FF5733" />
+            </span>
+          )}
         </button>
         <p className="my-5 text-center text-xs text-[#B8C1D1]">
-          Drag pin to reposition · Arrow keys also move the sample pin
+          {unavailable
+            ? "Design illustration only. No real location or map coordinates are selected."
+            : "Drag pin to reposition · Arrow keys also move the sample pin"}
         </p>
         <FormField
           id={id}
           label="Community city"
+          disabled={unavailable}
           value={draft.city}
           onChange={(event) => setDraft({ ...draft, city: event.target.value })}
           error={error}
         />
-        <fieldset className="mt-5">
+        <fieldset className="mt-5" disabled={unavailable}>
           <legend className="mb-3 text-base font-semibold">Radius</legend>
           <div className="flex flex-wrap gap-3">
             {["10 mi", "25 mi", "50 mi", "Any"].map((radius) => (
@@ -117,13 +131,22 @@ export function CommunityLocationView({
           </div>
         </fieldset>
         <p className="mt-4 text-xs text-[#B8C1D1]">
-          Radius and pin are local preferences. Sample posts are filtered by city; live
-          distance data is not connected.
+          {unavailable
+            ? "Geographic filtering requires verified latitude and longitude. City text and this illustration cannot supply them; a location provider has not been connected."
+            : "Radius and pin are local preferences. Sample posts are filtered by city; live distance data is not connected."}
         </p>
-        <Button className="community-primary mt-9 w-full" onClick={() => apply(false)}>
+        <Button
+          disabled={unavailable}
+          className="community-primary mt-9 w-full"
+          onClick={() => apply(false)}
+        >
           Apply
         </Button>
-        <Button className="mt-3 w-full" onClick={() => apply(true)}>
+        <Button
+          disabled={unavailable}
+          className="mt-3 w-full"
+          onClick={() => apply(true)}
+        >
           Set as my default (this session)
         </Button>
       </div>

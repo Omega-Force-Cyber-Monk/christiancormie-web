@@ -1,72 +1,80 @@
-import { MapPin, Star } from "lucide-react";
+﻿import { Star } from "lucide-react";
+import { Link } from "react-router";
 import trophy from "@/features/customer/assets/leaderboard/1-trophy.svg";
-import type { LeaderboardEntry } from "@/features/customer/data/leaderboard.data";
-
-const numberFormat = new Intl.NumberFormat("en-US");
-
+import type { RankingRow } from "@/features/leaderboards/utils/rankingAdapters";
+import { memberProfilePath } from "@/features/social/utils/profileIdentity";
+import { ROUTES } from "@/constants/routes";
+import { remoteMedia } from "@/utils/files/remoteMedia";
 export function LeaderboardRankings({
   entries,
   label,
 }: {
-  entries: (LeaderboardEntry & { rank: number })[];
+  entries: RankingRow[];
   label: string;
 }) {
   return (
-    <ol aria-label={`${label} sample rankings`} className="leaderboard-rankings">
+    <ol aria-label={`${label} rankings`} className="leaderboard-rankings">
       {entries.map((entry) => (
         <li
           key={entry.id}
-          value={entry.rank}
-          className={`leaderboard-row leaderboard-row--${entry.rank <= 3 ? entry.rank : "standard"}`}
+          value={entry.rank ?? undefined}
+          className={`leaderboard-row leaderboard-row--${entry.rank !== null && entry.rank <= 3 ? entry.rank : "standard"}`}
         >
           <span className="leaderboard-rank">
             <span className="sr-only">Rank </span>
-            {entry.rank}
+            {entry.rank ?? "Unavailable"}
           </span>
-          {entry.kind === "member" ? (
+          {remoteMedia(entry.image) ? (
             <img
               className="leaderboard-avatar"
-              src={entry.avatar}
+              src={remoteMedia(entry.image)}
               alt=""
               width={64}
               height={64}
             />
           ) : (
-            <span className="leaderboard-truck-placeholder" aria-hidden="true" />
+            <span
+              className="leaderboard-truck-placeholder"
+              aria-label="Image unavailable"
+            />
           )}
           <div className="min-w-0 flex-1">
             <h2 className="text-lg leading-7 font-semibold break-words">
-              {entry.name}
-              {entry.kind === "member" && (entry.rank === 2 || entry.rank === 3) && (
-                <span
-                  className="leaderboard-trophy leaderboard-trophy--inline"
-                  aria-hidden="true"
-                  style={{ maskImage: `url(${trophy})` }}
-                />
+              {entry.kind === "member" ? (
+                <Link to={memberProfilePath(entry.id)}>{entry.name}</Link>
+              ) : entry.slug ? (
+                <Link
+                  to={ROUTES.CUSTOMER_PROFILE.replace(
+                    ":id",
+                    encodeURIComponent(entry.slug),
+                  )}
+                >
+                  {entry.name}
+                </Link>
+              ) : (
+                entry.name
               )}
             </h2>
             {entry.kind === "truck" && (
               <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-[18px] text-[#B8C1D1]">
-                <span className="inline-flex items-center gap-1">
-                  <Star size={12} fill="#FFB74D" stroke="#FFB74D" aria-hidden="true" />
-                  <span className="sr-only">Rating </span>
-                  {entry.rating.toFixed(1)}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <MapPin size={12} aria-hidden="true" />
-                  {entry.distanceMiles.toFixed(1)} mi
-                </span>
+                <Star size={12} fill="#FFB74D" stroke="#FFB74D" aria-hidden="true" />
+                Rating {entry.rating ?? "Unavailable"}
               </p>
             )}
             <p
               className={`leaderboard-stat ${entry.kind === "member" ? "mt-2" : "mt-1.5"}`}
             >
-              {entry.kind === "truck"
-                ? `${numberFormat.format(entry.reviews)} reviews`
-                : `${numberFormat.format(entry.points)} Points`}
+              {entry.metric}
             </p>
+            {entry.kind === "truck" && (
+              <p className="text-xs text-[#B8C1D1]">
+                Score {entry.score ?? "Unavailable"} · Previous rank{" "}
+                {entry.previousRank ?? "Unavailable"} · Stored rank{" "}
+                {entry.originalRank ?? "Unavailable"}
+              </p>
+            )}
           </div>
-          {(entry.rank === 1 || (entry.kind === "truck" && entry.rank <= 3)) && (
+          {entry.rank !== null && entry.rank <= 3 && (
             <span
               className="leaderboard-trophy"
               aria-hidden="true"

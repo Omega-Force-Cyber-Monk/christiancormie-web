@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordFieldsSchema } from "@/features/account/schemas/account.schema";
 
 export const settingsProfileSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is required."),
@@ -9,22 +10,13 @@ export const settingsProfileSchema = z.object({
 });
 export type SettingsProfileValues = z.infer<typeof settingsProfileSchema>;
 
-export const settingsPasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Enter your current password."),
-    newPassword: z.string().min(8, "Password must be at least 8 characters."),
-    confirmPassword: z.string().min(1, "Confirm your new password."),
-  })
-  .refine((values) => values.newPassword === values.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords must match.",
-  });
+export const settingsPasswordSchema = passwordFieldsSchema;
 export type SettingsPasswordValues = z.infer<typeof settingsPasswordSchema>;
 
 export const truckRequestSchema = z.object({
-  truckName: z.string().trim().min(1, "Enter the truck name."),
+  truckName: z.string().trim().min(1, "Enter the truck name.").max(255),
   location: z.string().trim().min(1, "Enter the usual location."),
-  phone: z.string().trim(),
+  phone: z.string().trim().max(30),
   description: z.string().trim(),
   reason: z.string().trim(),
 });

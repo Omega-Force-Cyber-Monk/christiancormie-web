@@ -4,6 +4,8 @@ export type AuthenticatedUser = {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  /** Backend-verified roles; an active role is a separate, explicit choice. */
+  roles: string[];
+  role: UserRole | null;
   avatarUrl?: string | null;
 };

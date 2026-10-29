@@ -1,3 +1,8 @@
+import {
+  feedStore,
+  feedPostDto,
+} from "../../social/utils/socialFeed.test-fixtures.mjs";
+import { toSocialCard } from "../../social/utils/feedAdapters.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
@@ -161,15 +166,19 @@ test("local posts trim text, receive stable IDs, start with an empty thread and 
 
 test("post controls expose consistent local comment counts and retained reply drafts render accessibly", () => {
   const html = renderToStaticMarkup(
-    h(VendorFeedPostCard, {
-      post: initialVendorFeedState().posts[0],
-      onLike() {},
-      onComments() {},
-    }),
+    h(
+      Provider,
+      { store: feedStore("VENDOR") },
+      h(VendorFeedPostCard, {
+        post: toSocialCard(feedPostDto({ commentCount: 4 })),
+        onLike() {},
+        onComments() {},
+      }),
+    ),
   );
-  assert.match(html, /Open 4 comments on Taco Paradise/);
+  assert.match(html, /Open 4 comments on Actual Member/);
   assert.match(html, /aria-pressed="false"/);
-  assert.match(html, /Grilled skewers/);
+  assert.match(html, /Actual social post/);
   const form = renderToStaticMarkup(
     h(VendorFeedCommentForm, {
       text: "My draft reply",
@@ -182,10 +191,10 @@ test("post controls expose consistent local comment counts and retained reply dr
   assert.match(form, /value="My draft reply"/);
   assert.match(form, /Replying to Mike Chen/);
   assert.match(form, /aria-label="Cancel reply"/);
-  assert.match(form, /Save local reply/);
+  assert.match(form, /Post reply/);
 });
 
-test("Vendor Feed remains under existing authentication and Vendor role guards", () => {
+test("feed retains authentication, Vendor role protection and existing UI", () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_FEED);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -214,6 +223,7 @@ function createStore(role) {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -247,18 +257,18 @@ function renderAt(role) {
     );
   });
 }
-test("verified Vendor Feed renders one shell, all supplied posts and active Feed navigation without a server", async () => {
+test("verified Vendor Feed renders one shell, real loading and active Feed navigation without a server", async () => {
   const html = await renderAt("VENDOR");
   assert.match(html, /vendor-feed-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
-  for (const name of ["Taco Paradise", "Sushi Haven", "Burger Joint"])
-    assert.ok(html.includes(name), name);
+  assert.match(html, /Loading posts/);
+  assert.doesNotMatch(html, /Taco Paradise|Sushi Haven|Burger Joint/);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/feed"/);
   assert.doesNotMatch(html, /Hello Taco!/);
   assert.match(html, /Share a location drop, menu item, or promo/);
 });
 
-test("anonymous users and other roles cannot access Vendor Feed", async () => {
+test("anonymous visitors and other roles cannot access feed", async () => {
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role), "");
 });

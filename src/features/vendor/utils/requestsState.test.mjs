@@ -291,6 +291,7 @@ async function renderAt(role) {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -318,7 +319,7 @@ async function renderAt(role) {
     );
   });
 }
-test("Requests keeps AuthGuard and Vendor-only RoleGuard and renders one existing Vendor shell", async () => {
+test("requests retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_ORDERS);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(

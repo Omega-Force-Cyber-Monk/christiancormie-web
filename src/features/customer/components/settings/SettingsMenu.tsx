@@ -14,7 +14,7 @@ const general = [
   {
     action: "invite",
     title: "Invite Friends",
-    description: "Get 500 points for each friend who joins!",
+    description: "View current reward information",
     Icon: Share2,
   },
   {
@@ -26,7 +26,7 @@ const general = [
   {
     action: "points",
     title: "How to Earn Points",
-    description: "Get 500 points for each friend who joins!",
+    description: "View current reward information",
     Icon: Trophy,
   },
 ] as const;

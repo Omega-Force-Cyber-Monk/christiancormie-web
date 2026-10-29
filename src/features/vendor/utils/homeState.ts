@@ -2,7 +2,11 @@ import { z } from "zod";
 import { vendorHomeBookings } from "@/features/vendor/data/home.data";
 
 export const vendorHomeUpdateSchema = z.object({
-  text: z.string().trim().min(1, "Enter an update before saving."),
+  text: z
+    .string()
+    .trim()
+    .min(1, "Enter an update before saving.")
+    .max(2200, "Use at most 2200 characters."),
 });
 export type VendorHomeUpdate = z.infer<typeof vendorHomeUpdateSchema> & { id: string };
 export type VendorHomeOverlay =

@@ -1,7 +1,9 @@
+import { AdminOperationalTable } from "@/features/admin/components/AdminOperationalTable";
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
+import { rewardRows } from "@/features/admin/utils/adminOperations";
 import { Award, Gift, Ticket, Trophy } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { useGetAdminRewardsManagementQuery } from "@/features/admin/api/admin.api";
@@ -11,14 +13,47 @@ import { AdminSection } from "@/features/admin/components/AdminSection";
 import { AdminStatGrid } from "@/features/admin/components/AdminStatGrid";
 import { formatNumber } from "@/features/admin/utils/adminFormat";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import type { AdminRewardsManagementResponse } from "@/features/admin/types/admin.types";
 
 const tabs = ["Leaderboard", "Redeem Transactions", "Top Users"];
 
+export function ReturnedUserTiers({ data }: { data: AdminRewardsManagementResponse }) {
+  return (
+    <section aria-label="Tier counts for returned top users">
+      <p className="text-sm text-[var(--text-muted)]">
+        Tier counts cover the returned top users, not all platform members.
+      </p>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        {Object.entries(data.tierCounts).map(([tier, count]) => (
+          <div key={tier}>
+            <dt className="text-[var(--text-muted)]">
+              {data.topUsers.find((user) => user.tier?.slug === tier)?.tier?.name ??
+                tier.replace(/_/g, " ")}
+            </dt>
+            <dd className="font-medium">{formatNumber(count)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export default function AdminRewardsPage() {
   const [activeTab, setActiveTab] = useState("Leaderboard");
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminRewardsManagementQuery();
-
+  const list = useAdminList(10, activeTab);
+  const paged = activeTab === "Redeem Transactions";
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminRewardsManagementQuery(paged ? list.query : { limit: 100 });
+  const allRows = rewardRows(activeTab, data);
+  const result = paged
+    ? adminPage(allRows, list.pageSize)
+    : { rows: allRows, hasNextPage: false };
   if (isLoading) return <AdminLoading />;
   if (isError && !data) {
     return (
@@ -86,22 +121,26 @@ export default function AdminRewardsPage() {
             ))}
           </div>
           {activeTab === "Top Users" && data?.tierCounts ? (
-            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(data.tierCounts).map(([tier, count]) => (
-                <div key={tier}>
-                  <dt className="text-[var(--text-muted)]">
-                    {tier.replace(/_/g, " ")}
-                  </dt>
-                  <dd className="font-medium">{formatNumber(count)}</dd>
-                </div>
-              ))}
-            </dl>
+            <ReturnedUserTiers data={data} />
+          ) : null}
+          {isFetching && !data ? (
+            <AdminLoading cards={0} />
           ) : (
-            <EmptyState
-              title={`No ${activeTab.toLowerCase()} found`}
-              description="The source dashboard defined this tab UI with local empty data; no additional backend row contract was available to migrate."
+            <AdminOperationalTable
+              rows={result.rows}
+              emptyMessage={`No ${activeTab.toLowerCase()} found`}
+              pagination={
+                paged
+                  ? { ...list.pagination, hasNextPage: result.hasNextPage, isFetching }
+                  : undefined
+              }
             />
           )}
+          {!paged ? (
+            <p className="text-sm text-[var(--text-muted)]">
+              Showing up to 100 returned records.
+            </p>
+          ) : null}
         </div>
       </AdminDataPanel>
     </AdminSection>

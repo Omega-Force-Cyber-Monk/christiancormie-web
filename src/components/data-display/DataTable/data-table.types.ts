@@ -38,7 +38,9 @@ export type DataTableProps<TRow, TSortKey extends string = string> = {
   isLoading?: boolean;
   onRetry?: () => void;
   pagination?: PaginationState & {
-    totalItems: number;
+    totalItems?: number;
+    hasNextPage?: boolean;
+    isFetching?: boolean;
     onPageChange: (page: number) => void;
     onPageSizeChange: (pageSize: number) => void;
     showPageSizeSelector?: boolean;

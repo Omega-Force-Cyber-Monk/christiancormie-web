@@ -213,7 +213,7 @@ test("duration picker and map expose accessible selections without a server or l
   assert.match(map, /Sample map of San Francisco/);
 });
 
-test("Drops remains behind existing authentication and Vendor role guards", () => {
+test("drops retains authentication, Vendor role protection and existing UI", () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_DROPS);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -242,6 +242,7 @@ function createStore(role) {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -294,7 +295,7 @@ test("verified Vendor Drops renders its single shared shell, presets and promo a
   assert.doesNotMatch(html, /Hello Taco!/);
 });
 
-test("anonymous users and other roles cannot access Drops", async () => {
+test("anonymous visitors and other roles cannot access drops", async () => {
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role), "");
 });

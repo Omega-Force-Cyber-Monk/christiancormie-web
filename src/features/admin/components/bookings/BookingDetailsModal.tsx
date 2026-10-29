@@ -1,3 +1,4 @@
+import { toAdminBookingDetails } from "@/features/admin/utils/adminBookings";
 import {
   Calendar,
   Clock,
@@ -29,32 +30,7 @@ export function BookingDetailsModal({
   onClose,
   onOpenMessage,
 }: BookingDetailsModalProps) {
-  const details = booking
-    ? {
-        id: booking.id,
-        customerName: booking.customerName,
-        customerEmail: "N/A",
-        customerPhone: "N/A",
-        vendorName: booking.vendorName,
-        vendorEmail: "N/A",
-        vendorPhone: "N/A",
-        eventType: "N/A",
-        guestCount: "N/A",
-        eventDate: booking.date,
-        eventTime: "N/A",
-        location: booking.location,
-        address: "N/A",
-        specialRequests: "N/A",
-        paymentModel:
-          booking.paymentModel === "Prepaid" ? "Prepaid in full" : "Deposit payment",
-        pricingModel:
-          booking.pricingModel === "Per person" ? "$12/person × 50" : "Flat rate fee",
-        totalAmount: booking.amount,
-        commission: booking.fee,
-        vendorPayout: "N/A",
-        status: booking.status,
-      }
-    : null;
+  const details = toAdminBookingDetails(booking);
 
   return (
     <Modal
@@ -185,15 +161,24 @@ export function BookingDetailsModal({
               </div>
               <div className="space-y-2.5 border-t border-[#1e2638]/60 pt-1 text-xs">
                 <PaymentRow label="Total amount" strong value={details.totalAmount} />
+                <PaymentRow label="Payment amount" value={details.paymentAmount} />
+                <PaymentRow
+                  label="Commission gross amount"
+                  value={details.commissionGross}
+                />
                 <PaymentRow
                   danger
-                  label="Commission (15%)"
+                  label={
+                    booking?.source.payment?.commission
+                      ? `Commission (${new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 4 }).format(booking.source.payment.commission.commissionRate)})`
+                      : "Commission"
+                  }
                   value={details.commission}
                 />
                 <PaymentRow label="Vendor payout" strong value={details.vendorPayout} />
                 <div className="flex justify-end pt-2">
                   <span className="rounded-full border border-[#14535e] bg-[#0c2e32]/80 px-3 py-1 text-xs font-semibold text-[#2dd4bf]">
-                    Held — pending completion
+                    {booking?.source.payment?.status ?? "No payment recorded"}
                   </span>
                 </div>
               </div>

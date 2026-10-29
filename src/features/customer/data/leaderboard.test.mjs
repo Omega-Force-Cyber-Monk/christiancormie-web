@@ -1,3 +1,6 @@
+import { Provider } from "react-redux";
+import { memberStore, seedRankings } from "../../social/utils/member.test-fixtures.mjs";
+import { baseApi } from "../../../services/api/baseApi.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement as h } from "react";
@@ -14,15 +17,25 @@ import { AuthGuard } from "../../../router/guards/AuthGuard.tsx";
 import { RoleGuard } from "../../../router/guards/RoleGuard.tsx";
 import { ROUTES } from "../../../constants/routes.ts";
 
-const renderCategory = (category) =>
-  renderToStaticMarkup(
-    h(
-      MemoryRouter,
-      { initialEntries: [`/leaderboard?category=${category}`] },
-      h(CustomerLeaderboardPage),
-    ),
-  );
-
+async function renderCategory(category) {
+  const store = memberStore();
+  await seedRankings(store, parseLeaderboardCategory(category));
+  try {
+    return renderToStaticMarkup(
+      h(
+        Provider,
+        { store },
+        h(
+          MemoryRouter,
+          { initialEntries: [`/leaderboard?category=${category}`] },
+          h(CustomerLeaderboardPage),
+        ),
+      ),
+    );
+  } finally {
+    store.dispatch(baseApi.util.resetApiState());
+  }
+}
 test("keyboard tabs wrap in both directions and support Home and End", () => {
   assert.equal(
     getLeaderboardKeyboardCategory("top-rated", "ArrowRight"),
@@ -112,23 +125,23 @@ test("switching categories never mutates fixture data or leaks another category'
   assert.deepEqual(getLeaderboardRankings("most-booked"), original);
 });
 
-test("each URL category renders one selected keyboard tab and the correct accessible ranking list", () => {
+test("each URL category renders one selected keyboard tab and the correct accessible ranking list", async () => {
   for (const [category, label] of [
     ["top-rated", "Top Rated"],
     ["most-booked", "Most Booked"],
     ["most-points", "Most points"],
   ]) {
-    const html = renderCategory(category);
+    const html = await renderCategory(category);
     assert.equal((html.match(/role="tab"/g) ?? []).length, 3);
     assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
     assert.match(html, new RegExp(`aria-selected="true"[^>]*>.*?${label}`, "s"));
     assert.match(html, /role="tabpanel"/);
-    assert.match(html, new RegExp(`aria-label="${label} sample rankings"`));
-    assert.equal((html.match(/<li /g) ?? []).length, 7);
-    assert.equal(html.includes("Burger Bliss"), category !== "most-points");
-    assert.equal(html.includes("Lionel Messi"), category === "most-points");
+    assert.match(html, new RegExp(`aria-label="${label} rankings"`));
+    assert.equal((html.match(/<li /g) ?? []).length, 1);
+    assert.equal(html.includes("Ranked Truck"), category !== "most-points");
+    assert.equal(html.includes("Ranked Member"), category === "most-points");
   }
-  assert.match(renderCategory("invalid"), /Top Rated sample rankings/);
+  assert.match(await renderCategory("invalid"), /Top Rated rankings/);
 });
 
 test("Leaderboard stays behind existing authentication and customer role guards", () => {

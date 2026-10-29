@@ -3,7 +3,6 @@ import { Send, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { FormError } from "@/components/forms/FormError";
-import avatar from "@/features/vendor/assets/feed/Comments-composer-avatar.webp";
 import { vendorFeedTextSchema } from "@/features/vendor/utils/feedState";
 
 export function VendorFeedCommentForm({
@@ -12,12 +11,14 @@ export function VendorFeedCommentForm({
   onText,
   onCancelReply,
   onSubmit,
+  avatar = "",
 }: {
   text: string;
   replyingTo: { id: string; author: string } | null;
   onText: (text: string) => void;
   onCancelReply: () => void;
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string) => void | boolean | Promise<boolean>;
+  avatar?: string;
 }) {
   const id = useId();
   const pending = useRef(false);
@@ -44,8 +45,8 @@ export function VendorFeedCommentForm({
         event.preventDefault();
         if (pending.current) return;
         pending.current = true;
-        void handleSubmit((values) => {
-          onSubmit(values.text);
+        void handleSubmit(async (values) => {
+          if ((await onSubmit(values.text)) === false) return;
           reset({ text: "" });
         })(event).finally(() => {
           pending.current = false;
@@ -66,12 +67,17 @@ export function VendorFeedCommentForm({
         </p>
       )}
       <div className="flex items-center gap-2">
-        <img className="vendor-feed-comment-composer-avatar" src={avatar} alt="" />
+        <img
+          className="vendor-feed-comment-composer-avatar"
+          src={avatar || undefined}
+          alt=""
+        />
         <div className="vendor-feed-comment-input">
           <label htmlFor={id} className="sr-only">
             {replyingTo ? `Reply to ${replyingTo.author}` : "Add a comment"}
           </label>
           <input
+            disabled={isSubmitting}
             {...field}
             defaultValue={text}
             id={id}
@@ -85,7 +91,7 @@ export function VendorFeedCommentForm({
           />
           <button
             type="submit"
-            aria-label={replyingTo ? "Save local reply" : "Save local comment"}
+            aria-label={replyingTo ? "Post reply" : "Post comment"}
             disabled={isSubmitting}
           >
             <Send size={18} />

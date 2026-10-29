@@ -8,10 +8,14 @@ export function VendorHomeUpdateForm({
   draft,
   onDraft,
   onSave,
+  disabled = false,
+  error,
 }: {
   draft: string;
   onDraft: (text: string) => void;
-  onSave: (text: string) => void;
+  onSave: (text: string) => void | Promise<void>;
+  disabled?: boolean;
+  error?: string;
 }) {
   const pending = useRef(false);
   const id = useId();
@@ -40,6 +44,7 @@ export function VendorHomeUpdateForm({
         Truck update
       </label>
       <textarea
+        disabled={isSubmitting || disabled}
         {...field}
         defaultValue={draft}
         id={id}
@@ -52,16 +57,16 @@ export function VendorHomeUpdateForm({
           onDraft(event.target.value);
         }}
       />
-      <FormError id={`${id}-error`} message={errors.text?.message} />
+      <FormError id={`${id}-error`} message={errors.text?.message || error} />
       <p className="mt-3 text-xs text-[#B8C1D1]">
-        Updates stay on this Home page. Nothing is published or sent.
+        Your update is published only after backend confirmation.
       </p>
       <button
         type="submit"
         className="mt-5 min-h-11 rounded-xl bg-[#FF5733] px-5 py-2 font-medium text-black"
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabled}
       >
-        {isSubmitting ? "Saving…" : "Save local update"}
+        {isSubmitting ? "Saving…" : "Publish update"}
       </button>
     </form>
   );

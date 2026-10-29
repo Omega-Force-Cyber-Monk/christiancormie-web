@@ -1,3 +1,9 @@
+import { Provider } from "react-redux";
+import {
+  feedStore,
+  feedPostDto,
+} from "../../social/utils/socialFeed.test-fixtures.mjs";
+import { toSocialCard } from "../../social/utils/feedAdapters.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement as h } from "react";
@@ -96,29 +102,27 @@ test("comment and reply likes toggle independently without affecting post totals
 test("post cards preserve their actions and open comments as a dialog", () => {
   const html = renderToStaticMarkup(
     h(
-      MemoryRouter,
-      null,
-      h(FeedPostCard, {
-        post: feedPosts[0],
-        onShare() {
-          throw new Error("Unexpected share");
-        },
-        onImage() {
-          throw new Error("Unexpected image action");
-        },
-      }),
+      Provider,
+      { store: feedStore() },
+      h(
+        MemoryRouter,
+        null,
+        h(FeedPostCard, {
+          post: toSocialCard(feedPostDto({ likeCount: 234, commentCount: 18 })),
+          onShare() {
+            throw new Error("Unexpected share");
+          },
+          onImage() {
+            throw new Error("Unexpected image action");
+          },
+        }),
+      ),
     ),
   );
-  for (const text of [
-    "234",
-    "18",
-    'aria-haspopup="dialog"',
-    "Share link",
-    "Enlarge photo",
-  ])
+  for (const text of ["234", "18", 'aria-haspopup="dialog"', "Share", "Enlarge photo"])
     assert.ok(html.includes(text), text);
   assert.ok(!html.includes("their text was not supplied"));
-  assert.equal((html.match(/class="feed-symbol"/g) ?? []).length, 2);
+  assert.equal((html.match(/class="feed-symbol"/g) ?? []).length, 0);
 });
 
 test("existing comment form contract stays intact and composer restores a draft", () => {
@@ -126,8 +130,8 @@ test("existing comment form contract stays intact and composer restores a draft"
     throw new Error("Unexpected submission");
   };
   const standard = renderToStaticMarkup(h(FeedCommentForm, { onPreview }));
-  assert.ok(standard.includes("Local preview comment"));
-  assert.ok(standard.includes("Add to local preview"));
+  assert.ok(standard.includes("Comment"));
+  assert.ok(standard.includes("Post comment"));
   const composer = renderToStaticMarkup(
     h(FeedCommentForm, {
       onPreview,
@@ -145,7 +149,7 @@ test("existing comment form contract stays intact and composer restores a draft"
     "Replying to Mike Chen",
     "Cancel reply",
     'id="test-composer"',
-    "Add reply to local preview",
+    "Post reply",
   ])
     assert.ok(composer.includes(text), text);
 });

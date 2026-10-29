@@ -2,15 +2,14 @@ import { AdminDashboardEmpty } from "@/features/admin/components/dashboard/Admin
 
 export type DashboardActivityItem = {
   id: string;
-  name: string;
-  action: string;
-  details: string;
+  title: string;
+  details: string | null;
   time: string;
-  badge?: "pending" | "review" | "open" | "investigating";
+  status?: string | null;
 };
 
-const getBadgeStyle = (badge?: DashboardActivityItem["badge"]) => {
-  switch (badge) {
+const getBadgeStyle = (status?: string | null) => {
+  switch (status?.toLowerCase()) {
     case "pending":
       return "bg-[#FBBF24]/20 text-[#FBBF24]";
     case "review":
@@ -20,7 +19,7 @@ const getBadgeStyle = (badge?: DashboardActivityItem["badge"]) => {
     case "investigating":
       return "bg-[#64748B]/20 text-[#90A1B9]";
     default:
-      return "";
+      return "bg-[#64748B]/20 text-[#90A1B9]";
   }
 };
 
@@ -52,32 +51,32 @@ export function RecentActivityList({ data }: RecentActivityListProps) {
               key={activity.id}
             >
               <div className="flex min-w-0 items-center space-x-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FF6B4A]/10 text-sm font-medium text-[#FF5733] select-none">
-                  LP
+                <div
+                  aria-hidden="true"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FF6B4A]/10 text-sm font-medium text-[#FF5733] select-none"
+                >
+                  •
                 </div>
                 <div className="flex min-w-0 flex-col">
                   <div className="flex flex-wrap items-baseline truncate">
                     <span className="text-sm leading-5 font-medium text-white">
-                      {activity.name}
-                    </span>
-                    <span className="ml-1.5 text-sm leading-5 font-normal text-[#90A1B9]">
-                      {activity.action}
+                      {activity.title}
                     </span>
                   </div>
                   <span className="mt-0.5 truncate text-xs leading-4 font-normal text-[#90A1B9]">
-                    {activity.details}
+                    {activity.details ?? "N/A"}
                   </span>
                 </div>
               </div>
 
               <div className="ml-4 flex shrink-0 items-center space-x-3">
-                {activity.badge ? (
+                {activity.status ? (
                   <span
                     className={`rounded-full px-3 py-0.5 text-xs leading-4 font-medium select-none ${getBadgeStyle(
-                      activity.badge,
+                      activity.status,
                     )}`}
                   >
-                    {activity.badge}
+                    {activity.status}
                   </span>
                 ) : null}
                 <span className="min-w-[45px] text-right text-xs leading-4 font-normal text-[#90A1B9]">

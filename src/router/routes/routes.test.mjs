@@ -4,14 +4,14 @@ import { matchRoutes } from "react-router";
 import { ROUTES } from "../../constants/routes.ts";
 import { adminRoutes } from "./admin.routes.tsx";
 import { customerRoutes } from "./customer.routes.tsx";
-import { vendorRoutes } from "./vendor.routes.tsx";
+import { vendorHomeRoutes, vendorRoutes } from "./vendor.routes.tsx";
 import { vendorStaffRoutes } from "./vendor-staff.routes.tsx";
 import { publicRoutes } from "./public.routes.tsx";
 
 const groups = [
   { name: "admin", role: "ADMIN", routes: adminRoutes },
   { name: "customer", role: "CUSTOMER", routes: customerRoutes },
-  { name: "vendor", role: "VENDOR", routes: vendorRoutes },
+  { name: "vendor", role: "VENDOR", routes: [...vendorHomeRoutes, ...vendorRoutes] },
   { name: "vendor-staff", role: "VENDOR_STAFF", routes: vendorStaffRoutes },
 ];
 

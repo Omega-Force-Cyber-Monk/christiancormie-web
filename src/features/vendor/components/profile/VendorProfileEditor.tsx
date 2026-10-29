@@ -11,9 +11,11 @@ import {
   type ProfilePhotoSource,
 } from "@/features/vendor/data/profile.data";
 import {
-  vendorProfileSchema,
-  type VendorProfileValues,
-} from "@/features/vendor/schemas/profile.schema";
+  truckProfileFormSchema,
+  type TruckProfileForm,
+} from "@/features/vendor/schemas/truckSettings.schema";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { toast } from "sonner";
 export function VendorProfileEditor({
   draft,
   photo,
@@ -21,13 +23,21 @@ export function VendorProfileEditor({
   onDraft,
   onBack,
   onSave,
+  cuisineOptions = profileCuisineOptions,
+  maximumGuestCapacity,
+  cuisineDisabled = false,
+  isCurrent = () => true,
 }: {
-  draft: VendorProfileValues;
+  draft: TruckProfileForm;
   photo: ProfilePhotoSource;
   onPhoto: (file: File) => void;
-  onDraft: (values: VendorProfileValues) => void;
-  onBack: (values: VendorProfileValues) => void;
-  onSave: (values: VendorProfileValues) => void;
+  onDraft: (values: TruckProfileForm) => void;
+  onBack: (values: TruckProfileForm) => void;
+  onSave: (values: TruckProfileForm) => void | Promise<void>;
+  cuisineOptions?: readonly { id: string; label: string; image?: string }[];
+  maximumGuestCapacity?: number | null;
+  cuisineDisabled?: boolean;
+  isCurrent?: () => boolean;
 }) {
   const id = useId();
   const pending = useRef(false);
@@ -37,9 +47,10 @@ export function VendorProfileEditor({
     subscribe,
     getValues,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
-  } = useForm<VendorProfileValues>({
-    resolver: zodResolver(vendorProfileSchema),
+  } = useForm<TruckProfileForm>({
+    resolver: zodResolver(truckProfileFormSchema),
     defaultValues: draft,
   });
   const [name, hours] = useWatch({ control, name: ["name", "hours"] });
@@ -60,7 +71,16 @@ export function VendorProfileEditor({
         event.preventDefault();
         if (pending.current) return;
         pending.current = true;
-        void handleSubmit(onSave)(event).finally(() => {
+        void handleSubmit(async (values) => {
+          try {
+            await onSave(values);
+          } catch (error) {
+            if (!isCurrent()) return;
+            const failure = normalizeApiError(error);
+            setError("root", { message: failure.message });
+            toast.error(failure.message);
+          }
+        })(event).finally(() => {
           pending.current = false;
         });
       }}
@@ -70,6 +90,7 @@ export function VendorProfileEditor({
           className="vendor-profile-back"
           type="button"
           aria-label="Back to profile, retain draft"
+          disabled={isSubmitting}
           onClick={() => onBack(getValues())}
         >
           <ArrowLeft size={22} />
@@ -84,7 +105,12 @@ export function VendorProfileEditor({
         </button>
       </div>
       <div className="vendor-profile-editor-photo">
-        <VendorProfilePhotoPicker avatar source={photo} onChange={onPhoto} />
+        <VendorProfilePhotoPicker
+          avatar
+          source={photo}
+          onChange={onPhoto}
+          disabled={isSubmitting}
+        />
       </div>
       <fieldset className="vendor-profile-basic">
         <legend>Basic Info</legend>
@@ -92,7 +118,7 @@ export function VendorProfileEditor({
           <div className="relative">
             <FormField
               label="Truck Name"
-              maxLength={50}
+              maxLength={255}
               className="vendor-profile-input pr-14"
               {...register("name")}
               defaultValue={draft.name}
@@ -102,7 +128,7 @@ export function VendorProfileEditor({
               className="absolute top-[38px] right-4 text-xs text-[#8D96A4]"
               aria-live="polite"
             >
-              {name.length}/50
+              {name.length}/255
             </span>
           </div>
           <FormField
@@ -122,6 +148,7 @@ export function VendorProfileEditor({
           />
           <FormField
             label="Location"
+            readOnly
             className="vendor-profile-input"
             placeholder="e:g: san francisco"
             {...register("location")}
@@ -200,7 +227,7 @@ export function VendorProfileEditor({
         </div>
         <FormError message={errors.hours?.root?.message} />
       </fieldset>
-      <fieldset className="vendor-profile-capacity">
+      <fieldset className="vendor-profile-capacity" disabled>
         <legend>Guest Capacity</legend>
         <div>
           {profileCapacityOptions.map((capacity) => (
@@ -218,11 +245,16 @@ export function VendorProfileEditor({
           ))}
         </div>
         <FormError message={errors.capacity?.message} />
+        <p className="text-xs text-[#B8C1D1]">
+          Current numeric capacity: {maximumGuestCapacity ?? "unavailable"}. Range
+          editing needs an approved numeric meaning. Location/service area editing also
+          requires coordinates and radius; address text alone is read-only.
+        </p>
       </fieldset>
-      <fieldset className="vendor-profile-cuisines">
+      <fieldset className="vendor-profile-cuisines" disabled={cuisineDisabled}>
         <legend>Cuisine Types</legend>
         <div>
-          {profileCuisineOptions.map((cuisine) => (
+          {cuisineOptions.map((cuisine) => (
             <label key={cuisine.id}>
               <input
                 type="checkbox"
@@ -230,7 +262,7 @@ export function VendorProfileEditor({
                 {...register("cuisines")}
                 defaultChecked={draft.cuisines.includes(cuisine.id)}
               />
-              <img src={cuisine.image} alt="" />
+              {cuisine.image && <img src={cuisine.image} alt="" />}
               <span>{cuisine.label}</span>
               <span className="vendor-profile-cuisine-check" aria-hidden="true">
                 &#10003;
@@ -241,9 +273,11 @@ export function VendorProfileEditor({
         <FormError message={errors.cuisines?.message} />
       </fieldset>
       <p className="mt-5 text-xs leading-5 text-[#B8C1D1]">
-        Changes and photos stay in this local preview. Opening hours are a sample
-        schedule; your account is not updated.
+        Only supported changed fields are saved. Missing days have no server schedule;
+        untouched missing days are not submitted. Times use the backend's HH:mm format
+        without inventing a timezone.
       </p>
+      {errors.root && <p role="alert">{errors.root.message}</p>}
     </form>
   );
 }

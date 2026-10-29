@@ -26,6 +26,12 @@ export const getBookingStatusBadge = (status: BookingRecord["status"]) => {
           disputed
         </span>
       );
+    default:
+      return (
+        <span className="inline-block rounded-full border border-[#2b374e] bg-[#1a2334] px-3 py-1 text-[11px] font-medium text-[#94a3b8]">
+          {status}
+        </span>
+      );
   }
 };
 
@@ -40,7 +46,7 @@ export const getPaymentModelBadge = (model: BookingRecord["paymentModel"]) => {
 
   return (
     <span className="inline-block rounded-full border border-[#713f12]/60 bg-[#2c2410]/70 px-3 py-1 text-[11px] font-medium text-[#eab308]">
-      Deposit
+      {model}
     </span>
   );
 };

@@ -3,6 +3,9 @@ import test from "node:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
+import { Provider } from "react-redux";
+import { memberStore } from "../../social/utils/member.test-fixtures.mjs";
+import { baseApi } from "../../../services/api/baseApi.ts";
 import {
   communityReducer,
   createCommunityPost,
@@ -278,16 +281,13 @@ test("ignored quotes update offer counts once; issue validation and completion r
   );
 });
 
-test("Community preserves the main cards, exposes six creation types, and renders quote disclosures", () => {
-  const page = renderToStaticMarkup(h(MemoryRouter, null, h(CustomerCommunityPage)));
-  for (const text of [
-    "fiesta-meetup",
-    "birthday-truck-request",
-    "pearl-brewery-callout",
-    "All Posts",
-    "My Requests",
-  ])
-    assert.ok(page.includes(text), text);
+test("Community preserves tabs without mock cards; isolated legacy composer and quote previews remain", () => {
+  const store = memberStore();
+  const page = renderToStaticMarkup(
+    h(Provider, { store }, h(MemoryRouter, null, h(CustomerCommunityPage))),
+  );
+  store.dispatch(baseApi.util.resetApiState());
+  for (const text of ["All Posts", "My Posts"]) assert.ok(page.includes(text), text);
   assert.ok(!page.includes('role="dialog"'));
   const composer = renderToStaticMarkup(
     h(CommunityComposer, { onSave() {}, onCancel() {} }),

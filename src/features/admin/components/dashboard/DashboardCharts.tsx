@@ -11,15 +11,17 @@ import {
 } from "recharts";
 
 import { AdminDashboardEmpty } from "@/features/admin/components/dashboard/AdminDashboardStates";
+import { bookingMoney } from "@/features/admin/utils/adminBookings";
+import { formatNumber } from "@/features/admin/utils/adminFormat";
 
 export type RevenueDataPoint = {
   name: string;
-  revenue: number;
+  revenue: number | null;
 };
 
 export type BookingDataPoint = {
   name: string;
-  bookings: number;
+  bookings: number | null;
 };
 
 const tooltipStyle = {
@@ -57,6 +59,23 @@ export function RevenueTrendChart({ data }: { data?: RevenueDataPoint[] }) {
       </div>
 
       <div className="min-h-0 w-full flex-1">
+        <table className="sr-only">
+          <caption>Revenue trend; currency unavailable</caption>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chartData.map((point, index) => (
+              <tr key={`${point.name}:${index}`}>
+                <th>{point.name}</th>
+                <td>{bookingMoney(point.revenue)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {chartData.length === 0 ? (
           <AdminDashboardEmpty
             message="Revenue chart data is not available yet."
@@ -90,16 +109,18 @@ export function RevenueTrendChart({ data }: { data?: RevenueDataPoint[] }) {
               />
               <YAxis
                 axisLine={{ stroke: "rgba(184, 193, 209, 0.3)" }}
-                domain={[0, 80000]}
+                domain={["auto", "auto"]}
                 dx={-8}
                 stroke="transparent"
                 tick={axisTick}
                 tickLine={false}
-                ticks={[0, 20000, 40000, 60000, 80000]}
               />
               <Tooltip
                 contentStyle={tooltipStyle}
-                formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
+                formatter={(value) => [
+                  bookingMoney(typeof value === "number" ? value : undefined),
+                  "Revenue",
+                ]}
                 itemStyle={{ color: "#FF5733" }}
                 labelStyle={labelStyle}
               />
@@ -138,6 +159,23 @@ export function MonthlyBookingsChart({ data }: { data?: BookingDataPoint[] }) {
       </div>
 
       <div className="min-h-0 w-full flex-1">
+        <table className="sr-only">
+          <caption>Monthly bookings</caption>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Bookings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chartData.map((point, index) => (
+              <tr key={`${point.name}:${index}`}>
+                <th>{point.name}</th>
+                <td>{formatNumber(point.bookings)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {chartData.length === 0 ? (
           <AdminDashboardEmpty
             message="Monthly booking chart data is not available yet."
@@ -166,12 +204,12 @@ export function MonthlyBookingsChart({ data }: { data?: BookingDataPoint[] }) {
               />
               <YAxis
                 axisLine={{ stroke: "rgba(184, 193, 209, 0.3)" }}
-                domain={[0, 200]}
+                domain={[0, "auto"]}
+                allowDecimals={false}
                 dx={-8}
                 stroke="transparent"
                 tick={axisTick}
                 tickLine={false}
-                ticks={[0, 50, 100, 150, 200]}
               />
               <Tooltip
                 contentStyle={tooltipStyle}

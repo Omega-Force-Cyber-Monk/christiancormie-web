@@ -1,14 +1,28 @@
+import {
+  memberStore,
+  seedMember,
+  viewerId,
+  memberId,
+} from "../../social/utils/member.test-fixtures.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes, matchRoutes } from "react-router";
+import { Provider } from "react-redux";
+import {
+  customerTestStore,
+  profileDto,
+  reviewsDto,
+  truckId,
+} from "./discovery.test-fixtures.mjs";
+import { discoveryApi } from "../api/discovery.api.ts";
+import { baseApi } from "../../../services/api/baseApi.ts";
 
 import { ROUTES } from "../../../constants/routes.ts";
 import { appRoutes } from "../../../router/routes/app.routes.tsx";
 import { AuthGuard } from "../../../router/guards/AuthGuard.tsx";
 import { RoleGuard } from "../../../router/guards/RoleGuard.tsx";
-import { CustomerReviewGuard } from "../../../router/guards/CustomerReviewGuard.tsx";
 import { routeMetadata } from "../../../router/metadata/routeMetadata.ts";
 import CustomerProfilePage from "../pages/CustomerProfilePage.tsx";
 import {
@@ -23,15 +37,19 @@ import {
   memberProfileReducer,
 } from "./memberProfile.ts";
 
-function renderProfile(path) {
+function renderProfile(path, store = customerTestStore()) {
   return renderToStaticMarkup(
     h(
-      MemoryRouter,
-      { initialEntries: [path] },
+      Provider,
+      { store },
       h(
-        Routes,
-        null,
-        h(Route, { path: ROUTES.CUSTOMER_PROFILE, element: h(CustomerProfilePage) }),
+        MemoryRouter,
+        { initialEntries: [path] },
+        h(
+          Routes,
+          null,
+          h(Route, { path: ROUTES.CUSTOMER_PROFILE, element: h(CustomerProfilePage) }),
+        ),
       ),
     ),
   );
@@ -76,29 +94,30 @@ test("following updates followers consistently and leaves unrelated profile data
   assert.equal(edited.following, true);
 });
 
-test("own/public member views share the same sample while keeping their distinct actions", () => {
-  const own = renderProfile(ROUTES.CUSTOMER_OWN_PROFILE);
+test("own/public member views use real identity while keeping distinct actions", async () => {
+  const store = memberStore();
+  await seedMember(store);
+  const own = renderProfile(ROUTES.CUSTOMER_OWN_PROFILE, store);
   for (const text of [
-    "Alex Rivera",
+    "Actual Member",
     "Edit profile",
     "Tier Badges",
     "Current",
-    'href="/profile/alex-rivera"',
-    'value="2450"',
-    'max="10000"',
+    `href="/profile/${viewerId}"`,
+    'value="900"',
+    'max="2000"',
   ])
     assert.ok(own.includes(text), text);
-  const publicView = renderProfile(ROUTES.CUSTOMER_PUBLIC_PROFILE);
-  assert.ok(publicView.includes("Alex Rivera"));
-  assert.ok(publicView.includes('aria-pressed="false"'));
-  assert.ok(publicView.includes(">Follow</button>"));
-  assert.ok(publicView.includes(">Message</button>"));
-  assert.ok(!publicView.includes("Edit profile"));
-  assert.ok(!publicView.includes("Tier Badges"));
-  assert.ok(!publicView.includes("Credit Accepted"));
+  await seedMember(store, memberId);
+  const publicView = renderProfile(`/profile/${memberId}`, store);
+  assert.match(publicView, /Actual Member/);
+  assert.match(publicView, /aria-pressed="false"/);
+  assert.match(publicView, />Follow<\/button>/);
+  assert.match(publicView, />Message<\/button>/);
+  assert.doesNotMatch(publicView, /Edit profile|Tier Badges|Credit Accepted/);
+  store.dispatch(baseApi.util.resetApiState());
 });
-
-test("posts/tagged tabs normalize URL state and preserve the supplied gallery structure", () => {
+test("posts/tagged tabs normalize URL state and preserve the supplied gallery structure", async () => {
   assert.equal(getMemberProfileTab("tagged"), "tagged");
   assert.equal(getMemberProfileTab("menu"), "posts");
   assert.equal(getMemberProfileTab(null), "posts");
@@ -108,25 +127,42 @@ test("posts/tagged tabs normalize URL state and preserve the supplied gallery st
     new Set(memberProfilePhotos.filter(Boolean).map((photo) => photo.id)).size,
     5,
   );
-  const html = renderProfile(`${ROUTES.CUSTOMER_OWN_PROFILE}?tab=tagged`);
+  const store = memberStore();
+  await seedMember(store);
+  const html = renderProfile(`${ROUTES.CUSTOMER_OWN_PROFILE}?tab=tagged`, store);
   assert.match(html, /role="tab" aria-label="Tagged posts" aria-selected="true"/);
   assert.ok(html.includes("No tagged posts"));
   assert.equal(memberProfileTiers.length, 4);
+  store.dispatch(baseApi.util.resetApiState());
 });
 
-test("existing food-truck profiles and unknown-profile states remain separate from personal profiles", () => {
-  const truck = renderProfile("/profile/taco-paradise?tab=menu");
-  for (const text of [
-    "Taco Paradise",
-    "Credit Accepted",
-    "Baja Fish Taco",
-    "Booking preview",
-  ])
+test("existing food-truck profiles and unknown-profile states remain separate from personal profiles", async () => {
+  const store = customerTestStore();
+  await store.dispatch(
+    discoveryApi.util.upsertQueryData(
+      "getTruckProfile",
+      "actual-seafood",
+      profileDto(),
+    ),
+  );
+  await store.dispatch(
+    discoveryApi.util.upsertQueryData(
+      "getTruckReviews",
+      { slug: "actual-seafood" },
+      reviewsDto,
+    ),
+  );
+  await store.dispatch(
+    discoveryApi.util.upsertQueryData("getTruckPromotions", truckId, []),
+  );
+  const truck = renderProfile("/profile/actual-seafood?tab=menu", store);
+  for (const text of ["Actual Seafood", "Actual fish plate", ">Book</button>"])
     assert.ok(truck.includes(text), text);
   assert.ok(!truck.includes("Tier Badges"));
   const unknown = renderProfile("/profile/unknown");
-  assert.ok(unknown.includes("Profile unavailable"));
+  assert.ok(unknown.includes("Loading truck profile"));
   assert.ok(!unknown.includes("Alex Rivera"));
+  store.dispatch(baseApi.util.resetApiState());
 });
 
 test("personal and truck URLs retain verified-customer guards and route metadata", () => {
@@ -143,9 +179,6 @@ test("personal and truck URLs retain verified-customer guards and route metadata
           route.element?.type === RoleGuard &&
           route.element.props.allowedRoles.includes("CUSTOMER"),
       ),
-    );
-    assert.ok(
-      !matches.some(({ route }) => route.element?.type === CustomerReviewGuard),
     );
   }
   assert.equal(

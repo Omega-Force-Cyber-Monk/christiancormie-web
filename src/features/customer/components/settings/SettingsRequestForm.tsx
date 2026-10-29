@@ -3,6 +3,11 @@ import { MapPin, Phone, Send, Truck } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FormField } from "@/components/forms/FormField";
+import { useAccount } from "@/features/account/hooks/useAccount";
+import { useSubmitTruckLeadMutation } from "@/features/account/api/account.api";
+import { leadPayload } from "@/features/account/utils/accountAdapters";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { toast } from "sonner";
 import { SettingsTextarea } from "@/features/customer/components/settings/SettingsTextarea";
 import {
   truckRequestSchema,
@@ -11,11 +16,14 @@ import {
 
 export function SettingsRequestForm() {
   const pending = useRef(false);
-  const [requests, setRequests] = useState<(TruckRequestValues & { id: string })[]>([]);
+  const [status, setStatus] = useState("");
+  const account = useAccount();
+  const [submit] = useSubmitTruckLeadMutation();
   const {
     register,
     reset,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<TruckRequestValues>({
     resolver: zodResolver(truckRequestSchema),
@@ -36,10 +44,24 @@ export function SettingsRequestForm() {
           event.preventDefault();
           if (pending.current) return;
           pending.current = true;
-          void handleSubmit((values) => {
-            const request = { ...values, id: crypto.randomUUID() };
-            setRequests((current) => [request, ...current]);
-            reset();
+          void handleSubmit(async (values) => {
+            setStatus("");
+            try {
+              const request = await submit({
+                scope: account.scope,
+                body: leadPayload(values),
+              }).unwrap();
+              if (!account.isCurrent()) return;
+              reset();
+              setStatus(
+                `${request.truckName} request submitted. No bonus points are confirmed by this operation.`,
+              );
+            } catch (error) {
+              if (!account.isCurrent()) return;
+              const failure = normalizeApiError(error);
+              setError("root", { message: failure.message });
+              toast.error(failure.message);
+            }
           })(event).finally(() => {
             pending.current = false;
           });
@@ -90,25 +112,21 @@ export function SettingsRequestForm() {
           />
         </div>
         <p className="settings-notice">
-          Note: Our team will review your request and contact the truck owner. You'll
-          earn 100 bonus points if they join BiteDrop!
-          <span className="mt-2 block text-xs">
-            Design preview only: no request is sent and no points are awarded.
-          </span>
+          The request is sent to the platform for review. Location, description and
+          reason are stored in request notes; no bonus points are confirmed here.
         </p>
         <button
           type="submit"
           className="settings-primary w-full"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !account.allowed}
         >
           <Send size={20} aria-hidden="true" />
-          {isSubmitting ? "Adding locally…" : "Submit Request"}
+          {isSubmitting ? "Submitting…" : "Submit Request"}
         </button>
       </form>
+      {errors.root && <p role="alert">{errors.root.message}</p>}
       <p role="status" className="mt-3 text-sm text-[#2ED3D1]">
-        {requests.length
-          ? `${requests[0].truckName} added to ${requests.length} local request preview${requests.length === 1 ? "" : "s"}. Nothing was sent.`
-          : ""}
+        {status}
       </p>
     </div>
   );

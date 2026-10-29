@@ -107,7 +107,7 @@ export default function VendorSettingsPage() {
               }}
               onValidated={() =>
                 setPasswordStatus(
-                  "Password fields validated locally. Your account password has not been changed.",
+                  "Password changed successfully. Other sessions remain active.",
                 )
               }
             />

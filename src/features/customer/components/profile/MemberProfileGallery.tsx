@@ -1,13 +1,7 @@
-import { Grid3X3, Tag } from "lucide-react";
+﻿import { Grid3X3, Tag } from "lucide-react";
 import { useId, useRef } from "react";
-import { EmptyState } from "@/components/states/EmptyState";
-import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
-import {
-  memberProfilePhotos,
-  type MemberProfilePhoto,
-} from "@/features/customer/data/member-profile.data";
+import { SocialPostsGallery } from "@/features/social/components/SocialPostsGallery";
 import type { MemberProfileTab } from "@/features/customer/utils/memberProfile";
-
 const tabs = [
   { id: "posts", name: "Posts", icon: Grid3X3 },
   { id: "tagged", name: "Tagged posts", icon: Tag },
@@ -15,11 +9,11 @@ const tabs = [
 export function MemberProfileGallery({
   tab,
   onTab,
-  onPhoto,
+  userId,
 }: {
   tab: MemberProfileTab;
   onTab: (tab: MemberProfileTab) => void;
-  onPhoto: (photo: MemberProfilePhoto) => void;
+  userId: string;
 }) {
   const id = useId();
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -70,37 +64,11 @@ export function MemberProfileGallery({
           className="member-profile-tab-panel"
         >
           <h2 className="sr-only">{name}</h2>
-          {tabId === "posts" ? (
-            <div className="member-profile-photo-grid">
-              {memberProfilePhotos.map((photo, index) =>
-                photo ? (
-                  <button
-                    type="button"
-                    key={photo.id}
-                    className="member-profile-photo"
-                    aria-label={`View ${photo.name} post`}
-                    onClick={() => onPhoto(photo)}
-                  >
-                    <TruckImage
-                      name={photo.name}
-                      alt={photo.name}
-                      src={photo.image}
-                      className="h-full w-full"
-                    />
-                  </button>
-                ) : (
-                  <div
-                    key={`empty-${index}`}
-                    className="member-profile-photo member-profile-photo--empty"
-                    aria-hidden="true"
-                  />
-                ),
-              )}
-            </div>
-          ) : (
-            <EmptyState
-              title="No tagged posts"
-              description="There are no tagged posts in this local preview."
+          {tab === tabId && (
+            <SocialPostsGallery
+              key={`${userId}:${tabId}`}
+              userId={userId}
+              tab={tabId}
             />
           )}
         </div>

@@ -7,7 +7,11 @@ import {
 import composerAvatar from "@/features/vendor/assets/home/Home-truck.webp";
 
 export const vendorFeedTextSchema = z.object({
-  text: z.string().trim().min(1, "Enter some text before submitting."),
+  text: z
+    .string()
+    .trim()
+    .min(1, "Enter some text before submitting.")
+    .max(2200, "Use at most 2200 characters."),
 });
 export type VendorCommentDraft = { text: string; replyTo: string | null };
 export type VendorFeedState = {

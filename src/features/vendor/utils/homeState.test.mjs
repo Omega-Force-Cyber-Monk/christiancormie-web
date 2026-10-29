@@ -1,3 +1,4 @@
+import { seedVendorHome, ownerId } from "./vendor.test-fixtures.mjs";
 import assert from "node:assert/strict";
 import { File } from "node:buffer";
 import test from "node:test";
@@ -69,13 +70,13 @@ test("local updates validate, trim text, close the composer and ignore duplicate
   assert.equal(initialVendorHomeState().updates.length, 0);
 });
 
-test("composer renders the retained draft with local-only submission language", () => {
+test("composer renders the retained draft with backend confirmation language", () => {
   const html = renderToStaticMarkup(
     h(VendorHomeUpdateForm, { draft: "Opening at noon", onDraft() {}, onSave() {} }),
   );
   assert.match(html, /Opening at noon/);
-  assert.match(html, /Nothing is published or sent/);
-  assert.match(html, /Save local update/);
+  assert.match(html, /published only after backend confirmation/);
+  assert.match(html, /Publish update/);
 });
 
 const qrFile = new File(["<svg/>"], "sample.svg", { type: "image/svg+xml" });
@@ -146,7 +147,7 @@ test("cancelling native share does not copy or falsely report success", async ()
   assert.equal(copies, 0);
 });
 
-test("Vendor Home retains AuthGuard and Vendor RoleGuard; all other dashboard shells and role guards remain intact", () => {
+test("home retains authentication, Vendor role protection and existing UI", () => {
   const home = matchRoutes(appRoutes, ROUTES.VENDOR_DASHBOARD);
   assert.ok(home.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -193,9 +194,10 @@ function storeFor(role) {
     );
     store.dispatch(
       identityVerified({
-        id: "test-vendor",
+        id: ownerId,
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -205,7 +207,8 @@ function storeFor(role) {
 function RouteTree() {
   return useRoutes(appRoutes);
 }
-function renderAt(role, path = ROUTES.VENDOR_DASHBOARD) {
+async function renderAt(role, path = ROUTES.VENDOR_DASHBOARD, store = storeFor(role)) {
+  if (role === "VENDOR") await seedVendorHome(store);
   return new Promise((resolve, reject) => {
     let html = "";
     const output = new PassThrough();
@@ -215,11 +218,7 @@ function renderAt(role, path = ROUTES.VENDOR_DASHBOARD) {
     output.on("end", () => resolve(html));
     output.on("error", reject);
     const stream = renderToPipeableStream(
-      h(
-        Provider,
-        { store: storeFor(role) },
-        h(MemoryRouter, { initialEntries: [path] }, h(RouteTree)),
-      ),
+      h(Provider, { store }, h(MemoryRouter, { initialEntries: [path] }, h(RouteTree))),
       {
         onAllReady() {
           stream.pipe(output);
@@ -229,16 +228,16 @@ function renderAt(role, path = ROUTES.VENDOR_DASHBOARD) {
     );
   });
 }
-test("verified Vendor Home renders its single shared shell and sample content without a server or network", async () => {
+test("verified Vendor Home renders its single shared shell with mocked backend content without a server or network", async () => {
   const html = await renderAt("VENDOR");
   assert.match(html, /vendor-home-shell/);
-  assert.match(html, /Hello Taco!/);
+  assert.match(html, /Actual Vendor Kitchen/);
   for (const text of [
     "Post Update",
     "Earnings &amp; Analytics",
     "QR Code",
-    "Corporate Lunch",
-    "Block Party",
+    "BK-2026-0007",
+    "Actual Food Truck",
     "Recent Activity",
   ])
     assert.ok(html.includes(text), text);
@@ -247,7 +246,7 @@ test("verified Vendor Home renders its single shared shell and sample content wi
   assert.doesNotMatch(html, /Role-aware workspace/);
 });
 
-test("anonymous and other-role users cannot enter Vendor Home", async () => {
+test("anonymous visitors and other roles cannot access home", async () => {
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role), "");
 });

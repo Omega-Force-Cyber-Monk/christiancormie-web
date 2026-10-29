@@ -12,12 +12,6 @@ export const toAuthenticatedUser = (user: CurrentUserResponse): AuthenticatedUse
       "This account has no supported dashboard role. Please contact support.",
     );
   }
-  if (roles.length > 1) {
-    // No role precedence or role-selection workflow has been approved.
-    throw new Error(
-      "This account has multiple dashboard roles. Please contact support to resolve access.",
-    );
-  }
   const profile = user.profile;
   const fullName = [profile?.firstName?.trim(), profile?.lastName?.trim()]
     .filter(Boolean)
@@ -27,7 +21,8 @@ export const toAuthenticatedUser = (user: CurrentUserResponse): AuthenticatedUse
     id: user.id,
     email: user.email,
     name: profile?.displayName?.trim() || fullName || user.email,
-    role: roles[0],
+    roles: [...new Set(user.roles)],
+    role: roles.length === 1 ? roles[0] : null,
     avatarUrl: profile?.avatarUrl?.trim() || null,
   };
 };

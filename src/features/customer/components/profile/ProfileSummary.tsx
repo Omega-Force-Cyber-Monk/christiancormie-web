@@ -1,50 +1,38 @@
-import {
-  Clock,
-  DollarSign,
-  MapPin,
-  Navigation,
-  RectangleEllipsis,
-  Star,
-} from "lucide-react";
-import { useState } from "react";
-
+﻿import { Clock, MapPin, Navigation, RectangleEllipsis, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import verifiedBadge from "@/features/customer/assets/profile/profile-verified-badge.svg";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
-import { sampleTruckProfile as profile } from "@/features/customer/data/profile.data";
-
+import { TruckSocialActions } from "@/features/customer/components/discover/TruckSocialActions";
+import { StartConversationButton } from "@/features/messaging/components/StartConversationButton";
+import type { TruckProfileDto } from "@/features/customer/types/discovery.types";
+import { safeImage } from "@/features/customer/utils/discoveryAdapters";
 export type ProfilePreviewAction = "message" | "book" | "directions" | "offer";
-
-type ProfileSummaryProps = {
+export function ProfileSummary({
+  profile,
+  onPreview,
+  onReviews,
+}: {
+  profile: TruckProfileDto;
   onPreview: (action: ProfilePreviewAction) => void;
   onReviews: () => void;
-};
-
-export function ProfileSummary({ onPreview, onReviews }: ProfileSummaryProps) {
-  const [following, setFollowing] = useState(false);
+}) {
   return (
     <header className="profile-summary">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
-        <div className="relative shrink-0">
-          <TruckImage
-            className="profile-avatar size-[84px] rounded-full border-2 border-[#FF5733]"
-            name={profile.name}
-            src={profile.avatar}
-          />
-          <span
-            aria-label="Sample online status"
-            className="absolute right-3 bottom-1 size-3.5 rounded-full border border-white bg-[#2ED3D1]"
-          />
-        </div>
+        <TruckImage
+          className="profile-avatar size-[84px] rounded-full border-2 border-[#FF5733]"
+          name={profile.name}
+          src={safeImage(profile.profileImageUrl ?? profile.coverImageUrl)}
+        />
         <dl className="flex gap-6 text-center">
           {[
-            { value: profile.followers, label: "followers" },
-            { value: profile.checkIns, label: "Check In" },
-            { value: profile.reviewCount, label: "Reviews" },
+            { value: profile.followerCount, label: "followers" },
+            { value: profile.totalCheckIns, label: "Check In" },
+            { value: profile.totalReviews, label: "Reviews" },
           ].map(({ value, label }) => (
             <div className="flex flex-col-reverse gap-1" key={label}>
               <dt className="text-sm leading-5 text-[#B8C1D1]">{label}</dt>
-              <dd className="text-xl leading-7 font-bold">{value}</dd>
+              <dd className="text-xl leading-7 font-bold">{value ?? "Unavailable"}</dd>
             </div>
           ))}
         </dl>
@@ -54,97 +42,61 @@ export function ProfileSummary({ onPreview, onReviews }: ProfileSummaryProps) {
         tabIndex={-1}
       >
         {profile.name}
-        <img
-          alt="Verified badge in design sample"
-          className="size-5"
-          src={verifiedBadge}
-        />
+        {profile.vendor.isVerified && (
+          <img alt="Verified vendor" className="size-5" src={verifiedBadge} />
+        )}
       </h1>
-      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm leading-5 text-[#B8C1D1]">
-        <p>{profile.cuisine}</p>
-        <span className="profile-credit">
-          <DollarSign aria-hidden="true" size={13} />
-          Credit Accepted
-        </span>
-      </div>
+      <p className="mt-1 text-sm leading-5 text-[#B8C1D1]">
+        {profile.cuisines.map((c) => c.cuisine.name).join(", ") ||
+          "Cuisine unavailable"}
+      </p>
+      {profile.description && (
+        <p className="mt-3 text-sm leading-6">{profile.description}</p>
+      )}
       <ul className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-5 text-[#B8C1D1]">
         <li className="inline-flex items-center gap-1">
-          <MapPin aria-hidden="true" size={20} />
-          {profile.location}
+          <MapPin size={20} />
+          {profile.currentAddress ?? "Location unavailable"}
         </li>
         <li className="inline-flex items-center gap-1">
-          <Clock aria-hidden="true" size={20} />
-          {profile.hours}
+          <Clock size={20} />
+          {profile.operatingStatus}
         </li>
         <li className="inline-flex items-center gap-1">
-          <RectangleEllipsis aria-hidden="true" size={18} />
-          {profile.capacity}
+          <RectangleEllipsis size={18} />
+          {profile.maximumGuestCapacity == null
+            ? "Capacity unavailable"
+            : `Up to ${profile.maximumGuestCapacity} guests`}
         </li>
       </ul>
-      <button
-        aria-label="View sample offer details"
-        className="profile-offer mt-7 inline-flex min-h-[50px] items-center gap-2.5 rounded-xl px-2.5 text-xs leading-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
-        onClick={() => onPreview("offer")}
-        type="button"
-      >
-        <span aria-hidden="true" className="size-5 bg-[#0A0A0A]" />
-        {profile.offer}
-      </button>
       <div className="mt-6 flex flex-wrap gap-3 sm:gap-6">
-        <Button
-          aria-label={
-            following ? "Unfollow in local preview" : "Follow in local preview"
-          }
-          aria-pressed={following}
-          className="profile-pill profile-follow"
-          onClick={() => setFollowing((current) => !current)}
-          variant="primary"
-        >
-          {following ? "Following" : "Follow"}
-        </Button>
-        <Button
-          aria-label="Message preview"
+        <TruckSocialActions foodTruckId={profile.id} kind="follow" />
+        <StartConversationButton
           className="profile-pill"
-          onClick={() => onPreview("message")}
-        >
-          Message
-        </Button>
-        <Button
-          aria-label="Booking preview"
-          className="profile-pill"
-          onClick={() => onPreview("book")}
-        >
+          target={{ foodTruckId: profile.id }}
+        />
+        <Button className="profile-pill" onClick={() => onPreview("book")}>
           Book
         </Button>
-        <Button
-          aria-label="Preview location, 0.3 miles away"
-          className="profile-pill"
-          onClick={() => onPreview("directions")}
-        >
-          <MapPin aria-hidden="true" className="text-[#FF5733]" size={16} />
-          {profile.distance}
+        <Button className="profile-pill" onClick={() => onPreview("directions")}>
+          <MapPin className="text-[#FF5733]" size={16} />
+          Location
         </Button>
-        <Button
-          aria-label="View sample review summary, rating 4.8"
-          className="profile-pill"
-          onClick={onReviews}
-        >
-          <Star aria-hidden="true" className="text-[#FFB547]" size={16} />
-          {profile.rating}
+        <Button className="profile-pill" onClick={onReviews}>
+          <Star className="text-[#FFB547]" size={16} />
+          {profile.averageRating ?? "Rating unavailable"}
         </Button>
       </div>
       <Button
-        aria-label="Directions preview"
+        aria-label="Directions"
         className="profile-pill mt-6"
         onClick={() => onPreview("directions")}
       >
-        <Navigation aria-hidden="true" className="text-[#FF5733]" size={18} />
+        <Navigation className="text-[#FF5733]" size={18} />
       </Button>
-      <p aria-live="polite" className="sr-only" role="status">
-        {following
-          ? `Following ${profile.name} in this local preview. No account was updated.`
-          : `Not following ${profile.name} in this local preview.`}
-      </p>
+      <div className="mt-4">
+        <TruckSocialActions foodTruckId={profile.id} kind="favorite" />
+      </div>
     </header>
   );
 }

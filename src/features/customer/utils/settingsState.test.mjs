@@ -4,6 +4,8 @@ import test from "node:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, matchRoutes } from "react-router";
+import { Provider } from "react-redux";
+import { memberStore } from "../../social/utils/member.test-fixtures.mjs";
 import {
   initialSettingsState,
   settingsReducer,
@@ -81,8 +83,8 @@ test("profile save validates, normalizes and preserves a separate saved snapshot
 test("password preview enforces the existing eight-character minimum, required current password and confirmation", () => {
   const valid = {
     currentPassword: "old-example",
-    newPassword: "new-example",
-    confirmPassword: "new-example",
+    newPassword: "New-example1",
+    confirmPassword: "New-example1",
   };
   assert.equal(settingsPasswordSchema.safeParse(valid).success, true);
   assert.equal(
@@ -226,7 +228,11 @@ test("fresh settings reset sample values independently and preserve all source p
 
 test("menu and page forms render without a server and keep request/issue form instances mounted for drafts", () => {
   const html = renderToStaticMarkup(
-    h(MemoryRouter, { initialEntries: ["/settings"] }, h(CustomerSettingsPage)),
+    h(
+      Provider,
+      { store: memberStore() },
+      h(MemoryRouter, { initialEntries: ["/settings"] }, h(CustomerSettingsPage)),
+    ),
   );
   for (const label of [
     "Invite Friends",
@@ -241,17 +247,23 @@ test("menu and page forms render without a server and keep request/issue form in
   assert.match(html, /name="truckName"/);
   assert.match(html, /name="subject"/);
   const profile = renderToStaticMarkup(
-    h(SettingsProfileEditor, {
-      profile: initialSettingsState().profile,
-      onSave() {},
-      onCancel() {},
-    }),
+    h(
+      Provider,
+      { store: memberStore() },
+      h(SettingsProfileEditor, {
+        profile: initialSettingsState().profile,
+        onSave() {},
+        onCancel() {},
+      }),
+    ),
   );
   assert.match(profile, /value="Alex Rivera"/);
-  assert.match(profile, /name="bio"/);
-  const password = renderToStaticMarkup(h(SettingsPasswordForm, { onCancel() {} }));
+  assert.match(profile, /Full Name and Bio are read-only/);
+  const password = renderToStaticMarkup(
+    h(Provider, { store: memberStore() }, h(SettingsPasswordForm, { onCancel() {} })),
+  );
   assert.equal((password.match(/type="password"/g) ?? []).length, 3);
-  assert.match(password, /Your account password will not change/);
+  assert.match(password, /uppercase, lowercase/);
 });
 
 test("support cards and conversation render selected context with explicit local-only behavior", () => {

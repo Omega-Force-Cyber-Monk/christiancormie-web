@@ -139,16 +139,19 @@ test("all supported roles normalize without defaults or invented precedence", ()
       role,
     );
   }
-  for (const roles of [
-    [],
-    ["UNKNOWN"],
-    ["ADMIN", "CUSTOMER"],
-    ["VENDOR", "VENDOR_STAFF"],
-  ]) {
+  for (const roles of [[], ["UNKNOWN"]]) {
     assert.throws(
       () => toAuthenticatedUser(currentUserResponse({ roles })),
       /dashboard role/,
     );
+  }
+  for (const roles of [
+    ["CUSTOMER", "VENDOR"],
+    ["VENDOR", "VENDOR_STAFF"],
+  ]) {
+    const user = toAuthenticatedUser(currentUserResponse({ roles }));
+    assert.deepEqual(user.roles, roles);
+    assert.equal(user.role, null);
   }
   assert.equal(
     toAuthenticatedUser(currentUserResponse({ roles: ["ADMIN", "ADMIN"] })).role,
@@ -294,8 +297,8 @@ test("refresh retries users/me with rotated tokens and then verifies the new ide
   );
 });
 
-test("unknown/ambiguous roles retain credentials but never grant dashboard access", async () => {
-  for (const roles of [[], ["UNKNOWN"], ["ADMIN", "CUSTOMER"]]) {
+test("unknown roles retain credentials but never grant dashboard access", async () => {
+  for (const roles of [[], ["UNKNOWN"]]) {
     await withRequests(
       () => json(currentUserResponse({ roles })),
       async (store) => {
@@ -343,7 +346,7 @@ test("a current-user result after logout cannot resurrect the previous identity"
     async (store) => {
       const initialization = store.dispatch(initializeSession());
       await ready;
-      store.dispatch(clearSession());
+      store.dispatch(clearSession("storage"));
       respond();
       await initialization;
       assert.equal(store.getState().auth.user, null);

@@ -90,7 +90,6 @@ export const communityComposerSchema = z
       !Number.isSafeInteger(Number(values.guests))
     )
       error("guests", "Enter a positive whole guest count.");
-    if (!values.budget) error("budget", "Enter the budget range.");
   });
 export type CommunityComposerValues = z.infer<typeof communityComposerSchema>;
 export const emptyCommunityComposer: CommunityComposerValues = {

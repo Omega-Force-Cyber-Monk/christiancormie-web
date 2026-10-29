@@ -3,7 +3,7 @@ import type { PostMedia } from "@/features/customer/data/create-post.data";
 
 export const createPostSchema = z
   .object({
-    text: z.string().trim(),
+    text: z.string().trim().max(2200),
     media: z.array(z.custom<PostMedia>()),
     locationId: z.string(),
     friendIds: z.array(z.string()),

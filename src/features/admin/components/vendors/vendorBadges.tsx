@@ -23,6 +23,10 @@ export function getVendorStatusBadge(status: string) {
         </span>
       );
     default:
-      return null;
+      return (
+        <span className="rounded-full border border-[#2b374e] px-2.5 py-0.5 text-[11px] font-semibold text-[#94a3b8]">
+          {status}
+        </span>
+      );
   }
 }

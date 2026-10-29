@@ -2,11 +2,14 @@ import { z } from "zod";
 
 import { ALL_USER_ROLES } from "@/constants/roles";
 
+export const logoutResponseSchema = z.object({ success: z.literal(true) });
+
 export const authenticatedUserSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
   email: z.string(),
-  role: z.enum(ALL_USER_ROLES),
+  roles: z.array(z.string()).default([]),
+  role: z.enum(ALL_USER_ROLES).nullable(),
   avatarUrl: z.string().nullable().optional(),
 });
 
@@ -29,6 +32,6 @@ export const sourceLoginResponseSchema = z.object({
     id: z.string().min(1),
     email: z.string(),
     displayName: z.string(),
-    roles: z.array(z.enum(ALL_USER_ROLES)),
+    roles: z.array(z.string()),
   }),
 });

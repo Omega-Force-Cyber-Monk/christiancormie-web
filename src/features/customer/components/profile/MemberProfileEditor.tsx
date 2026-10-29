@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { FormField } from "@/components/forms/FormField";
 import { Modal } from "@/components/overlays/Modal/Modal";
 import { Button } from "@/components/ui/Button";
+import { useAccount } from "@/features/account/hooks/useAccount";
+import { useUpdateAccountProfileMutation } from "@/features/account/api/account.api";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 import {
   memberProfileEditSchema,
   type MemberProfileEditValues,
@@ -15,15 +18,18 @@ export function MemberProfileEditor({
   onClose,
 }: {
   name: string;
-  onSave: (name: string) => void;
+  onSave: (name: string, identityRefreshed: boolean) => void;
   onClose: () => void;
 }) {
   const titleId = useId();
   const busy = useRef(false);
+  const account = useAccount();
+  const [save] = useUpdateAccountProfileMutation();
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    setError,
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<MemberProfileEditValues>({
     resolver: zodResolver(memberProfileEditSchema),
     defaultValues: { name },
@@ -37,7 +43,18 @@ export function MemberProfileEditor({
           event.preventDefault();
           if (busy.current) return;
           busy.current = true;
-          void handleSubmit((values) => onSave(values.name))(event).finally(() => {
+          void handleSubmit(async (values) => {
+            try {
+              const result = await save({
+                scope: account.scope,
+                body: { displayName: values.name },
+              }).unwrap();
+              if (account.isCurrent()) onSave(values.name, result.identityRefreshed);
+            } catch (e) {
+              if (account.isCurrent())
+                setError("root", { message: normalizeApiError(e).message });
+            }
+          })(event).finally(() => {
             busy.current = false;
           });
         }}
@@ -48,18 +65,20 @@ export function MemberProfileEditor({
         <FormField
           {...register("name")}
           defaultValue={name}
-          label="Profile name"
+          label="Display Name"
           error={errors.name?.message}
           autoComplete="off"
         />
         <p className="mt-4 text-sm leading-6 text-[var(--text-muted)]">
-          Changes apply only to this sample profile on this page.
+          Saves your display name. Separate first/last names and bio cannot be updated
+          through this API.
         </p>
+        {errors.root && <p role="alert">{errors.root.message}</p>}
         <div className="mt-6 grid grid-cols-2 gap-3">
           <Button onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" disabled={isSubmitting || !isDirty}>
             Save changes
           </Button>
         </div>

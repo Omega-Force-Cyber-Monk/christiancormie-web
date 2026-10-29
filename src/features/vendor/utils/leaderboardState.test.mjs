@@ -1,4 +1,5 @@
-﻿import assert from "node:assert/strict";
+import { memberStore, seedRankings } from "../../social/utils/member.test-fixtures.mjs";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { URLSearchParams } from "node:url";
 import { PassThrough } from "node:stream";
@@ -52,55 +53,40 @@ test("keyboard tabs wrap in both directions and support Home and End", () => {
   for (const key of ["Tab", "Escape", " ", "Enter"])
     assert.equal(adjacentLeaderboardTab("top-rated", key), undefined);
 });
-function renderPage(tab) {
-  return renderToStaticMarkup(
-    h(MemoryRouter, { initialEntries: ["/?tab=" + tab] }, h(VendorLeaderboardPage)),
-  );
-}
-test("Top Rated and Most Booked preserve the seven source trucks, metrics and podium", () => {
-  assert.equal(vendorRankedTrucks.length, 7);
-  for (const tab of ["top-rated", "most-booked", "invalid"]) {
-    const html = renderPage(tab);
-    assert.equal(
-      (html.match(/class="vendor-ranking vendor-ranking--/g) ?? []).length,
-      7,
-    );
-    for (const truck of vendorRankedTrucks) assert.ok(html.includes(truck.name));
-    for (const text of [
-      "1,234 reviews",
-      "2,103 reviews",
-      "0.5 mi",
-      "Gold",
-      "Silver",
-      "Bronze",
-      "Sample rankings",
-    ])
-      assert.ok(html.includes(text), text);
-    assert.ok(!html.includes("Lionel Messi"));
-    assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
-    assert.match(
-      html,
-      new RegExp(
-        `id="leaderboard-tab-${parseVendorLeaderboardTab(tab)}"[^>]*aria-selected="true"[^>]*tabindex="0"`,
+async function renderPage(tab) {
+  const store = memberStore("VENDOR");
+  await seedRankings(store, parseVendorLeaderboardTab(tab));
+  try {
+    return renderToStaticMarkup(
+      h(
+        Provider,
+        { store },
+        h(MemoryRouter, { initialEntries: ["/?tab=" + tab] }, h(VendorLeaderboardPage)),
       ),
     );
-    assert.match(html, /role="tabpanel"[^>]*aria-labelledby="leaderboard-tab-/);
+  } finally {
+    store.dispatch(baseApi.util.resetApiState());
+  }
+}
+test("Top Rated and Most Booked use backend ranks and correct distinct metrics", async () => {
+  assert.equal(vendorRankedTrucks.length, 7);
+  for (const tab of ["top-rated", "most-booked", "invalid"]) {
+    const html = await renderPage(tab);
+    assert.match(html, /Ranked Truck/);
+    assert.match(html, /vendor-ranking--5/);
+    assert.match(html, tab === "most-booked" ? /34 bookings/ : /12 reviews/);
+    assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
+    assert.match(html, /role="tabpanel"/);
+    assert.doesNotMatch(html, /0.5 mi|Sample rankings/);
   }
 });
-test("Most points replaces trucks with seven member portraits and descending point totals", () => {
-  const html = renderPage("most-points");
+test("Most points renders backend member identity and lifetime points", async () => {
   assert.equal(vendorRankedMembers.length, 7);
-  for (const member of vendorRankedMembers) assert.ok(html.includes(member.name));
-  assert.equal((html.match(/class="vendor-ranking-portrait"/g) ?? []).length, 7);
-  assert.match(html, /1,890 Points/);
-  assert.match(html, /1,050 Points/);
+  const html = await renderPage("most-points");
+  assert.match(html, /Ranked Member/);
+  assert.match(html, /8400 Points/);
   assert.match(html, /Member points rankings/);
-  assert.ok(!html.includes("Burger Bliss"));
-  assert.ok(!html.includes("reviews"));
-  assert.deepEqual(
-    vendorRankedMembers.map((x) => x.points),
-    [1890, 1889, 1850, 1234, 1150, 1100, 1050],
-  );
+  assert.doesNotMatch(html, /Burger Bliss|reviews/);
 });
 function RouteTree() {
   return useRoutes(appRoutes);
@@ -124,6 +110,7 @@ function renderAt(role, query = "") {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -155,7 +142,7 @@ function renderAt(role, query = "") {
     );
   });
 }
-test("Leaderboard retains verified Vendor authentication, metadata and navigation isolation", async () => {
+test("leaderboard retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_LEADERBOARD);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -175,13 +162,13 @@ test("Leaderboard retains verified Vendor authentication, metadata and navigatio
   assert.match(html, /vendor-leaderboard-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/leaderboard"/);
-  assert.match(html, /Burger Bliss/);
+  assert.match(html, /Loading rankings/);
   assert.match(
     await renderAt("VENDOR", "?tab=most-booked"),
     /id="leaderboard-tab-most-booked"[^>]*aria-selected="true"/,
   );
-  assert.match(await renderAt("VENDOR", "?tab=most-points"), /Lionel Messi/);
-  assert.match(await renderAt("VENDOR", "?tab=invalid"), /Burger Bliss/);
+  assert.match(await renderAt("VENDOR", "?tab=most-points"), /Loading rankings/);
+  assert.match(await renderAt("VENDOR", "?tab=invalid"), /Loading rankings/);
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role, "?tab=most-points"), "");
 });

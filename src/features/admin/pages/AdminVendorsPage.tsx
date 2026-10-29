@@ -1,9 +1,16 @@
-import { useMemo, useState } from "react";
+import { DataTablePagination } from "@/components/data-display/DataTable/DataTablePagination";
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
+import {
+  toAdminVendor,
+  toAdminTruckRequest,
+} from "@/features/admin/utils/adminVendors";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "@/components/states/ErrorState";
 import {
   useGetAdminVendorsManagementQuery,
+  useGetAdminTruckRequestsQuery,
   useUpdateTruckRequestStatusMutation,
 } from "@/features/admin/api/admin.api";
 import { AdminLoading } from "@/features/admin/components/AdminLoading";
@@ -16,7 +23,6 @@ import { VendorDetailsModal } from "@/features/admin/components/vendors/VendorDe
 import { VendorSummaryCards } from "@/features/admin/components/vendors/VendorSummaryCards";
 import type {
   LicenseDocument,
-  TruckRequestItem,
   VendorItem,
 } from "@/features/admin/components/vendors/vendors.types";
 import { formatNumber } from "@/features/admin/utils/adminFormat";
@@ -27,91 +33,53 @@ type VendorTab = "all" | "requests" | "communicated";
 export default function AdminVendorsPage() {
   const [activeTab, setActiveTab] = useState<VendorTab>("all");
   const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<TruckRequestItem | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<LicenseDocument | null>(
     null,
   );
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminVendorsManagementQuery();
-  const [updateTruckRequestStatus] = useUpdateTruckRequestStatusMutation();
-
-  const vendors = useMemo<VendorItem[]>(
-    () =>
-      data?.vendors?.map((vendor) => ({
-        cuisine: vendor.cuisineType,
-        description: "N/A",
-        documents: [],
-        email: "N/A",
-        followersCount: formatNumber(vendor.followers),
-        id: vendor.id,
-        isVerified: vendor.isVerified,
-        memberSince: "N/A",
-        menuItems: [],
-        name: vendor.businessName,
-        ownerName: vendor.ownerName,
-        phone: "N/A",
-        priceRange: "N/A",
-        rating: vendor.rating,
-        revenueGenerated: "N/A",
-        reviewsCount: vendor.reviews,
-        serviceArea: "N/A",
-        status:
-          vendor.status === "SUSPENDED"
-            ? "suspended"
-            : vendor.status === "APPROVED"
-              ? "active"
-              : "Pending",
-        totalBookings: 0,
-      })) ?? [],
-    [data?.vendors],
+  const vendorsList = useAdminList(10);
+  const requestsList = useAdminList(10, activeTab);
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminVendorsManagementQuery(vendorsList.query);
+  const requests = useGetAdminTruckRequestsQuery(
+    {
+      ...requestsList.query,
+      ...(activeTab === "communicated" ? { status: "COMMUNICATED" } : {}),
+    },
+    { skip: activeTab === "all" },
   );
-
-  const truckRequests = useMemo<TruckRequestItem[]>(
-    () =>
-      data?.truckRequests?.map((request) => ({
-        description: request.description,
-        id: request.id,
-        location: request.usualLocation,
-        phone: request.phone,
-        reason: request.reason,
-        reqCode: request.requestDisplayId,
-        status: request.status === "COMMUNICATED" ? "Communicated" : "Pending",
-        submittedDate: "Recently",
-        submitter: {
-          avatarInitial: request.requester.name.charAt(0).toUpperCase() || "R",
-          email: request.requester.email,
-          name: request.requester.name,
-          role: "Requester",
-        },
-        truckName: request.truckName,
-      })) ?? [],
-    [data?.truckRequests],
-  );
-
-  const pendingRequestsCount = truckRequests.filter(
-    (request) => request.status === "Pending",
-  ).length;
-  const communicatedCount =
-    data?.tabs?.communicated ??
-    truckRequests.filter((request) => request.status === "Communicated").length;
-  const displayedRequests =
-    activeTab === "communicated"
-      ? truckRequests.filter((request) => request.status === "Communicated")
-      : truckRequests;
+  const vendorPage = adminPage(data?.vendors, vendorsList.pageSize);
+  const requestPage = adminPage(requests.currentData, requestsList.pageSize);
+  const vendors = vendorPage.rows.map(toAdminVendor);
+  const displayedRequests = requestPage.rows.map(toAdminTruckRequest);
+  const selectedRequest =
+    displayedRequests.find((request) => request.id === selectedRequestId) ?? null;
+  const pendingRequestsCount = data?.tabs?.truckRequests;
+  const communicatedCount = data?.tabs?.communicated;
+  const [updateTruckRequestStatus, update] = useUpdateTruckRequestStatusMutation();
+  const pendingRequest = useRef<string | null>(null);
 
   const handleMarkCommunicated = async (requestId: string) => {
+    if (pendingRequest.current) return;
+    const request = displayedRequests.find((row) => row.id === requestId);
+    if (!request || request.status !== "Pending") return;
+    pendingRequest.current = requestId;
     try {
-      await updateTruckRequestStatus({
-        requestId,
-        status: "COMMUNICATED",
-        notes: "Marked communicated from admin dashboard.",
-      }).unwrap();
+      await updateTruckRequestStatus({ requestId, status: "COMMUNICATED" }).unwrap();
+      setSelectedRequestId((current) => (current === requestId ? null : current));
       toast.success("Truck request marked communicated.");
-    } catch {
-      toast.error("Unable to update truck request.");
+    } catch (failure) {
+      toast.error(normalizeApiError(failure).message);
+    } finally {
+      pendingRequest.current = null;
     }
   };
-
   if (isLoading) return <AdminLoading cards={4} rows={5} />;
 
   if (isError && !data) {
@@ -177,30 +145,74 @@ export default function AdminVendorsPage() {
           />
           <VendorTabButton
             active={activeTab === "requests"}
-            label={`Truck Requests (${pendingRequestsCount})`}
+            label={`Truck Requests (${formatNumber(pendingRequestsCount)})`}
             onClick={() => setActiveTab("requests")}
-            pill={pendingRequestsCount}
+            pill={pendingRequestsCount ?? undefined}
           />
           <VendorTabButton
             active={activeTab === "communicated"}
-            label={`Communicated (${communicatedCount})`}
+            label={`Communicated (${formatNumber(communicatedCount)})`}
             onClick={() => setActiveTab("communicated")}
           />
         </div>
       </div>
 
+      <input
+        aria-label={activeTab === "all" ? "Search vendors" : "Search truck requests"}
+        type="search"
+        className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
+        placeholder="Search..."
+        value={activeTab === "all" ? vendorsList.search : requestsList.search}
+        onChange={(event) =>
+          (activeTab === "all" ? vendorsList.setSearch : requestsList.setSearch)(
+            event.target.value,
+          )
+        }
+      />
       {activeTab === "all" ? (
-        <VendorCards onViewDetails={setSelectedVendor} vendors={vendors} />
+        <>
+          {isFetching && !data ? (
+            <AdminLoading cards={0} />
+          ) : (
+            <VendorCards onViewDetails={setSelectedVendor} vendors={vendors} />
+          )}
+          <DataTablePagination
+            {...vendorsList.pagination}
+            hasNextPage={vendorPage.hasNextPage}
+            isFetching={isFetching}
+            variant="contrast"
+          />
+        </>
       ) : (
-        <TruckRequestCards
-          onMarkCommunicated={(requestId) => {
-            void handleMarkCommunicated(requestId);
-          }}
-          onViewDetails={setSelectedRequest}
-          requests={displayedRequests}
-        />
+        <>
+          {requests.isError ? (
+            <ErrorState
+              error={normalizeApiError(requests.error)}
+              onRetry={() => {
+                void requests.refetch();
+              }}
+            />
+          ) : null}
+          {requests.isFetching && !requests.currentData ? (
+            <AdminLoading cards={0} />
+          ) : !requests.isError || requests.currentData ? (
+            <TruckRequestCards
+              isUpdating={update.isLoading}
+              onMarkCommunicated={(requestId) => {
+                void handleMarkCommunicated(requestId);
+              }}
+              onViewDetails={(request) => setSelectedRequestId(request.id)}
+              requests={displayedRequests}
+            />
+          ) : null}
+          <DataTablePagination
+            {...requestsList.pagination}
+            hasNextPage={requestPage.hasNextPage}
+            isFetching={requests.isFetching}
+            variant="contrast"
+          />
+        </>
       )}
-
       <VendorDetailsModal
         isOpen={Boolean(selectedVendor)}
         onClose={() => setSelectedVendor(null)}
@@ -209,10 +221,11 @@ export default function AdminVendorsPage() {
       />
       <TruckRequestModal
         isOpen={Boolean(selectedRequest)}
-        onClose={() => setSelectedRequest(null)}
+        onClose={() => setSelectedRequestId(null)}
         onMarkCommunicated={(requestId) => {
           void handleMarkCommunicated(requestId);
         }}
+        isUpdating={update.isLoading}
         request={selectedRequest}
       />
       <BusinessLicenseModal

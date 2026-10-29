@@ -1,6 +1,6 @@
 ﻿import { Search, X } from "lucide-react";
 import { NoResultsState } from "@/components/states/NoResultsState";
-import type { VendorConversation } from "@/features/vendor/types/messages.types";
+import type { ConversationRow } from "@/features/messaging/types/messaging.types";
 export function VendorConversationList({
   conversations,
   selectedId,
@@ -8,7 +8,7 @@ export function VendorConversationList({
   onQuery,
   onSelect,
 }: {
-  conversations: VendorConversation[];
+  conversations: ConversationRow[];
   selectedId: string;
   query: string;
   onQuery: (value: string) => void;
@@ -20,10 +20,10 @@ export function VendorConversationList({
       <div className="vendor-conversation-search">
         <Search size={18} aria-hidden="true" />
         <input
-          aria-label="Search conversations"
+          aria-label="Filter loaded conversations"
           type="search"
           value={query}
-          placeholder="Search conversations..."
+          placeholder="Filter loaded conversations..."
           onChange={(e) => onQuery(e.target.value)}
         />
         {query && (
@@ -48,17 +48,17 @@ export function VendorConversationList({
               className={`vendor-conversation-card ${conversation.unread ? "vendor-conversation-card--unread" : ""}`}
               type="button"
               aria-current={selectedId === conversation.id ? "true" : undefined}
-              aria-label={`${conversation.name}${conversation.contact !== conversation.name ? ` with ${conversation.contact}` : ""}, conversation ${index + 1}${conversation.unread ? `, ${conversation.unread} unread` : ""}`}
+              aria-label={`${conversation.name}, ${conversation.status}, conversation ${index + 1}${conversation.unread ? `, ${conversation.unread} unread` : ""}`}
               onClick={() => onSelect(conversation.id)}
             >
               <span className="vendor-conversation-avatar" aria-hidden="true">
-                <span
-                  className={
-                    conversation.active
-                      ? "vendor-conversation-online"
-                      : "vendor-conversation-offline"
-                  }
-                />
+                {conversation.avatarUrl && (
+                  <img
+                    src={conversation.avatarUrl}
+                    alt=""
+                    className="size-full rounded-full object-cover"
+                  />
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="mb-1 flex items-center gap-2">

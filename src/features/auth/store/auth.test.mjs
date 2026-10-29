@@ -11,6 +11,7 @@ const user = {
   name: "Test",
   email: "test@example.com",
   role: "ADMIN",
+  roles: ["ADMIN", "CUSTOMER"],
 };
 const saved = {
   accessToken: "test-access",

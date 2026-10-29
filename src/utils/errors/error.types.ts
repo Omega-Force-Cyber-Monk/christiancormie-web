@@ -17,5 +17,6 @@ export type AppError = {
   status?: number;
   code?: string;
   fieldErrors?: FieldErrors;
+  validationMessages?: string[];
   details?: unknown;
 };

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/data-display/DataTable/DataTable";
-import { getPagination } from "@/components/data-display/DataTable/pagination";
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
 import type { DataTableColumn } from "@/components/data-display/DataTable/data-table.types";
 import { ConfirmationDialog } from "@/components/overlays/ConfirmationDialog/ConfirmationDialog";
 import { useConfirmation } from "@/components/overlays/ConfirmationDialog/useConfirmation";
@@ -21,15 +21,13 @@ import { AdminLoading } from "@/features/admin/components/AdminLoading";
 import { AdminSection } from "@/features/admin/components/AdminSection";
 import { AdminStatGrid } from "@/features/admin/components/AdminStatGrid";
 import { AdminStatusBadge } from "@/features/admin/components/AdminStatusBadge";
-import type { AdminUsersManagementResponse } from "@/features/admin/types/admin.types";
+import { toAdminUser, type AdminUser } from "@/features/admin/utils/adminUsers";
 import {
   formatDate,
   formatNumber,
   getInitials,
 } from "@/features/admin/utils/adminFormat";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
-
-type AdminUser = AdminUsersManagementResponse["users"][number];
 
 const columns: DataTableColumn<AdminUser>[] = [
   {
@@ -43,6 +41,7 @@ const columns: DataTableColumn<AdminUser>[] = [
         <div>
           <p className="font-medium">{row.name}</p>
           <p className="text-xs text-[var(--text-muted)]">{row.email}</p>
+          <p className="text-xs text-[var(--text-muted)]">{row.userDisplayId}</p>
         </div>
       </div>
     ),
@@ -68,18 +67,31 @@ const columns: DataTableColumn<AdminUser>[] = [
 ];
 
 export default function AdminUsersPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState("");
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminUsersManagementQuery();
-  const [suspendUser] = useSuspendAdminUserMutation();
-  const [retrieveUser] = useRetrieveAdminUserMutation();
+  const list = useAdminList();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminUsersManagementQuery(list.query);
+  const result = adminPage(data?.users, list.pageSize);
+  const users = result.rows.map(toAdminUser);
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
+  const [suspendUser, suspension] = useSuspendAdminUserMutation();
+  const [retrieveUser, retrieval] = useRetrieveAdminUserMutation();
+  const mutating = suspension.isLoading || retrieval.isLoading;
   const { confirm, confirmationProps } = useConfirmation();
 
   const handleToggleSuspend = (user: AdminUser) => {
     const isSuspended = user.status === "SUSPENDED";
+    if (
+      mutating ||
+      (isSuspended ? !user.actions.canRetrieve : !user.actions.canSuspend)
+    )
+      return;
     confirm({
       title: isSuspended ? "Restore user?" : "Suspend user?",
       description: `${user.name} will be ${isSuspended ? "restored" : "suspended"}.`,
@@ -96,27 +108,6 @@ export default function AdminUsersPage() {
       },
     });
   };
-
-  const filteredUsers = useMemo(() => {
-    const users = data?.users ?? [];
-    const term = search.toLowerCase().trim();
-
-    if (!term) return users;
-
-    return users.filter((user) =>
-      [user.name, user.email, user.phone, user.location, user.status]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(term),
-    );
-  }, [data?.users, search]);
-
-  const pagination = getPagination(page, pageSize, filteredUsers.length);
-  const paginatedUsers = filteredUsers.slice(
-    pagination.startIndex,
-    pagination.endIndex,
-  );
 
   if (isLoading) return <AdminLoading />;
 
@@ -162,17 +153,36 @@ export default function AdminUsersPage() {
             : []
         }
       />
+      <select
+        aria-label="User status"
+        value={list.status}
+        onChange={(event) => list.setStatus(event.target.value)}
+        className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
+      >
+        <option value="">All statuses</option>
+        {["PENDING", "ACTIVE", "SUSPENDED", "DEACTIVATED", "BLOCKED"].map((status) => (
+          <option key={status} value={status}>
+            {status}
+          </option>
+        ))}
+      </select>
       <DataTable
         columns={columns}
-        data={paginatedUsers}
+        data={users}
         emptyMessage="No users found."
         getRowId={(row) => row.id}
         rowActions={(row) => (
           <div className="flex flex-wrap justify-end gap-2">
-            <Button onClick={() => setSelectedUser(row)} variant="secondary">
+            <Button onClick={() => setSelectedUserId(row.id)} variant="secondary">
               View
             </Button>
             <Button
+              disabled={
+                mutating ||
+                (row.status === "SUSPENDED"
+                  ? !row.actions.canRetrieve
+                  : !row.actions.canSuspend)
+              }
               onClick={() => handleToggleSuspend(row)}
               variant={row.status === "SUSPENDED" ? "secondary" : "danger"}
             >
@@ -180,28 +190,17 @@ export default function AdminUsersPage() {
             </Button>
           </div>
         )}
-        pagination={{
-          page: pagination.page,
-          pageSize,
-          totalItems: filteredUsers.length,
-          onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
-        }}
+        isLoading={isFetching && !data}
+        pagination={{ ...list.pagination, hasNextPage: result.hasNextPage, isFetching }}
         search={{
-          value: search,
-          onChange: (value) => {
-            setSearch(value);
-            setPage(1);
-          },
+          value: list.search,
+          onChange: list.setSearch,
           placeholder: "Search users...",
         }}
       />
       <Modal
         isOpen={Boolean(selectedUser)}
-        onClose={() => setSelectedUser(null)}
+        onClose={() => setSelectedUserId(null)}
         titleId="user-details-title"
       >
         <ModalHeader>
@@ -252,13 +251,19 @@ export default function AdminUsersPage() {
         <ModalFooter>
           {selectedUser ? (
             <Button
+              disabled={
+                mutating ||
+                (selectedUser.status === "SUSPENDED"
+                  ? !selectedUser.actions.canRetrieve
+                  : !selectedUser.actions.canSuspend)
+              }
               onClick={() => handleToggleSuspend(selectedUser)}
               variant={selectedUser.status === "SUSPENDED" ? "secondary" : "danger"}
             >
               {selectedUser.status === "SUSPENDED" ? "Restore" : "Suspend"}
             </Button>
           ) : null}
-          <Button onClick={() => setSelectedUser(null)}>Close</Button>
+          <Button onClick={() => setSelectedUserId(null)}>Close</Button>
         </ModalFooter>
       </Modal>
       {confirmationProps ? <ConfirmationDialog {...confirmationProps} /> : null}

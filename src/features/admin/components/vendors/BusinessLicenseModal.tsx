@@ -39,7 +39,7 @@ export function BusinessLicenseModal({
                 {getVendorStatusBadge(document.status)}
               </div>
               <p className="mt-1 text-xs text-[#8091a7]">
-                Uploaded {document.uploadedDate}
+                Submitted {document.uploadedDate}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -51,12 +51,16 @@ export function BusinessLicenseModal({
                 <Check className="size-3.5" />
                 <span>Approve</span>
               </DocumentAction>
-              <button
+              <a
                 className="rounded-lg border border-[#2e3443] p-2 text-[#8091a7] transition hover:bg-[#1e2638] hover:text-white"
-                type="button"
+                href={document.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open submitted document"
+                aria-disabled={!document.url}
               >
                 <Download className="size-4" />
-              </button>
+              </a>
               <button
                 className="rounded-lg p-2 text-[#8091a7] transition hover:bg-[#1e2638] hover:text-white"
                 onClick={onClose}
@@ -70,21 +74,21 @@ export function BusinessLicenseModal({
             <div className="mx-auto max-w-2xl rounded-sm bg-white p-8 text-slate-900 shadow-2xl sm:p-10">
               <div className="border-b-2 border-slate-900 pb-5 text-center">
                 <p className="text-xs font-bold tracking-[0.35em] text-slate-500 uppercase">
-                  City and County Business Authority
+                  Submitted document metadata
                 </p>
                 <h3 className="mt-3 text-2xl font-bold tracking-normal">
-                  Business License
+                  {document.title}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Food Service Vendor Permit
+                  Submitted verification document
                 </p>
               </div>
               <div className="mt-8 grid gap-5 text-sm sm:grid-cols-2">
                 <LicenseField
                   label="License Number"
-                  value={document.licenseNumber || document.id || "N/A"}
+                  value={document.licenseNumber || "N/A"}
                 />
-                <LicenseField label="Status" value="ACTIVE" />
+                <LicenseField label="Status" value={document.status} />
                 <LicenseField
                   label="Business Name"
                   value={document.businessName || "N/A"}
@@ -92,17 +96,14 @@ export function BusinessLicenseModal({
                 <LicenseField label="Owner Name" value={document.ownerName || "N/A"} />
                 <LicenseField
                   label="Business Type"
-                  value={document.businessType || "Mobile Food Vendor"}
+                  value={document.businessType || "N/A"}
                 />
-                <LicenseField
-                  label="Issue Date"
-                  value={document.issueDate || document.uploadedDate || "N/A"}
-                />
+                <LicenseField label="Issue Date" value={document.issueDate || "N/A"} />
                 <LicenseField
                   label="Expiration Date"
                   value={document.expirationDate || "N/A"}
                 />
-                <LicenseField label="Issuing Authority" value="Department of Health" />
+                <LicenseField label="Issuing Authority" value="N/A" />
               </div>
               <div className="mt-5">
                 <LicenseField
@@ -111,21 +112,20 @@ export function BusinessLicenseModal({
                 />
               </div>
               <div className="mt-8 rounded border border-slate-300 p-5 text-xs leading-relaxed text-slate-600">
-                This license certifies that the business named above is authorized to
-                operate as a mobile food vendor subject to applicable health, safety,
-                and municipal regulations.
+                Open the submitted document to review its original contents. Missing
+                metadata does not establish licensing or approval status.
               </div>
               <div className="mt-10 flex items-end justify-between gap-6">
                 <div>
                   <div className="h-10 w-40 border-b border-slate-800" />
                   <p className="mt-2 text-xs font-semibold text-slate-500">
-                    Authorized Signature
+                    Signature available in original document
                   </p>
                 </div>
                 <div className="flex size-20 items-center justify-center rounded-full border-4 border-slate-300 text-center text-[10px] font-bold text-slate-400">
-                  OFFICIAL
+                  ORIGINAL
                   <br />
-                  SEAL
+                  DOCUMENT
                 </div>
               </div>
             </div>

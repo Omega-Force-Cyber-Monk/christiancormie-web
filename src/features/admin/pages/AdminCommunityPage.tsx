@@ -1,5 +1,10 @@
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
+import {
+  communityCategories,
+  toAdminPost,
+} from "@/features/admin/utils/adminModeration";
+import { DataTablePagination } from "@/components/data-display/DataTable/DataTablePagination";
 import { Flag, MessageSquare, ThumbsUp } from "lucide-react";
-import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/states/EmptyState";
@@ -24,39 +29,21 @@ const categoryFilters = [
 ];
 
 export default function AdminCommunityPage() {
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All posts");
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminCommunityManagementQuery({ search: search || undefined });
-
-  const filteredPosts = useMemo(() => {
-    const posts = data?.posts ?? [];
-    const term = search.toLowerCase().trim();
-
-    return posts.filter((post) => {
-      const category = post.category.toLowerCase().replace(/_/g, " ");
-      const matchesCategory =
-        activeCategory === "All posts" || category === activeCategory.toLowerCase();
-      const matchesSearch =
-        !term ||
-        [
-          post.postDisplayId,
-          post.author.name,
-          post.author.email,
-          post.category,
-          post.type,
-          post.content,
-          post.reports[0]?.reason,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(term);
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, data?.posts, search]);
-
+  const list = useAdminList();
+  const activeCategory =
+    Object.entries(communityCategories).find(
+      ([, value]) => value === list.category,
+    )?.[0] ?? "All posts";
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminCommunityManagementQuery(list.query);
+  const result = adminPage(data?.posts, list.pageSize);
+  const filteredPosts = result.rows.map(toAdminPost);
   if (isLoading) return <AdminLoading />;
   if (isError && !data) {
     return (
@@ -102,10 +89,10 @@ export default function AdminCommunityPage() {
           <span className="sr-only">Search posts</span>
           <input
             className="min-h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm"
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => list.setSearch(event.target.value)}
             placeholder="Search post..."
             type="search"
-            value={search}
+            value={list.search}
           />
         </label>
       </div>
@@ -113,48 +100,58 @@ export default function AdminCommunityPage() {
         {categoryFilters.map((category) => (
           <Button
             key={category}
-            onClick={() => setActiveCategory(category)}
+            onClick={() => list.setCategory(communityCategories[category])}
             variant={activeCategory === category ? "primary" : "secondary"}
           >
             {category}
           </Button>
         ))}
       </div>
-      <div className="space-y-4">
-        {filteredPosts.length ? (
-          filteredPosts.map((post) => (
-            <AdminDataPanel key={post.id} title={post.author.name}>
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
-                  <AdminStatusBadge>{post.type}</AdminStatusBadge>
-                  <span>{post.category.replace(/_/g, " ")}</span>
-                  {post.reported ? (
-                    <span className="inline-flex items-center gap-1 text-[var(--danger)]">
-                      <Flag size={14} /> Reported
+      {isFetching && !data ? (
+        <AdminLoading cards={0} />
+      ) : (
+        <div className="space-y-4">
+          {filteredPosts.length ? (
+            filteredPosts.map((post) => (
+              <AdminDataPanel key={post.id} title={post.authorName}>
+                <div className="space-y-3">
+                  <p className="text-xs text-[var(--text-muted)]">{post.displayId}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <AdminStatusBadge>{post.type}</AdminStatusBadge>
+                    <span>{post.category.replace(/_/g, " ")}</span>
+                    {post.reported ? (
+                      <span className="inline-flex items-center gap-1 text-[var(--danger)]">
+                        <Flag size={14} /> Reported
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm leading-6">{post.content}</p>
+                  <div className="flex gap-4 text-sm text-[var(--text-muted)]">
+                    <span className="inline-flex items-center gap-1">
+                      <ThumbsUp size={14} /> {post.likes}
                     </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MessageSquare size={14} /> {post.commentsCount}
+                    </span>
+                  </div>
+                  {post.reportReason ? (
+                    <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-[var(--danger)]">
+                      Report reason: {post.reportReason}
+                    </p>
                   ) : null}
                 </div>
-                <p className="text-sm leading-6">{post.content}</p>
-                <div className="flex gap-4 text-sm text-[var(--text-muted)]">
-                  <span className="inline-flex items-center gap-1">
-                    <ThumbsUp size={14} /> {post.likes}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <MessageSquare size={14} /> {post.commentsCount}
-                  </span>
-                </div>
-                {post.reports[0]?.reason ? (
-                  <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-[var(--danger)]">
-                    Report reason: {post.reports[0].reason}
-                  </p>
-                ) : null}
-              </div>
-            </AdminDataPanel>
-          ))
-        ) : (
-          <EmptyState title="No community posts found" />
-        )}
-      </div>
+              </AdminDataPanel>
+            ))
+          ) : (
+            <EmptyState title="No community posts found" />
+          )}
+        </div>
+      )}
+      <DataTablePagination
+        {...list.pagination}
+        hasNextPage={result.hasNextPage}
+        isFetching={isFetching}
+      />
     </AdminSection>
   );
 }

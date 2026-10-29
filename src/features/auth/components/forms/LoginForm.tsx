@@ -14,7 +14,7 @@ import {
   type LoginFormValues,
 } from "@/features/auth/schemas/login.schema";
 import { applyServerFieldErrors } from "@/utils/errors/applyServerFieldErrors";
-import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { normalizeAuthError } from "@/features/auth/utils/authErrors";
 
 export function LoginForm() {
   const [formError, setFormError] = useState<string | null>(null);
@@ -50,8 +50,8 @@ export function LoginForm() {
       toast.success("Login accepted. Verifying your account...");
       void navigate(fromPath, { replace: true });
     } catch (error) {
-      const appError = normalizeApiError(error);
-      applyServerFieldErrors(appError, setError);
+      const appError = normalizeAuthError(error);
+      applyServerFieldErrors(appError, setError, ["email", "password"]);
       setFormError(appError.message);
       toast.error(appError.message);
     }

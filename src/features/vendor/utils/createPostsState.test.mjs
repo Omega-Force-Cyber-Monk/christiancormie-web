@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { File } from "node:buffer";
 import { PassThrough } from "node:stream";
@@ -119,7 +119,7 @@ test("sale requires an item name; other categories do not invent a title require
     false,
   );
 });
-test("truck fields, exact dates, valid times, guest integers and known menu preferences validate", () => {
+test("truck fields, exact dates, valid times, guest integers and backend menu tags validate", () => {
   assert.equal(truckPostSchema.safeParse(emptyTruckPost()).success, false);
   assert.equal(
     truckPostSchema.safeParse(truck()).success,
@@ -154,8 +154,9 @@ test("truck fields, exact dates, valid times, guest integers and known menu pref
   );
   assert.equal(
     truckPostSchema.safeParse({ ...truck(), menus: ["unknown"] }).success,
-    false,
+    true,
   );
+  assert.equal(truckPostSchema.safeParse({ ...truck(), menus: [" "] }).success, false);
 });
 test("budget parsing keeps cents and validates ranges without invented pricing policies", () => {
   assert.deepEqual(parsePostBudget("$500-800"), { low: 50000, high: 80000 });
@@ -198,7 +199,9 @@ test("invalid type, extension and oversized files cannot be submitted even with 
   for (const file of [
     new File(["svg"], "image.svg", { type: "image/svg+xml" }),
     new File(["bad"], "script.html", { type: "image/jpeg" }),
-    new File([new Uint8Array(5 * 1024 * 1024 + 1)], "large.png", { type: "image/png" }),
+    new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.png", {
+      type: "image/png",
+    }),
   ]) {
     const result = appendPostFiles([], [file]);
     assert.ok(result.files[0].error);
@@ -387,6 +390,7 @@ function renderAt(role, query = "") {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -418,7 +422,7 @@ function renderAt(role, query = "") {
     );
   });
 }
-test("Create Post retains authentication and Vendor isolation with one existing shell and active navigation", async () => {
+test("createPosts retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_CREATE_POST);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(

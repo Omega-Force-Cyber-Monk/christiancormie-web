@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/states/Skeleton";
+import { Button } from "@/components/ui/Button";
 
 type AdminDashboardLoadingProps = {
   cards?: number;
@@ -62,12 +63,20 @@ export function AdminDashboardEmpty({
 
 export function AdminDashboardError({
   message = "Unable to load data. Please try again.",
+  onRetry,
 }: {
   message?: string;
+  onRetry: () => void;
 }) {
   return (
-    <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-6 py-4 text-sm text-red-100">
-      {message}
+    <div
+      role="alert"
+      className="mb-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-6 py-4 text-sm text-red-100"
+    >
+      <p>{message}</p>
+      <Button className="mt-3" onClick={onRetry}>
+        Retry
+      </Button>
     </div>
   );
 }

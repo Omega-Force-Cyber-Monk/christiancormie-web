@@ -38,15 +38,11 @@ Environment values:
 ```env
 VITE_API_BASE_URL=
 VITE_SOCKET_URL=
-VITE_ENABLE_MOCK_AUTH=false
 ```
 
 Do not put server secrets in frontend environment variables.
 
-For local static-design work without a backend, explicitly set
-`VITE_ENABLE_MOCK_AUTH=true` in your local `.env`. This enables the existing
-development-only mock identity (admin by default); it is disabled in production.
-It does not mock API responses or implement unfinished business workflows.
+All role-specific pages require a verified sign-in. Local fixture data remains available within those protected pages; development flags do not grant access.
 
 ## Commands
 
@@ -82,8 +78,7 @@ src/
 Roles are centralized in `src/constants/roles.ts` and exported as constants plus a
 derived `UserRole` type. Login persists tokens, then `/users/me` verifies identity;
 persisted sessions are also revalidated through this endpoint before protected
-routes render. An explicitly enabled development mock
-user remains available for local role-based routing and static-design work.
+routes render. Static fixture data never grants authenticated identity or role access.
 
 ## Routing
 

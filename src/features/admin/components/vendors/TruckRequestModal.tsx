@@ -6,6 +6,7 @@ import type { TruckRequestItem } from "@/features/admin/components/vendors/vendo
 import { getVendorStatusBadge } from "@/features/admin/components/vendors/vendorBadges";
 
 type TruckRequestModalProps = {
+  isUpdating?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onMarkCommunicated: (requestId: string) => void;
@@ -13,6 +14,7 @@ type TruckRequestModalProps = {
 };
 
 export function TruckRequestModal({
+  isUpdating = false,
   isOpen,
   onClose,
   onMarkCommunicated,
@@ -81,7 +83,7 @@ export function TruckRequestModal({
             <RequestField
               icon={<Phone />}
               label="Phone"
-              value={request.phone || "(415) 882-3310"}
+              value={request.phone || "N/A"}
             />
             <RequestBlock label="Description" value={request.description} />
             <RequestBlock
@@ -93,8 +95,8 @@ export function TruckRequestModal({
                 className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#ff6542] py-3.5 text-xs font-semibold text-white shadow-md transition active:scale-95 hover:bg-[#ff5530]"
                 onClick={() => {
                   onMarkCommunicated(request.id);
-                  onClose();
                 }}
+                disabled={isUpdating || request.status !== "Pending"}
                 type="button"
               >
                 <CheckCircle className="size-4" />

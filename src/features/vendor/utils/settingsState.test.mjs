@@ -1,10 +1,11 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { URLSearchParams } from "node:url";
 import { PassThrough } from "node:stream";
 import { createElement as h } from "react";
 import { renderToStaticMarkup, renderToPipeableStream } from "react-dom/server";
 import { Provider } from "react-redux";
+import { memberStore } from "../../social/utils/member.test-fixtures.mjs";
 import { configureStore } from "@reduxjs/toolkit";
 import { MemoryRouter, matchRoutes, useRoutes } from "react-router";
 import { VendorPasswordPreviewForm } from "../components/settings/VendorPasswordPreviewForm.tsx";
@@ -126,8 +127,8 @@ test("staff dates are source-formatted and invalid input cannot throw", () => {
 test("password preview requires all fields, matching confirmation and a changed value", () => {
   const valid = {
     currentPassword: "old-example",
-    newPassword: "new-example",
-    confirmPassword: "new-example",
+    newPassword: "New-example1",
+    confirmPassword: "New-example1",
   };
   assert.equal(vendorPasswordPreviewSchema.safeParse(valid).success, true);
   for (const field of Object.keys(valid))
@@ -151,7 +152,11 @@ test("password preview requires all fields, matching confirmation and a changed 
 });
 test("password form has associated private fields, autocomplete, cancellation and an honest preview boundary", () => {
   const html = renderToStaticMarkup(
-    h(VendorPasswordPreviewForm, { onCancel: noop, onValidated: noop }),
+    h(
+      Provider,
+      { store: memberStore("VENDOR") },
+      h(VendorPasswordPreviewForm, { onCancel: noop, onValidated: noop }),
+    ),
   );
   for (const text of [
     "Current Password",
@@ -159,7 +164,7 @@ test("password form has associated private fields, autocomplete, cancellation an
     "Confirm New Password",
     "Cancel",
     "Change Password",
-    "no password is changed",
+    "uppercase, lowercase",
   ])
     assert.ok(html.includes(text), text);
   assert.equal((html.match(/type="password"/g) ?? []).length, 3);
@@ -227,6 +232,7 @@ function renderAt(role, query = "") {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -258,7 +264,7 @@ function renderAt(role, query = "") {
     );
   });
 }
-test("Settings preserves verified Vendor authentication, route metadata, one shell and active Settings navigation", async () => {
+test("settings retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_SETTINGS);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(

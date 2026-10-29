@@ -1,8 +1,10 @@
-import { ArrowLeft, Heart, MapPin, Star } from "lucide-react";
-import { useId, useState } from "react";
-
+import { ArrowLeft } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { Modal } from "@/components/overlays/Modal/Modal";
 import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { Skeleton } from "@/components/states/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
 import {
@@ -13,43 +15,192 @@ import {
   ProfileTabs,
   type ProfileTab,
 } from "@/features/customer/components/profile/ProfileTabs";
-import type { DiscoverTruck } from "@/features/customer/data/discover.data";
+import { ProfileReviews } from "@/features/customer/components/profile/ProfileReviews";
+import {
+  useGetTruckProfileQuery,
+  useGetTruckReviewsQuery,
+  useGetTruckPromotionsQuery,
+} from "@/features/customer/api/discovery.api";
 import "@/features/customer/components/profile/profile.css";
 
 export function DiscoverProfileView({
-  truck,
-  saved,
-  onSave,
+  slug,
   onBack,
-  onBook,
+  initialTab = "menu",
+  onTabChange,
 }: {
-  truck: DiscoverTruck;
-  saved: boolean;
-  onSave: () => void;
+  slug: string;
   onBack: () => void;
-  onBook: () => void;
+  initialTab?: ProfileTab;
+  onTabChange?: (tab: ProfileTab) => void;
 }) {
-  const [tab, setTab] = useState<ProfileTab>("menu");
+  const [tab, setTab] = useState<ProfileTab>(initialTab);
   const [preview, setPreview] = useState<ProfilePreviewAction | null>(null);
   const [image, setImage] = useState<{ src: string; name: string } | null>(null);
-  const [following, setFollowing] = useState(false);
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
   const titleId = useId();
   const imageId = useId();
-  const fullProfile = truck.id === "taco-paradise";
-  function action(action: ProfilePreviewAction) {
-    if (action === "book") onBook();
-    else setPreview(action);
+  const profileQuery = useGetTruckProfileQuery(slug);
+  const profile = profileQuery.currentData;
+  const denied =
+    profileQuery.isError &&
+    "status" in profileQuery.error &&
+    [401, 403, 404].includes(Number(profileQuery.error.status));
+  const reviews = useGetTruckReviewsQuery(
+    profile && !denied ? { slug, cursor: cursors.at(-1) } : skipToken,
+  );
+  const promotions = useGetTruckPromotionsQuery(
+    profile && !denied ? profile.id : skipToken,
+  );
+  function changeTab(next: ProfileTab) {
+    setTab(next);
+    onTabChange?.(next);
   }
-  const descriptions = {
-    message:
-      "Messaging requires backend integration. No message has been sent from this preview.",
-    directions: fullProfile
-      ? "Union Square, SF · 0.3 mi, as shown in the supplied design. Live route guidance is not connected."
-      : `Sample distance: ${truck.distance} mi. Live coordinates and directions are not available.`,
-    offer:
-      "20% off all orders before 2PM, as shown in the design. This sample offer cannot be redeemed in the preview.",
-    book: "",
-  };
+  let content: ReactNode;
+  if (profileQuery.isLoading)
+    content = (
+      <div role="status">
+        <p>Loading truck profile…</p>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  else if (denied || !profile)
+    content = (
+      <>
+        <h1 className="text-xl" tabIndex={-1}>
+          Profile unavailable
+        </h1>
+        <ErrorState onRetry={() => void profileQuery.refetch()} />
+      </>
+    );
+  else {
+    const descriptions = {
+      message: "Messaging is not connected yet. No message has been sent.",
+      book: "Booking and payments are not connected yet. No reservation or payment has been made.",
+      directions: `${profile.currentAddress ?? "Location unavailable"}. Route guidance and driving distance are unavailable.`,
+      offer:
+        "Promotions below show current backend availability. Redemption is not connected.",
+    };
+    content = (
+      <>
+        {profileQuery.isFetching && <p role="status">Refreshing profile…</p>}
+        {profileQuery.isError && (
+          <ErrorState onRetry={() => void profileQuery.refetch()} />
+        )}
+        <article className="profile-card" aria-label={`${profile.name} profile`}>
+          <ProfileSummary
+            profile={profile}
+            onPreview={setPreview}
+            onReviews={() => {
+              changeTab("reviews");
+              document.getElementById("profile-tab-reviews")?.focus();
+            }}
+          />
+          <section className="profile-summary mt-6" aria-label="Available promotions">
+            <h2 className="font-semibold">Available promotions</h2>
+            {promotions.isLoading ? (
+              <p role="status">Loading promotions…</p>
+            ) : promotions.isError ? (
+              <ErrorState onRetry={() => void promotions.refetch()} />
+            ) : promotions.currentData?.length ? (
+              <ul>
+                {promotions.currentData
+                  .filter((p) => p.foodTruckId === profile.id)
+                  .map((p) => (
+                    <li className="profile-offer mt-3 rounded-xl p-3" key={p.id}>
+                      <h3>{p.title}</h3>
+                      <p className="text-sm">{p.description}</p>
+                      <p className="text-xs">
+                        {p.isFollowerOnly ? "Followers only · " : ""}
+                        {p.type === "PERCENTAGE" && p.value != null
+                          ? `${p.value}% · `
+                          : ""}
+                        Ends{" "}
+                        {Number.isNaN(Date.parse(p.endsAt))
+                          ? "date unavailable"
+                          : new Date(p.endsAt).toLocaleString("en-US", {
+                              timeZone: "UTC",
+                            })}{" "}
+                        UTC
+                      </p>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <EmptyState title="No available promotions" />
+            )}
+          </section>
+          <ProfileTabs
+            active={onTabChange ? initialTab : tab}
+            onChange={changeTab}
+            onImage={setImage}
+            profile={profile}
+            reviews={
+              <>
+                {reviews.isLoading || (reviews.isFetching && !reviews.currentData) ? (
+                  <p role="status">Loading reviews…</p>
+                ) : reviews.isError ? (
+                  <ErrorState onRetry={() => void reviews.refetch()} />
+                ) : (
+                  reviews.currentData && (
+                    <>
+                      <p className="mb-4">
+                        {reviews.currentData.summary.averageRating ??
+                          "Rating unavailable"}{" "}
+                        · {reviews.currentData.summary.totalReviews} reviews
+                      </p>
+                      <ProfileReviews reviews={reviews.currentData.items} />
+                    </>
+                  )
+                )}
+                <div className="mt-4 flex gap-3">
+                  <Button
+                    disabled={cursors.length === 1 || reviews.isFetching}
+                    onClick={() => setCursors((c) => c.slice(0, -1))}
+                  >
+                    Previous reviews
+                  </Button>
+                  <Button
+                    disabled={
+                      !reviews.currentData?.nextCursor ||
+                      reviews.isFetching ||
+                      reviews.isError
+                    }
+                    onClick={() => {
+                      const next = reviews.currentData?.nextCursor;
+                      if (next) setCursors((c) => [...c, next]);
+                    }}
+                  >
+                    Next reviews
+                  </Button>
+                </div>
+              </>
+            }
+          />
+        </article>
+        <Modal
+          isOpen={preview !== null}
+          onClose={() => setPreview(null)}
+          titleId={titleId}
+        >
+          <div className="p-6 pt-12">
+            <h2 id={titleId} className="text-xl font-semibold">
+              {preview === "directions"
+                ? "Location"
+                : preview === "book"
+                  ? "Booking"
+                  : preview === "message"
+                    ? "Message"
+                    : "Promotions"}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[#B8C1D1]">
+              {preview && descriptions[preview]}
+            </p>
+          </div>
+        </Modal>
+      </>
+    );
+  }
   return (
     <section className="customer-profile-page discover-profile-view">
       <button
@@ -60,95 +211,7 @@ export function DiscoverProfileView({
         <ArrowLeft size={20} />
         Back
       </button>
-      <article className="profile-card" aria-label={`${truck.name} sample profile`}>
-        {fullProfile ? (
-          <ProfileSummary
-            onPreview={action}
-            onReviews={() => {
-              setTab("reviews");
-              document.getElementById("profile-tab-reviews")?.focus();
-            }}
-          />
-        ) : (
-          <header className="profile-summary">
-            <TruckImage
-              src={truck.suggestedImage ?? truck.image}
-              name={truck.name}
-              className="size-[84px] rounded-full border-2 border-[#FF5733]"
-            />
-            <h1 className="mt-6 text-xl font-bold focus:outline-none" tabIndex={-1}>
-              {truck.name}
-            </h1>
-            <p className="mt-2 text-sm text-[#B8C1D1]">{truck.cuisine}</p>
-            <p className="mt-3 flex items-center gap-3 text-sm text-[#B8C1D1]">
-              <MapPin size={18} />
-              {truck.distance} mi <Star size={18} className="text-[#FFB547]" />
-              {truck.rating ?? truck.stars}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                className="profile-pill profile-follow"
-                aria-pressed={following}
-                onClick={() => setFollowing((value) => !value)}
-              >
-                {following ? "Following" : "Follow"}
-              </Button>
-              <Button className="profile-pill" onClick={() => action("message")}>
-                Message
-              </Button>
-              <Button className="profile-pill" onClick={onBook}>
-                Book
-              </Button>
-              <Button className="profile-pill" onClick={() => action("directions")}>
-                Directions
-              </Button>
-            </div>
-            <p className="sr-only" role="status">
-              {following
-                ? `Following ${truck.name} in this preview.`
-                : "Not following."}
-            </p>
-          </header>
-        )}
-        {fullProfile ? (
-          <ProfileTabs active={tab} onChange={setTab} onImage={setImage} />
-        ) : (
-          <div className="m-6">
-            <EmptyState
-              title="More profile details are not supplied"
-              description="The design includes a complete Taco Paradise profile. You can follow, save, or preview a booking for this sample truck."
-            />
-          </div>
-        )}
-        <div className="mx-6 mt-6">
-          <Button aria-pressed={saved} onClick={onSave}>
-            <Heart size={18} className={saved ? "fill-[#FF5733] text-[#FF5733]" : ""} />
-            {saved ? "Saved truck" : "Save truck"}
-          </Button>
-        </div>
-        <p className="profile-sample-note">
-          Static profile preview · Sample menu, activity, availability, and offers.
-        </p>
-      </article>
-      <Modal
-        isOpen={preview !== null}
-        onClose={() => setPreview(null)}
-        titleId={titleId}
-      >
-        <div className="p-6 pt-12">
-          <h2 id={titleId} className="text-xl font-semibold">
-            {preview === "message"
-              ? "Message"
-              : preview === "offer"
-                ? "Offer"
-                : "Location"}{" "}
-            preview
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-[#B8C1D1]">
-            {preview && descriptions[preview]}
-          </p>
-        </div>
-      </Modal>
+      {content}
       <Modal isOpen={image !== null} onClose={() => setImage(null)} titleId={imageId}>
         {image && (
           <div className="overflow-y-auto p-6 pt-12">

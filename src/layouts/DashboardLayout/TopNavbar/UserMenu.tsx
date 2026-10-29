@@ -3,15 +3,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
-import { env } from "@/config/env";
-import { ALL_USER_ROLES, type UserRole } from "@/constants/roles";
 import { ROUTES } from "@/constants/routes";
-import { clearSession, setMockRole } from "@/features/auth/store/auth.slice";
-import {
-  selectAccessToken,
-  selectCurrentRole,
-  selectCurrentUser,
-} from "@/features/auth/store/auth.selectors";
+import { clearSession } from "@/features/auth/store/auth.slice";
+import { selectCurrentUser } from "@/features/auth/store/auth.selectors";
 import adminAvatar from "@/layouts/DashboardLayout/assets/admin-avatar.png";
 
 type UserMenuProps = {
@@ -21,9 +15,7 @@ type UserMenuProps = {
 export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const currentRole = useAppSelector(selectCurrentRole);
   const user = useAppSelector(selectCurrentUser);
-  const accessToken = useAppSelector(selectAccessToken);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -139,25 +131,5 @@ export function UserMenu({ isLegacyAdmin = false }: UserMenuProps) {
     );
   }
 
-  if (!env.enableMockAuth || accessToken) {
-    return <span className="text-sm text-[var(--text-muted)]">{user?.name}</span>;
-  }
-
-  return (
-    <label className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-      <span className="hidden sm:inline">Role</span>
-      <select
-        aria-label="Development role selector"
-        className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)]"
-        onChange={(event) => dispatch(setMockRole(event.target.value as UserRole))}
-        value={currentRole ?? ""}
-      >
-        {ALL_USER_ROLES.map((role) => (
-          <option key={role} value={role}>
-            {role}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <span className="text-sm text-[var(--text-muted)]">{user?.name}</span>;
 }

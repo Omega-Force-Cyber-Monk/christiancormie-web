@@ -5,7 +5,9 @@ import { getPagination } from "@/components/data-display/DataTable/pagination";
 type DataTablePaginationProps = {
   page: number;
   pageSize: number;
-  totalItems: number;
+  totalItems?: number;
+  hasNextPage?: boolean;
+  isFetching?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   showPageSizeSelector?: boolean;
@@ -25,16 +27,24 @@ export function DataTablePagination({
   showPageSizeSelector = true,
   showResultRange = false,
   totalItems,
+  hasNextPage = false,
+  isFetching = false,
   variant = "default",
 }: DataTablePaginationProps) {
   const {
-    page: validPage,
+    page: boundedPage,
     pageSize: validSize,
     totalItems: validTotal,
     pageCount,
     startIndex,
     endIndex,
-  } = getPagination(page, pageSize, totalItems);
+  } = getPagination(page, pageSize, totalItems ?? 0);
+  const knownTotal = totalItems !== undefined;
+  const validPage = knownTotal
+    ? boundedPage
+    : Number.isFinite(page)
+      ? Math.max(1, Math.floor(page))
+      : 1;
   const sizeOptions = [...new Set([...pageSizeOptions, validSize])].sort(
     (a, b) => a - b,
   );
@@ -61,7 +71,7 @@ export function DataTablePagination({
   if (variant === "contrast") {
     return (
       <div className="flex flex-col items-center justify-between gap-4 border-t border-[#1e2638] bg-[#111726]/60 px-6 py-4 text-xs text-[#8091a7] sm:flex-row">
-        {showResultRange ? (
+        {showResultRange && knownTotal ? (
           <div>
             Showing{" "}
             <span className="font-semibold text-slate-200">
@@ -72,7 +82,8 @@ export function DataTablePagination({
           </div>
         ) : (
           <p>
-            Page {validPage} of {pageCount}
+            Page {validPage}
+            {knownTotal ? ` of ${pageCount}` : ""}
           </p>
         )}
 
@@ -86,6 +97,7 @@ export function DataTablePagination({
                 onPageChange(1);
               }}
               value={validSize}
+              disabled={isFetching}
             >
               {sizeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -96,7 +108,7 @@ export function DataTablePagination({
           ) : null}
           <button
             className="rounded-lg border border-[#232d42] bg-[#182030] p-1.5 text-slate-300 transition-colors hover:bg-[#202b40] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={validPage === 1}
+            disabled={isFetching || validPage === 1}
             onClick={() => onPageChange(1)}
             title="First Page"
             aria-label="First page"
@@ -106,7 +118,7 @@ export function DataTablePagination({
           </button>
           <button
             className="rounded-lg border border-[#232d42] bg-[#182030] p-1.5 text-slate-300 transition-colors hover:bg-[#202b40] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={validPage === 1}
+            disabled={isFetching || validPage === 1}
             onClick={() => onPageChange(Math.max(1, validPage - 1))}
             title="Previous Page"
             aria-label="Previous page"
@@ -114,7 +126,7 @@ export function DataTablePagination({
           >
             <ChevronLeft className="size-4" />
           </button>
-          {showPageNumbers
+          {knownTotal && showPageNumbers
             ? getPageNumbers().map((pageNumber, index) =>
                 typeof pageNumber === "number" ? (
                   <button
@@ -143,24 +155,32 @@ export function DataTablePagination({
             : null}
           <button
             className="rounded-lg border border-[#232d42] bg-[#182030] p-1.5 text-slate-300 transition-colors hover:bg-[#202b40] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={validPage === pageCount}
-            onClick={() => onPageChange(Math.min(pageCount, validPage + 1))}
+            disabled={
+              isFetching || (knownTotal ? validPage === pageCount : !hasNextPage)
+            }
+            onClick={() =>
+              onPageChange(
+                knownTotal ? Math.min(pageCount, validPage + 1) : validPage + 1,
+              )
+            }
             title="Next Page"
             aria-label="Next page"
             type="button"
           >
             <ChevronRight className="size-4" />
           </button>
-          <button
-            className="rounded-lg border border-[#232d42] bg-[#182030] p-1.5 text-slate-300 transition-colors hover:bg-[#202b40] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={validPage === pageCount}
-            onClick={() => onPageChange(pageCount)}
-            title="Last Page"
-            aria-label="Last page"
-            type="button"
-          >
-            <ChevronsRight className="size-4" />
-          </button>
+          {knownTotal ? (
+            <button
+              className="rounded-lg border border-[#232d42] bg-[#182030] p-1.5 text-slate-300 transition-colors hover:bg-[#202b40] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={isFetching || validPage === pageCount}
+              onClick={() => onPageChange(pageCount)}
+              title="Last Page"
+              aria-label="Last page"
+              type="button"
+            >
+              <ChevronsRight className="size-4" />
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -169,9 +189,11 @@ export function DataTablePagination({
   return (
     <div className="flex flex-col gap-3 border-t border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-[var(--text-muted)]">
-        {showResultRange
+        {showResultRange && knownTotal
           ? `Showing ${validTotal ? startIndex + 1 : 0} to ${endIndex} of ${validTotal} results`
-          : `Page ${validPage} of ${pageCount}`}
+          : knownTotal
+            ? `Page ${validPage} of ${pageCount}`
+            : `Page ${validPage}`}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         {showPageSizeSelector ? (
@@ -183,6 +205,7 @@ export function DataTablePagination({
               onPageChange(1);
             }}
             value={validSize}
+            disabled={isFetching}
           >
             {sizeOptions.map((option) => (
               <option key={option} value={option}>
@@ -191,10 +214,13 @@ export function DataTablePagination({
             ))}
           </select>
         ) : null}
-        <Button disabled={validPage <= 1} onClick={() => onPageChange(validPage - 1)}>
+        <Button
+          disabled={isFetching || validPage <= 1}
+          onClick={() => onPageChange(validPage - 1)}
+        >
           Previous
         </Button>
-        {showPageNumbers
+        {knownTotal && showPageNumbers
           ? getPageNumbers().map((number, index) =>
               typeof number === "number" ? (
                 <Button
@@ -214,7 +240,7 @@ export function DataTablePagination({
             )
           : null}
         <Button
-          disabled={validPage >= pageCount}
+          disabled={isFetching || (knownTotal ? validPage >= pageCount : !hasNextPage)}
           onClick={() => onPageChange(validPage + 1)}
         >
           Next

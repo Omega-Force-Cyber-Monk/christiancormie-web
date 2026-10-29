@@ -1,3 +1,4 @@
+import { RewardsPanel } from "@/features/rewards/components/RewardsPanel";
 import { ArrowLeft } from "lucide-react";
 import { useReducer, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -19,7 +20,6 @@ import {
 } from "@/features/customer/components/settings/SettingsSupport";
 import { SettingsInvite } from "@/features/customer/components/settings/SettingsInvite";
 import {
-  pointsGuide,
   parseSettingsSection,
   settingsTitles,
   type SettingsSection,
@@ -31,8 +31,14 @@ import {
 } from "@/features/customer/utils/settingsState";
 import type { SettingsMessageValues } from "@/features/customer/schemas/settings.schema";
 import "@/features/customer/components/settings/settings.css";
+import { useAccount } from "@/features/account/hooks/useAccount";
+import { useDeleteCustomerAccountMutation } from "@/features/account/api/account.api";
+import { accountFields } from "@/features/account/utils/accountAdapters";
+import { ErrorState } from "@/components/states/ErrorState";
 
-export default function CustomerSettingsPage() {
+function CustomerSettingsContent() {
+  const account = useAccount();
+  const [deleteAccount] = useDeleteCustomerAccountMutation();
   const [params, setParams] = useSearchParams();
   const section = parseSettingsSection(params.get("section"));
   const [state, dispatch] = useReducer(
@@ -68,17 +74,17 @@ export default function CustomerSettingsPage() {
     else open({ kind: action });
   }
   function deletePreview() {
+    if (!account.user || account.user.vendor !== null) return;
     confirm({
       title: "Delete account",
       description:
-        "Account deletion requires backend integration. This preview cannot delete your account or remove any data.",
-      confirmText: "Close preview",
+        "Permanently delete your account and related records? This cannot be undone. Your session will end only after the server confirms deletion.",
+      confirmText: "Permanently delete account",
       cancelText: "Keep account",
       variant: "danger",
-      onConfirm: () =>
-        setStatus(
-          "Account deletion is unavailable in this local preview. Your account and sample data remain unchanged.",
-        ),
+      onConfirm: async () => {
+        await deleteAccount({ scope: account.scope, confirmed: true }).unwrap();
+      },
     });
   }
   const dialogTitle =
@@ -153,64 +159,34 @@ export default function CustomerSettingsPage() {
           variant={overlay.kind === "edit" ? "profile" : overlay.kind}
           onClose={() => open(null)}
         >
-          {overlay.kind === "points" && (
-            <>
-              <table className="settings-points-table">
-                <caption className="sr-only">
-                  Points per action from the supplied design
-                </caption>
-                <thead>
-                  <tr>
-                    <th colSpan={2}>POINTS PER ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pointsGuide.map((item) => (
-                    <tr key={item.action}>
-                      <th scope="row">{item.action}</th>
-                      <td
-                        className={
-                          item.action === "Refer a friend"
-                            ? "text-[#2ED3D1]"
-                            : "text-[#FFB800]"
-                        }
-                      >
-                        +{item.points}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="mt-3 px-4 text-xs leading-5 text-[#B8C1D1]">
-                Sample reward values. Points are not awarded in this preview.
-              </p>
-            </>
-          )}
-          {overlay.kind === "profile" && (
-            <SettingsProfilePanel
-              profile={state.profile}
-              photo={state.photo}
-              onPhoto={(file) => {
-                dispatch({ type: "photo", file });
-                setStatus("Sample profile photo updated locally.");
-              }}
-              onEdit={() => open({ kind: "edit" })}
-              onDelete={deletePreview}
-            />
-          )}
+          {overlay.kind === "points" && <RewardsPanel guide />}
+          {overlay.kind === "profile" &&
+            (account.user ? (
+              <SettingsProfilePanel
+                profile={accountFields(account.user)}
+                onEdit={() => open({ kind: "edit" })}
+                onDelete={deletePreview}
+              />
+            ) : account.query.isError ? (
+              <ErrorState
+                onRetry={() => {
+                  void account.query.refetch();
+                }}
+              />
+            ) : (
+              <p role="status">Loading account…</p>
+            ))}
           {overlay.kind === "profile" && status && (
             <p role="status" className="mt-3 text-sm text-[#2ED3D1]">
               {status}
             </p>
           )}
-          {overlay.kind === "edit" && (
+          {overlay.kind === "edit" && account.user && (
             <SettingsProfileEditor
-              profile={state.profile}
-              onSave={(values) => {
-                dispatch({ type: "profile", values });
-                setStatus(
-                  "Sample profile saved locally. Your account was not updated.",
-                );
+              profile={accountFields(account.user)}
+              onSave={() => {
+                open({ kind: "profile" });
+                setStatus("Profile saved. Unsupported fields were not changed.");
               }}
               onCancel={() => open({ kind: "profile" })}
             />
@@ -249,5 +225,13 @@ export default function CustomerSettingsPage() {
       )}
       {confirmationProps && <ConfirmationDialog {...confirmationProps} />}
     </div>
+  );
+}
+export default function CustomerSettingsPage() {
+  const account = useAccount();
+  return account.allowed ? (
+    <CustomerSettingsContent key={account.key} />
+  ) : (
+    <p>Verified account required.</p>
   );
 }

@@ -1,40 +1,58 @@
-import { Download, Share2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Modal } from "@/components/overlays/Modal/Modal";
-import { FormField } from "@/components/forms/FormField";
-import qrUrl from "@/features/vendor/assets/home/QR-code.svg";
-import qrSource from "@/features/vendor/assets/home/QR-code.svg?raw";
-import { shareVendorHomeQr } from "@/features/vendor/utils/homeState";
+import { VendorQrPanel } from "@/features/vendor/components/home/VendorQrPanel";
+import { AppLoader } from "@/components/ui/AppLoader";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { useGetVendorQrQuery } from "@/features/vendor/api/vendor.api";
+import {
+  useVendorContext,
+  isVendorAccessError,
+} from "@/features/vendor/utils/useVendorContext";
+import { vendorAccessState } from "@/features/vendor/components/home/VendorAccessState";
+import { toVendorQr, shareVendorQr } from "@/features/vendor/utils/vendorQr";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { env } from "@/config/env";
 
 export function VendorQrDrawer({ onClose }: { onClose: () => void }) {
+  const context = useVendorContext();
+  const query = useGetVendorQrQuery(undefined, { skip: !context.allowed });
   const titleId = useId();
   const descriptionId = useId();
   const [sharing, setSharing] = useState(false);
   const [status, setStatus] = useState("");
   const pending = useRef(false);
-  const absoluteUrl = new URL(qrUrl, window.location.origin).href;
+  const data = !isVendorAccessError(query.error) ? query.currentData : undefined;
+  const qr =
+    data && context.vendor && context.trucks.currentData
+      ? toVendorQr(
+          data,
+          context.vendor,
+          context.trucks.currentData,
+          env.apiBaseUrl,
+          typeof window !== "undefined" ? window.location.origin : undefined,
+        )
+      : undefined;
+  const accessState = vendorAccessState(context);
   async function share() {
-    if (pending.current) return;
+    if (pending.current || !qr?.shareUrl) return;
     pending.current = true;
     setSharing(true);
     try {
-      const result = await shareVendorHomeQr(
-        new File([qrSource], "BiteDrop-sample-QR.svg", { type: "image/svg+xml" }),
-        absoluteUrl,
-        {
-          share: navigator.share?.bind(navigator),
-          canShare: navigator.canShare?.bind(navigator),
-          copy: navigator.clipboard?.writeText.bind(navigator.clipboard),
-        },
-      );
+      const result = await shareVendorQr(qr.shareUrl, qr.shareMessage, {
+        share: navigator.share?.bind(navigator),
+        copy: navigator.clipboard?.writeText.bind(navigator.clipboard),
+      });
       setStatus(
         result === "shared"
-          ? "Sample QR artwork shared."
+          ? "QR link shared."
           : result === "copied"
-            ? "Sample QR artwork link copied."
+            ? "QR link copied."
             : result === "cancelled"
               ? "Sharing cancelled."
-              : "Sharing is unavailable. Copy the artwork link below or use Download.",
+              : "Sharing is unavailable. Copy the QR link below.",
       );
     } finally {
       pending.current = false;
@@ -65,48 +83,70 @@ export function VendorQrDrawer({ onClose }: { onClose: () => void }) {
       <p id={descriptionId} className="mt-1 text-center text-xs text-[#B8C1D1]">
         Display at your truck for instant engagement
       </p>
-      <img
-        src={qrUrl}
-        alt="Sample BiteDrop QR artwork from the supplied design"
-        className="mt-3 aspect-square w-full rounded-xl bg-white"
-      />
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        <a
-          className="vendor-qr-download"
-          href={qrUrl}
-          download="BiteDrop-sample-QR.svg"
-        >
-          <Download size={14} aria-hidden="true" />
-          Download
-        </a>
-        <button
-          type="button"
-          className="vendor-qr-share"
-          onClick={() => {
-            void share();
-          }}
-          disabled={sharing}
-        >
-          <Share2 size={14} aria-hidden="true" />
-          {sharing ? "Sharing…" : "Share"}
-        </button>
-      </div>
-      <p className="mt-4 text-xs leading-5 text-[#B8C1D1]">
-        Supplied sample QR artwork. Its destination has not been verified for your
-        truck.
-      </p>
-      <p role="status" className="mt-2 text-sm text-[#2ED3D1]">
-        {status}
-      </p>
-      {status.includes("unavailable") && (
-        <div className="mt-3">
-          <FormField
-            label="QR artwork link"
-            value={absoluteUrl}
-            readOnly
-            onFocus={(event) => event.currentTarget.select()}
-          />
-        </div>
+      {accessState ?? (
+        <>
+          {query.error ? (
+            <ErrorState
+              error={normalizeApiError(query.error)}
+              onRetry={() => {
+                void query.refetch();
+              }}
+            />
+          ) : null}
+          {context.trucks.error ? (
+            <ErrorState
+              error={normalizeApiError(context.trucks.error)}
+              onRetry={() => {
+                void context.trucks.refetch();
+              }}
+            />
+          ) : null}
+          {(query.isFetching && !data) ||
+          (context.trucks.isFetching && !context.trucks.currentData) ? (
+            <AppLoader />
+          ) : qr && !qr.belongs ? (
+            <ErrorState
+              error={{
+                kind: "AUTHORIZATION",
+                message: "The QR identity does not match this vendor's food trucks.",
+              }}
+              onRetry={() => {
+                void query.refetch();
+              }}
+            />
+          ) : qr?.hasCode && !context.trucks.isError ? (
+            <VendorQrPanel
+              qr={qr}
+              businessName={data?.businessName ?? "Vendor"}
+              sharing={sharing}
+              onShare={() => {
+                void share();
+              }}
+            />
+          ) : !query.isError && !context.trucks.isError ? (
+            <EmptyState
+              title="No QR information available"
+              description="A linked food truck and QR code are required. Complete truck onboarding and retry."
+            />
+          ) : null}
+          {query.isFetching && data ? (
+            <p role="status" className="mt-3 text-xs">
+              Refreshing QR information...
+            </p>
+          ) : null}
+          <Button
+            className="mt-3 w-full"
+            disabled={query.isFetching}
+            onClick={() => {
+              void query.refetch();
+            }}
+          >
+            Refresh QR information
+          </Button>
+          <p role="status" className="mt-2 text-sm text-[#2ED3D1]">
+            {status}
+          </p>
+        </>
       )}
     </Modal>
   );

@@ -1,8 +1,13 @@
+import type {
+  AdminVendorDto,
+  AdminTruckRequestDto,
+} from "@/features/admin/types/admin.dto";
 export type VendorItem = {
   id: string;
   name: string;
   isVerified?: boolean;
-  status: "active" | "Pending" | "suspended";
+  status: string;
+  source: AdminVendorDto;
   ownerName: string;
   email: string;
   phone: string;
@@ -24,7 +29,8 @@ export type TruckRequestItem = {
   id: string;
   reqCode: string;
   truckName: string;
-  status: "Pending" | "Communicated";
+  status: string;
+  source: AdminTruckRequestDto;
   submittedDate: string;
   location: string;
   description: string;
@@ -42,7 +48,9 @@ export type LicenseDocument = {
   id?: string;
   title: string;
   uploadedDate: string;
-  status: "Pending" | "approved" | "disputed" | "declined";
+  status: string;
+  url?: string;
+  source?: Record<string, unknown>;
   licenseNumber?: string;
   issueDate?: string;
   expirationDate?: string;

@@ -1,3 +1,4 @@
+import { isMemberIdentifier } from "@/features/social/utils/profileIdentity";
 import {
   Bell,
   House,
@@ -40,9 +41,7 @@ export default function DiscoverLayout() {
   const isSettingsPage = useMatch(ROUTES.CUSTOMER_SETTINGS) !== null;
   const [searchParams] = useSearchParams();
   const profileMatch = useMatch(ROUTES.CUSTOMER_PROFILE);
-  const isMemberProfilePage =
-    profileMatch?.pathname === ROUTES.CUSTOMER_OWN_PROFILE ||
-    profileMatch?.pathname === ROUTES.CUSTOMER_PUBLIC_PROFILE;
+  const isMemberProfilePage = isMemberIdentifier(profileMatch?.params.id);
   const [preview, setPreview] = useState<string | null>(null);
 
   return (
@@ -189,7 +188,9 @@ export default function DiscoverLayout() {
                 !isMemberProfilePage && (
                   <p className="mt-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <MapPin aria-hidden="true" className="text-[#2ED3D1]" size={16} />
-                    San Francisco, CA
+                    {isLeaderboardPage
+                      ? "Latest available rankings"
+                      : "San Francisco, CA"}
                   </p>
                 )}
             </div>

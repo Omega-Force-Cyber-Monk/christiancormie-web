@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send, X } from "lucide-react";
-import { useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 
 import { FormError } from "@/components/forms/FormError";
 import { FormField } from "@/components/forms/FormField";
 import { Button } from "@/components/ui/Button";
-import { feedComposerAvatar } from "@/features/customer/data/feed-comments.data";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 import {
   feedCommentSchema,
   type FeedCommentValues,
@@ -23,11 +23,21 @@ type FeedComposerOptions = {
 export function FeedCommentForm({
   onPreview,
   composer,
+  avatar = "",
 }: {
-  onPreview: (text: string) => void;
+  onPreview: (text: string) => void | boolean | Promise<boolean>;
+  avatar?: string;
   composer?: FeedComposerOptions;
 }) {
   const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [submitError, setSubmitError] = useState("");
   const {
     register,
     handleSubmit,
@@ -43,11 +53,14 @@ export function FeedCommentForm({
     if (submitting.current) return;
     submitting.current = true;
     try {
-      await handleSubmit((values) => {
-        onPreview(values.comment);
+      await handleSubmit(async (values) => {
+        if ((await onPreview(values.comment)) === false) return;
+        if (!mounted.current) return;
         reset({ comment: "" });
         composer?.onDraftChange("");
       })(event);
+    } catch (error) {
+      setSubmitError(normalizeApiError(error).message);
     } finally {
       submitting.current = false;
     }
@@ -74,17 +87,14 @@ export function FeedCommentForm({
             </button>
           </div>
         )}
-        <img
-          alt="Sample commenter avatar"
-          src={feedComposerAvatar}
-          className="feed-composer-avatar"
-        />
+        <img alt="" src={avatar || undefined} className="feed-composer-avatar" />
         <div className="min-w-0">
           <div className="feed-comment-input-wrap">
             <label className="sr-only" htmlFor={composer.inputId}>
               {composer.replyTo ? `Reply to ${composer.replyTo}` : "Add a comment"}
             </label>
             <input
+              disabled={isSubmitting}
               {...field}
               defaultValue={composer.draft}
               id={composer.inputId}
@@ -105,18 +115,14 @@ export function FeedCommentForm({
               type="submit"
               className="feed-comment-send"
               disabled={isSubmitting}
-              aria-label={
-                composer.replyTo
-                  ? "Add reply to local preview"
-                  : "Add comment to local preview"
-              }
+              aria-label={composer.replyTo ? "Post reply" : "Post comment"}
             >
               <Send aria-hidden="true" size={20} />
             </button>
           </div>
           <FormError
             id={`${composer.inputId}-error`}
-            message={errors.comment?.message}
+            message={errors.comment?.message || submitError}
           />
         </div>
       </form>
@@ -132,15 +138,15 @@ export function FeedCommentForm({
     >
       <FormField
         error={errors.comment?.message}
-        label="Local preview comment"
-        placeholder="Write a comment to preview…"
+        label="Comment"
+        placeholder="Write a comment…"
         {...register("comment")}
       />
       <Button disabled={isSubmitting} type="submit" variant="primary">
-        Add to local preview
+        Post comment
       </Button>
       <p className="text-xs leading-5 text-[#B8C1D1]">
-        Comments stay on this page and are never sent or published.
+        Comments are submitted after confirmation.
       </p>
     </form>
   );

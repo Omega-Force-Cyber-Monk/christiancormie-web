@@ -1,61 +1,99 @@
+import { usePublishPost } from "@/features/social/utils/usePublishPost";
 import {
-  CalendarDays,
+  Activity,
   ChevronRight,
   DollarSign,
-  Heart,
-  MessageCircle,
   Plus,
   QrCode,
-  Radio,
-  Star,
+  UserRound,
 } from "lucide-react";
-import { useReducer, useState } from "react";
+import { useState } from "react";
 import { VendorHomeDialog } from "@/features/vendor/components/home/VendorHomeDialog";
 import { VendorHomeUpdateForm } from "@/features/vendor/components/home/VendorHomeUpdateForm";
 import { VendorQrDrawer } from "@/features/vendor/components/home/VendorQrDrawer";
+import { VendorAnalyticsPanel } from "@/features/vendor/components/home/VendorAnalyticsPanel";
+import { vendorAccessState } from "@/features/vendor/components/home/VendorAccessState";
 import {
-  vendorHomeBookings,
-  vendorHomeActivity,
-  vendorHomePreviewDescriptions,
-} from "@/features/vendor/data/home.data";
+  useGetVendorAnalyticsQuery,
+  useGetVendorRequestCountsQuery,
+} from "@/features/vendor/api/vendor.api";
 import {
-  initialVendorHomeState,
-  vendorHomeReducer,
-} from "@/features/vendor/utils/homeState";
+  useVendorContext,
+  isVendorAccessError,
+} from "@/features/vendor/utils/useVendorContext";
+import { toVendorBooking, vendorNumber } from "@/features/vendor/utils/vendorAdapters";
+import { AppLoader } from "@/components/ui/AppLoader";
+import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-const activityIcons = {
-  like: Heart,
-  comment: MessageCircle,
-  booking: CalendarDays,
-  "review-request": Radio,
-  review: Star,
-};
-
+type Overlay = "qr" | "post" | "analytics" | { bookingId: string } | null;
 export default function VendorDashboardPage() {
-  const [state, dispatch] = useReducer(
-    vendorHomeReducer,
-    undefined,
-    initialVendorHomeState,
-  );
+  const context = useVendorContext();
+  const analytics = useGetVendorAnalyticsQuery(undefined, { skip: !context.allowed });
+  const requests = useGetVendorRequestCountsQuery(undefined, {
+    skip: !context.allowed,
+  });
+  const [overlay, setOverlay] = useState<Overlay>(null);
   const [draft, setDraft] = useState("");
-  const bookingId =
-    typeof state.overlay === "object" && state.overlay ? state.overlay.bookingId : null;
-  const booking = vendorHomeBookings.find((item) => item.id === bookingId);
-  const close = () => dispatch({ type: "open", overlay: null });
+  const [published, setPublished] = useState(false);
+  const publisher = usePublishPost();
+  const data = !isVendorAccessError(analytics.error)
+    ? analytics.currentData
+    : undefined;
+  const counts = !isVendorAccessError(requests.error)
+    ? requests.currentData
+    : undefined;
+  const bookings = (data?.recentBookings ?? []).map(toVendorBooking);
+  const bookingId = typeof overlay === "object" && overlay ? overlay.bookingId : null;
+  const booking = bookings.find((row) => row.id === bookingId);
+  const close = () => setOverlay(null);
+  const accessState = vendorAccessState(context);
+  if (accessState) return <div className="vendor-home-page">{accessState}</div>;
   return (
     <div className="vendor-home-page">
-      <h1 className="sr-only">Vendor Home — static preview</h1>
+      <h1 className="sr-only">Vendor Home</h1>
+      {context.profile.isFetching ||
+      context.trucks.isFetching ||
+      analytics.isFetching ||
+      requests.isFetching ? (
+        <p role="status" className="text-xs text-[#B8C1D1]">
+          Refreshing vendor dashboard...
+        </p>
+      ) : null}
+      {context.profile.error ? (
+        <ErrorState
+          error={normalizeApiError(context.profile.error)}
+          onRetry={() => {
+            void context.profile.refetch();
+          }}
+        />
+      ) : null}
+      {context.trucks.error ? (
+        <ErrorState
+          error={normalizeApiError(context.trucks.error)}
+          onRetry={() => {
+            void context.trucks.refetch();
+          }}
+        />
+      ) : null}
+      {context.vendor?.verificationBadge ? (
+        <p className="mb-3 text-xs text-[#B8C1D1]">
+          {context.vendor.verificationBadge.message}
+        </p>
+      ) : null}
+      {context.trucks.currentData?.length === 0 ? (
+        <EmptyState
+          title="No food trucks linked"
+          description="This vendor has no food trucks yet. Complete truck onboarding to receive truck and QR information."
+        />
+      ) : null}
       <section className="vendor-home-actions" aria-label="Home quick actions">
         <button
           className="vendor-home-action vendor-home-action--post"
           type="button"
-          onClick={() => dispatch({ type: "open", overlay: "post" })}
+          disabled={publisher.isPublishing}
+          onClick={() => setOverlay("post")}
         >
           <Plus size={20} aria-hidden="true" />
           <span>Post Update</span>
@@ -63,7 +101,7 @@ export default function VendorDashboardPage() {
         <button
           className="vendor-home-action vendor-home-action--earnings"
           type="button"
-          onClick={() => dispatch({ type: "open", overlay: "analytics" })}
+          onClick={() => setOverlay("analytics")}
         >
           <DollarSign size={20} aria-hidden="true" />
           <span>Earnings &amp; Analytics</span>
@@ -71,125 +109,168 @@ export default function VendorDashboardPage() {
         <button
           className="vendor-home-action vendor-home-action--qr"
           type="button"
-          onClick={() => dispatch({ type: "open", overlay: "qr" })}
+          onClick={() => setOverlay("qr")}
         >
           <QrCode size={20} aria-hidden="true" />
           <span>QR Code</span>
         </button>
       </section>
+      {published ? (
+        <p className="mt-3 text-xs text-[#B8C1D1]" role="status">
+          Update published.
+        </p>
+      ) : null}
+      {requests.error ? (
+        <ErrorState
+          error={normalizeApiError(requests.error)}
+          onRetry={() => {
+            void requests.refetch();
+          }}
+        />
+      ) : null}
+      <p className="mt-3 text-xs text-[#B8C1D1]">
+        Booking requests: {vendorNumber(counts?.bookings)}; Community requests:{" "}
+        {vendorNumber(counts?.community)}; Active conversations:{" "}
+        {vendorNumber(counts?.messages)}
+      </p>
       <section className="mt-6" aria-labelledby="vendor-home-bookings">
         <h2 className="mb-3 text-base font-semibold" id="vendor-home-bookings">
           Bookings
         </h2>
-        <div className="space-y-3">
-          {vendorHomeBookings.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              className="vendor-home-booking"
-              aria-haspopup="dialog"
-              onClick={() =>
-                dispatch({ type: "open", overlay: { bookingId: item.id } })
-              }
-            >
-              <img
-                src={item.avatar}
-                alt=""
-                className="size-12 shrink-0 rounded-full border border-[#FF5733] object-cover"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold">{item.title}</span>
-                  <span
-                    className={`vendor-home-booking-status vendor-home-booking-status--${item.status.toLowerCase()}`}
-                  >
-                    {item.status}
+        {analytics.error ? (
+          <ErrorState
+            error={normalizeApiError(analytics.error)}
+            onRetry={() => {
+              void analytics.refetch();
+            }}
+          />
+        ) : null}
+        {analytics.isFetching && !data ? (
+          <AppLoader />
+        ) : (
+          <div className="space-y-3">
+            {bookings.length ? (
+              bookings.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className="vendor-home-booking"
+                  aria-haspopup="dialog"
+                  onClick={() => setOverlay({ bookingId: item.id })}
+                >
+                  {item.avatarUrl ? (
+                    <img
+                      src={item.avatarUrl}
+                      alt=""
+                      className="size-12 shrink-0 rounded-full border border-[#FF5733] object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-12 shrink-0 place-items-center rounded-full border border-[#FF5733]">
+                      <UserRound aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">{item.title}</span>
+                      <span
+                        className={`vendor-home-booking-status vendor-home-booking-status--${item.status.toLowerCase()}`}
+                      >
+                        {item.status.replaceAll("_", " ")}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs leading-[18px] text-[#B6B7BC]">
+                      {item.truckName} - {item.when}
+                    </span>
+                    <span className="block text-xs leading-[18px] text-[#B6B7BC]">
+                      {item.customer} - {item.amount}
+                    </span>
                   </span>
-                </span>
-                <span className="mt-1 block text-xs leading-[18px] text-[#B6B7BC]">
-                  {item.venue} · {item.when}
-                </span>
-                <span className="block text-xs leading-[18px] text-[#B6B7BC]">
-                  {item.guests} guests · {money.format(item.amount)}
-                </span>
-              </span>
-              <ChevronRight
-                size={18}
-                className="shrink-0 text-[#B8C1D1]"
-                aria-hidden="true"
+                  <ChevronRight
+                    size={18}
+                    className="shrink-0 text-[#B8C1D1]"
+                    aria-hidden="true"
+                  />
+                </button>
+              ))
+            ) : !analytics.isError ? (
+              <EmptyState
+                title="No recent bookings"
+                description="Recent bookings will appear when available."
               />
-            </button>
-          ))}
-        </div>
+            ) : null}
+          </div>
+        )}
       </section>
       <section className="mt-6" aria-labelledby="vendor-home-activity">
         <h2 className="mb-3 text-base font-semibold" id="vendor-home-activity">
           Recent Activity
         </h2>
         <ul className="vendor-home-activity">
-          {state.updates.map((item) => (
-            <li key={item.id}>
-              <Plus size={24} aria-hidden="true" />
-              <span className="min-w-0 flex-1 break-words">
-                Local update: {item.text}
-              </span>
-              <span className="text-xs">Not published</span>
-            </li>
-          ))}
-          {vendorHomeActivity.map((item) => {
-            const Icon = activityIcons[item.kind];
-            return (
-              <li key={item.id}>
-                <Icon size={24} aria-hidden="true" />
-                <span className="min-w-0 flex-1">{item.text}</span>
-                <span className="shrink-0 text-xs text-[#B6B7BC]">{item.age}</span>
-              </li>
-            );
-          })}
+          <li>
+            <Activity size={24} aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              Recent activity is not available from the vendor dashboard yet.
+            </span>
+          </li>
         </ul>
       </section>
-      <p className="mt-4 text-xs leading-5 text-[#B8C1D1]" role="status">
-        Static Vendor Home preview. Bookings, activity and relative dates are sample
-        design content.
-        {state.updates.length > 0
-          ? ` ${state.updates.length} update${state.updates.length === 1 ? "" : "s"} saved locally; nothing published.`
-          : ""}
-      </p>
-      {state.overlay === "qr" && <VendorQrDrawer onClose={close} />}
-      {state.overlay === "post" && (
+      {overlay === "qr" ? <VendorQrDrawer onClose={close} /> : null}
+      {overlay === "post" ? (
         <VendorHomeDialog title="Post Update" onClose={close}>
           <VendorHomeUpdateForm
             draft={draft}
             onDraft={setDraft}
-            onSave={(text) => {
-              dispatch({
-                type: "save-update",
-                update: { id: crypto.randomUUID(), text },
-              });
-              setDraft("");
+            disabled={
+              !context.allowed ||
+              context.trucks.currentData?.length !== 1 ||
+              context.trucks.currentData[0]?.status !== "ACTIVE"
+            }
+            error={publisher.error}
+            onSave={async (text) => {
+              const trucks = context.trucks.currentData ?? [];
+              if (!context.allowed || trucks.length !== 1) return;
+              if (await publisher.publish({ text, foodTruckId: trucks[0].id })) {
+                setPublished(true);
+                setDraft("");
+                setOverlay((current) => (current === "post" ? null : current));
+              }
             }}
           />
         </VendorHomeDialog>
-      )}
-      {state.overlay === "analytics" && (
-        <VendorHomeDialog title="Earnings & Analytics preview" onClose={close}>
-          <p className="text-sm leading-6 text-[#B8C1D1]">
-            {vendorHomePreviewDescriptions["Earnings & Analytics"]}
-          </p>
+      ) : null}
+      {overlay === "analytics" ? (
+        <VendorHomeDialog title="Earnings & Analytics" onClose={close}>
+          {analytics.isFetching && !data ? (
+            <AppLoader />
+          ) : (
+            <VendorAnalyticsPanel
+              data={data}
+              counts={counts}
+              trucks={context.trucks.currentData}
+            />
+          )}
+          {analytics.error ? (
+            <ErrorState
+              error={normalizeApiError(analytics.error)}
+              onRetry={() => {
+                void analytics.refetch();
+              }}
+            />
+          ) : null}
         </VendorHomeDialog>
-      )}
-      {booking && (
-        <VendorHomeDialog title={booking.title} onClose={close}>
+      ) : null}
+      {booking ? (
+        <VendorHomeDialog title={booking.displayId} onClose={close}>
           <p className="mb-5 text-sm text-[#B8C1D1]">
-            Sample booking details from the Home design. No booking is changed.
+            Recent booking information. No booking is changed.
           </p>
           <dl className="space-y-4">
             {[
+              ["Customer", booking.customer],
+              ["Food truck", booking.truckName],
               ["Status", booking.status],
-              ["Location", booking.venue],
               ["When", booking.when],
-              ["Guests", String(booking.guests)],
-              ["Amount", money.format(booking.amount)],
+              ["Amount", booking.amount],
             ].map(([label, value]) => (
               <div key={label}>
                 <dt className="text-xs text-[#B8C1D1]">{label}</dt>
@@ -198,7 +279,7 @@ export default function VendorDashboardPage() {
             ))}
           </dl>
         </VendorHomeDialog>
-      )}
+      ) : null}
     </div>
   );
 }

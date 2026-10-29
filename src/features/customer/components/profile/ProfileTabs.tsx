@@ -3,11 +3,10 @@ import { useRef } from "react";
 
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
 import { ProfileMenu } from "@/features/customer/components/profile/ProfileMenu";
-import { ProfileReviews } from "@/features/customer/components/profile/ProfileReviews";
-import {
-  discoverArtwork,
-  discoverGallery,
-} from "@/features/customer/data/discover-booking.data";
+import type { TruckProfileDto } from "@/features/customer/types/discovery.types";
+import type { ReactNode } from "react";
+import { safeImage } from "@/features/customer/utils/discoveryAdapters";
+import { EmptyState } from "@/components/states/EmptyState";
 
 export type ProfileTab = "menu" | "gallery" | "reviews";
 const tabs = [
@@ -20,9 +19,17 @@ type ProfileTabsProps = {
   active: ProfileTab;
   onChange: (tab: ProfileTab) => void;
   onImage: (image: { src: string; name: string }) => void;
+  profile: TruckProfileDto;
+  reviews: ReactNode;
 };
 
-export function ProfileTabs({ active, onChange, onImage }: ProfileTabsProps) {
+export function ProfileTabs({
+  active,
+  onChange,
+  onImage,
+  profile,
+  reviews,
+}: ProfileTabsProps) {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   return (
     <section className="profile-tabs">
@@ -77,43 +84,39 @@ export function ProfileTabs({ active, onChange, onImage }: ProfileTabsProps) {
           tabIndex={0}
         >
           <h2 className="sr-only">{label}</h2>
-          {id === "menu" && <ProfileMenu />}
+          {id === "menu" && <ProfileMenu menus={profile.menus} />}
           {id === "gallery" && (
             <>
               <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
-                {discoverGallery.map((item, index) =>
-                  item ? (
-                    <button
-                      aria-label={`Enlarge ${item.name} photo`}
-                      className="overflow-hidden rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
-                      key={item.image}
-                      onClick={() =>
-                        onImage({
-                          src: discoverArtwork(item.image) ?? "",
-                          name: item.name,
-                        })
-                      }
-                      type="button"
-                    >
-                      <TruckImage
-                        alt={item.name}
-                        className="aspect-[250/164] w-full"
-                        name={item.name}
-                        src={discoverArtwork(item.image) ?? ""}
-                      />
-                    </button>
-                  ) : (
-                    <div
-                      key={`placeholder-${index}`}
-                      aria-hidden="true"
-                      className="aspect-[250/164] bg-[#1B2233]"
+                {profile.images.map((item) => (
+                  <button
+                    aria-label={`Enlarge ${item.altText ?? profile.name} photo`}
+                    className="overflow-hidden rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
+                    key={item.id}
+                    disabled={!safeImage(item.imageUrl)}
+                    onClick={() =>
+                      onImage({
+                        src: safeImage(item.imageUrl),
+                        name: item.altText ?? profile.name,
+                      })
+                    }
+                    type="button"
+                  >
+                    <TruckImage
+                      alt={item.altText ?? profile.name}
+                      className="aspect-[250/164] w-full"
+                      name={item.altText ?? profile.name}
+                      src={safeImage(item.imageUrl)}
                     />
-                  ),
-                )}
+                  </button>
+                ))}
               </div>
+              {!profile.images.length && (
+                <EmptyState title="No gallery images available" />
+              )}
             </>
           )}
-          {id === "reviews" && <ProfileReviews />}
+          {id === "reviews" && reviews}
         </div>
       ))}
     </section>

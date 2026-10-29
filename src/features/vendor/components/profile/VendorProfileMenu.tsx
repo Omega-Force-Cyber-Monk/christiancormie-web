@@ -1,20 +1,23 @@
 ﻿import { Pencil, Plus, ToggleLeft, ToggleRight, Trash2, Utensils } from "lucide-react";
 import { EmptyState } from "@/components/states/EmptyState";
 import { VendorProfilePhoto } from "@/features/vendor/components/profile/VendorProfilePhoto";
-import type { ProfileMenuItem } from "@/features/vendor/data/profile.data";
-import { formatMenuPrice } from "@/features/vendor/utils/profileState";
+import type { RemoteMenuItem } from "../../schemas/truckMenu.schema";
+import { menuPrice } from "../../utils/truckMenu";
+import { remoteMedia } from "@/utils/files/remoteMedia";
 export function VendorProfileMenu({
   items,
   onAdd,
   onEdit,
   onDelete,
   onToggle,
+  pending = false,
 }: {
-  items: ProfileMenuItem[];
+  items: RemoteMenuItem[];
   onAdd: () => void;
   onEdit: (id: string) => void;
-  onDelete: (item: ProfileMenuItem) => void;
+  onDelete: (item: RemoteMenuItem) => void;
   onToggle: (id: string) => void;
+  pending?: boolean;
 }) {
   return (
     <section className="vendor-profile-menu">
@@ -30,8 +33,11 @@ export function VendorProfileMenu({
         {items.map((item) => (
           <li key={item.id} className="vendor-profile-menu-card">
             <span className="vendor-profile-menu-thumb">
-              {item.photo ? (
-                <VendorProfilePhoto source={item.photo} alt={item.name} />
+              {remoteMedia(item.imageUrl) ? (
+                <VendorProfilePhoto
+                  source={remoteMedia(item.imageUrl)}
+                  alt={item.name}
+                />
               ) : (
                 <Utensils size={24} />
               )}
@@ -40,19 +46,27 @@ export function VendorProfileMenu({
               <h3 className="text-lg font-semibold">{item.name}</h3>
               <p className="mt-1 text-sm text-[#B8C1D1]">{item.description}</p>
               <p className="mt-1 text-sm font-bold text-[#00D3DF]">
-                {formatMenuPrice(item.priceCents)}
+                {menuPrice(item.price)}
               </p>
+              <p className="text-xs text-[#B8C1D1]">{item.status}</p>
             </div>
             <div className="vendor-profile-menu-actions">
               <button
                 type="button"
                 role="switch"
-                aria-checked={item.available}
+                aria-checked={item.status === "AVAILABLE"}
                 aria-label={`${item.name} availability`}
-                className={item.available ? "text-[#00D3DF]" : "text-[#596174]"}
+                className={
+                  item.status === "AVAILABLE" ? "text-[#00D3DF]" : "text-[#596174]"
+                }
+                disabled={pending}
                 onClick={() => onToggle(item.id)}
               >
-                {item.available ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
+                {item.status === "AVAILABLE" ? (
+                  <ToggleRight size={26} />
+                ) : (
+                  <ToggleLeft size={26} />
+                )}
               </button>
               <button
                 className="vendor-profile-item-edit"
@@ -65,7 +79,7 @@ export function VendorProfileMenu({
               <button
                 className="vendor-profile-item-delete"
                 type="button"
-                aria-label={`Delete ${item.name}`}
+                aria-label={`Delete ${item.name} (unavailable)`}
                 onClick={() => onDelete(item)}
               >
                 <Trash2 size={14} />
@@ -77,7 +91,7 @@ export function VendorProfileMenu({
       {!items.length && (
         <EmptyState
           title="No menu items"
-          description="Add an item to populate this local menu."
+          description="Add an item to a verified backend menu category."
         />
       )}
     </section>

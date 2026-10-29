@@ -6,11 +6,10 @@ import { createElement as h } from "react";
 import { renderToPipeableStream } from "react-dom/server";
 import { Provider } from "react-redux";
 import { MemoryRouter, Navigate, matchRoutes, useRoutes } from "react-router";
-
 import { rootReducer } from "../../app/rootReducer.ts";
 import { env } from "../../config/env.ts";
-import { getNavigationForRole } from "../../config/navigation/navigation.config.ts";
 import { ROUTES } from "../../constants/routes.ts";
+import { getNavigationForRole } from "../../config/navigation/navigation.config.ts";
 import { authSessionMiddleware } from "../../features/auth/store/auth.middleware.ts";
 import {
   identityVerified,
@@ -23,28 +22,26 @@ import {
   selectCurrentRole,
   selectIsAuthenticated,
 } from "../../features/auth/store/auth.selectors.ts";
-import { initializeSession } from "../../features/auth/store/auth.thunks.ts";
 import { baseApi } from "../../services/api/baseApi.ts";
-import { socketService } from "../../services/socket/socket.ts";
 import { AuthGuard } from "../guards/AuthGuard.tsx";
-import { CustomerReviewGuard } from "../guards/CustomerReviewGuard.tsx";
 import { RoleGuard } from "../guards/RoleGuard.tsx";
+import { GuestGuard } from "../guards/GuestGuard.tsx";
 import { appRoutes } from "./app.routes.tsx";
 import { getRoleHomeRoute } from "../utils/getRoleHomeRoute.ts";
-
-const reviewPaths = [
-  ROUTES.CUSTOMER_DISCOVER,
-  ROUTES.CUSTOMER_FEED,
-  ROUTES.CUSTOMER_COMMUNITY,
-  ROUTES.CUSTOMER_MESSAGE,
-];
-const pageMarkers = [
-  "discover-page",
-  "customer-feed-page",
-  "customer-community-page",
-  "customer-message-page",
-];
-
+const roles = ["CUSTOMER", "VENDOR", "VENDOR_STAFF", "ADMIN"];
+const userFor = (role) => ({
+  id: "route-test-user",
+  name: "Route Test",
+  email: "route-test@example.invalid",
+  roles: [role],
+  role,
+});
+const saved = {
+  accessToken: "route-test-access",
+  refreshToken: "route-test-refresh",
+  sessionId: "route-test-session",
+  user: null,
+};
 function createStore(role) {
   const store = configureStore({
     reducer: rootReducer,
@@ -52,35 +49,18 @@ function createStore(role) {
       defaults().concat(authSessionMiddleware, baseApi.middleware),
   });
   if (role) {
-    store.dispatch(
-      sessionRestored({
-        accessToken: "review-test-access",
-        refreshToken: "review-test-refresh",
-        sessionId: "review-test-session",
-        user: null,
-      }),
-    );
-    store.dispatch(
-      identityVerified({
-        id: "review-test-user",
-        name: "Test",
-        email: "test@example.invalid",
-        role,
-      }),
-    );
+    store.dispatch(sessionRestored(saved));
+    store.dispatch(identityVerified(userFor(role)));
   }
   return store;
 }
-
 function RouteTree() {
   return useRoutes(appRoutes);
 }
-
-// Stream React's server renderer to memory, without mounting a DOM or starting a server.
 function renderAt(path, store) {
   return new Promise((resolve, reject) => {
-    const output = new PassThrough();
     let html = "";
+    const output = new PassThrough();
     output.on("data", (chunk) => {
       html += chunk;
     });
@@ -92,314 +72,188 @@ function renderAt(path, store) {
         onAllReady() {
           stream.pipe(output);
         },
-        onError(error) {
-          reject(error);
-        },
+        onError: reject,
       },
     );
   });
 }
+const customerPaths = [
+  ROUTES.CUSTOMER_DISCOVER,
+  ROUTES.CUSTOMER_FEED,
+  ROUTES.CUSTOMER_COMMUNITY,
+  ROUTES.CUSTOMER_MESSAGE,
+  ROUTES.CUSTOMER_CREATE_POST,
+  ROUTES.CUSTOMER_LEADERBOARD,
+  ROUTES.CUSTOMER_SETTINGS,
+  ROUTES.CUSTOMER_OWN_PROFILE,
+  ROUTES.CUSTOMER_PUBLIC_PROFILE,
+  "/profile/taco-paradise",
+  ROUTES.CUSTOMER_ORDERS,
+  ROUTES.CUSTOMER_DASHBOARD_REDIRECT,
+];
+const vendorPaths = [
+  ROUTES.VENDOR_DASHBOARD,
+  ROUTES.VENDOR_FEED,
+  ROUTES.VENDOR_DROPS,
+  ROUTES.VENDOR_ORDERS,
+  ROUTES.VENDOR_CREATE_POST,
+  ROUTES.VENDOR_MESSAGE,
+  ROUTES.VENDOR_EARNINGS,
+  ROUTES.VENDOR_PROFILE,
+  ROUTES.VENDOR_LEADERBOARD,
+  ROUTES.VENDOR_SETTINGS,
+  ROUTES.VENDOR_PRODUCTS,
+];
+const adminPaths = Object.entries(ROUTES)
+  .filter(([key]) => key.startsWith("ADMIN_"))
+  .map(([, path]) => path);
+const staffPaths = [ROUTES.VENDOR_STAFF_DASHBOARD, ROUTES.VENDOR_STAFF_TASKS];
+const groups = [
+  ["CUSTOMER", customerPaths],
+  ["VENDOR", vendorPaths],
+  ["VENDOR_STAFF", staffPaths],
+  ["ADMIN", adminPaths],
+];
+const allPaths = groups.flatMap(([, paths]) => paths);
 
-async function withReview(enabled, run) {
-  const previous = env.enablePublicReview;
-  env.enablePublicReview = enabled;
-  try {
-    await run();
-  } finally {
-    env.enablePublicReview = previous;
-  }
-}
-
-test("public review is opt-in when its build-time variable is absent", () => {
-  assert.equal(env.enablePublicReview, false);
-});
-
-test("customer login and restored sessions resolve home only after verification, including login after logout", async () => {
-  await withReview(false, async () => {
-    const store = createStore();
-    const user = {
-      id: "customer-home-test",
-      name: "Test",
-      email: "test@example.invalid",
-      role: "CUSTOMER",
-    };
-    const tokens = {
-      accessToken: "home-test-access",
-      refreshToken: "home-test-refresh",
-      sessionId: "home-test-session",
-      user,
-    };
-    for (const action of [
-      sessionStarted(tokens),
-      sessionRestored(tokens),
-      sessionStarted(tokens),
-    ]) {
-      store.dispatch(action);
-      assert.equal(selectCurrentRole(store.getState()), null);
-      assert.equal(selectIsAuthenticated(store.getState()), false);
-      const pending = await renderAt(ROUTES.DASHBOARD, store);
-      assert.ok(pending.includes('role="status"'));
-      store.dispatch(identityVerified(user));
-      assert.equal(
-        getRoleHomeRoute(selectCurrentRole(store.getState())),
-        ROUTES.CUSTOMER_DISCOVER,
-      );
+test("every role feature, including former review pages, has actual AuthGuard and its exact RoleGuard", () => {
+  for (const [role, paths] of groups)
+    for (const path of paths) {
+      const matches = matchRoutes(appRoutes, path);
+      assert.ok(matches, path);
       assert.ok(
-        (await renderAt(ROUTES.CUSTOMER_DISCOVER, store)).includes(
-          'class="discover-page"',
-        ),
+        matches.some(({ route }) => route.element?.type === AuthGuard),
+        path,
       );
-      store.dispatch(clearSession());
-      assert.equal(getRoleHomeRoute(selectCurrentRole(store.getState())), ROUTES.LOGIN);
+      assert.deepEqual(
+        matches.find(({ route }) => route.element?.type === RoleGuard).route.element
+          .props.allowedRoles,
+        [role],
+        path,
+      );
     }
-  });
 });
-
-test("other role home destinations remain unchanged", () => {
-  assert.equal(getRoleHomeRoute("ADMIN"), ROUTES.ADMIN_DASHBOARD);
+test("anonymous direct loads and repeated refreshes cannot render any private role page", async () => {
+  const store = createStore();
+  for (const path of allPaths) {
+    assert.equal(await renderAt(path, store), "", path);
+    assert.equal(await renderAt(path, createStore()), "", path);
+  }
+  assert.equal(selectIsAuthenticated(store.getState()), false);
+  assert.equal(store.getState().auth.user, null);
+  assert.equal(Object.keys(store.getState().api.queries).length, 0);
+});
+test("obsolete review/mock environment properties and role actions cannot grant identity or route access", async () => {
+  Object.assign(env, { enableMockAuth: true, enablePublicReview: true });
+  try {
+    const store = createStore();
+    store.dispatch({ type: "auth/setMockRole", payload: "ADMIN" });
+    assert.equal(store.getState().auth.user, null);
+    assert.equal(selectIsAuthenticated(store.getState()), false);
+    for (const path of [...customerPaths, ...vendorPaths])
+      assert.equal(await renderAt(path, store), "", path);
+  } finally {
+    delete env.enableMockAuth;
+    delete env.enablePublicReview;
+  }
+});
+test("verified roles retain their own pages and cannot access any other role's pages", async () => {
+  const landing = {
+    CUSTOMER: ROUTES.CUSTOMER_DISCOVER,
+    VENDOR: ROUTES.VENDOR_DASHBOARD,
+    VENDOR_STAFF: ROUTES.VENDOR_STAFF_DASHBOARD,
+    ADMIN: ROUTES.ADMIN_DASHBOARD,
+  };
+  for (const role of roles) {
+    const store = createStore(role);
+    assert.ok((await renderAt(landing[role], store)).includes("<main"), role);
+    assert.equal(selectCurrentRole(store.getState()), role);
+    for (const [other, paths] of groups)
+      if (other !== role)
+        for (const path of paths)
+          assert.equal(await renderAt(path, store), "", `${role} -> ${path}`);
+    store.dispatch(baseApi.util.resetApiState());
+  }
+  assert.match(await renderAt(ROUTES.UNAUTHORIZED, createStore()), /403/);
+});
+test("unknown roles are denied, have no navigation and resolve to the existing 403 route", async () => {
+  const store = createStore("UNKNOWN");
+  for (const role of ["UNKNOWN", "__proto__", "toString"])
+    assert.equal(getRoleHomeRoute(role), ROUTES.UNAUTHORIZED);
+  assert.deepEqual(getNavigationForRole("UNKNOWN"), []);
+  for (const path of allPaths) assert.equal(await renderAt(path, store), "", path);
+});
+test("restored identities and token-only sessions show the canonical loader, never protected content", async () => {
+  for (const role of roles) {
+    const store = createStore();
+    store.dispatch(sessionRestored({ ...saved, user: userFor(role), expiresAt: 1 }));
+    assert.equal(selectIsAuthenticated(store.getState()), false);
+    assert.equal(selectCurrentRole(store.getState()), null);
+    for (const path of [getRoleHomeRoute(role), ROUTES.DASHBOARD]) {
+      const html = await renderAt(path, store);
+      assert.match(html, /role="status"/);
+      assert.match(html, /Loading page/);
+      assert.doesNotMatch(html, /<main|vendor-home-shell|discover-page/);
+    }
+    store.dispatch(initializationFailed({ kind: "NETWORK", message: "Offline" }));
+    const error = await renderAt(getRoleHomeRoute(role), store);
+    assert.match(error, /Offline/);
+    assert.doesNotMatch(error, /vendor-home-shell|discover-page/);
+    store.dispatch(clearSession("invalid-session"));
+    assert.equal(await renderAt(getRoleHomeRoute(role), store), "");
+  }
+});
+test("login and restoration await identity verification, then retain role home and legacy redirect behavior", async () => {
+  const store = createStore();
+  for (const action of [sessionStarted(saved), sessionRestored(saved)]) {
+    store.dispatch(action);
+    assert.equal(selectIsAuthenticated(store.getState()), false);
+    assert.match(await renderAt(ROUTES.DASHBOARD, store), /Loading page/);
+    store.dispatch(identityVerified(userFor("CUSTOMER")));
+    assert.equal(
+      getRoleHomeRoute(selectCurrentRole(store.getState())),
+      ROUTES.CUSTOMER_DISCOVER,
+    );
+    assert.match(await renderAt(ROUTES.CUSTOMER_DISCOVER, store), /discover-page/);
+    store.dispatch(clearSession("storage"));
+    assert.equal(getRoleHomeRoute(selectCurrentRole(store.getState())), ROUTES.LOGIN);
+  }
+  const redirect = matchRoutes(appRoutes, ROUTES.CUSTOMER_DASHBOARD_REDIRECT).at(-1)
+    .route.element;
+  assert.equal(redirect.type, Navigate);
+  assert.equal(redirect.props.to, ROUTES.CUSTOMER_DISCOVER);
+  assert.equal(redirect.props.replace, true);
   assert.equal(getRoleHomeRoute("VENDOR"), ROUTES.VENDOR_DASHBOARD);
   assert.equal(getRoleHomeRoute("VENDOR_STAFF"), ROUTES.VENDOR_STAFF_DASHBOARD);
+  assert.equal(getRoleHomeRoute("ADMIN"), ROUTES.ADMIN_DASHBOARD);
 });
-
-test("the obsolete customer URL replaces history with Discover; Discover has one canonical leaf and no redirect loop", () => {
-  assert.equal(ROUTES.CUSTOMER_DASHBOARD, ROUTES.CUSTOMER_DISCOVER);
-  const legacyMatches = matchRoutes(appRoutes, ROUTES.CUSTOMER_DASHBOARD_REDIRECT);
-  const redirect = legacyMatches.at(-1).route.element;
-  assert.equal(redirect.type, Navigate);
-  assert.equal(redirect.props.replace, true);
-  assert.equal(redirect.props.to, ROUTES.CUSTOMER_DISCOVER);
-  const canonical = matchRoutes(appRoutes, redirect.props.to);
-  assert.notEqual(canonical.at(-1).route.element.type, Navigate);
-  assert.equal(canonical.at(-1).route.path, ROUTES.CUSTOMER_DISCOVER);
-  function countDiscover(routes) {
-    return routes.reduce(
-      (total, route) =>
-        total +
-        Number(route.path === ROUTES.CUSTOMER_DISCOVER) +
-        countDiscover(route.children ?? []),
-      0,
-    );
-  }
-  assert.equal(countDiscover(appRoutes), 1);
-});
-
-test("customer sidebar matches the updated navigation order and keeps Discover active", async () => {
-  const navigation = getNavigationForRole("CUSTOMER");
-  assert.deepEqual(
-    navigation.map((item) => item.label),
-    ["Message", "Community", "Feed", "Discover", "Orders"],
+test("logout immediately removes access, sensitive queries/mutations, and previous role navigation", async () => {
+  const store = createStore("CUSTOMER");
+  await store.dispatch(
+    baseApi.util.upsertQueryData("getCurrentUser", undefined, { id: "cached-sample" }),
   );
-  assert.equal(navigation[3].path, ROUTES.CUSTOMER_DISCOVER);
-  await withReview(true, async () => {
-    const store = createStore();
-    const html = await renderAt(ROUTES.CUSTOMER_DISCOVER, store);
-    const sidebar = html.match(
-      /<nav aria-label="Discover navigation"[\s\S]*?<\/nav>/,
-    )?.[0];
-    assert.ok(sidebar);
-    assert.match(sidebar, /aria-current="page"[^>]*href="\/discover"/);
-    assert.doesNotMatch(sidebar, />Showers<|>Drizzles</);
-    assert.match(sidebar, /disabled=""[^>]*title="No active session to sign out"/);
-    const labels = [
-      "Discover",
-      "Feed",
-      "Community",
-      "Message",
-      "Profile",
-      "Create post",
-      "Leaderboard",
-      "Settings",
-      "Sign out",
-    ];
-    let previous = -1;
-    for (const label of labels) {
-      const position = sidebar.indexOf(`>${label}<`);
-      assert.ok(position > previous, `${label} must retain its sidebar order`);
-      previous = position;
-    }
-    const signedIn = await renderAt(ROUTES.CUSTOMER_DISCOVER, createStore("CUSTOMER"));
-    assert.match(
-      signedIn,
-      /<button[^>]*title="Sign out"[^>]*>[\s\S]*?Sign out<\/button>/,
-    );
-    assert.doesNotMatch(signedIn, /disabled=""[^>]*title="Sign out"/);
-  });
+  assert.ok(Object.keys(store.getState().api.queries).length);
+  store.dispatch(clearSession("storage"));
+  assert.equal(Object.keys(store.getState().api.queries).length, 0);
+  assert.equal(Object.keys(store.getState().api.mutations).length, 0);
+  assert.equal(selectCurrentRole(store.getState()), null);
+  for (const path of allPaths) assert.equal(await renderAt(path, store), "", path);
 });
-
-test("only the four review paths use the opt-in guard; profile and dashboards keep existing guards", () => {
-  for (const path of reviewPaths) {
-    assert.ok(
-      matchRoutes(appRoutes, path).some(
-        ({ route }) => route.element?.type === CustomerReviewGuard,
-      ),
-    );
-  }
+test("login, signup, legal pages and Help Center stay public; no password-reset route is invented", async () => {
   for (const path of [
-    "/profile/taco-paradise",
-    ROUTES.CUSTOMER_DASHBOARD_REDIRECT,
-    ROUTES.CUSTOMER_ORDERS,
-    ROUTES.ADMIN_DASHBOARD,
-    ROUTES.ADMIN_USERS,
-    ROUTES.VENDOR_DASHBOARD,
-    ROUTES.VENDOR_STAFF_DASHBOARD,
+    ROUTES.LOGIN,
+    ROUTES.SIGNUP,
+    ROUTES.PRIVACY_POLICY,
+    ROUTES.TERMS_AND_CONDITIONS,
+    ROUTES.HELP_CENTER,
   ]) {
     const matches = matchRoutes(appRoutes, path);
-    assert.ok(
-      matches.some(({ route }) => route.element?.type === AuthGuard),
-      path,
-    );
-    assert.ok(
-      matches.some(({ route }) => route.element?.type === RoleGuard),
-      path,
-    );
-    assert.equal(
-      matches.some(({ route }) => route.element?.type === CustomerReviewGuard),
-      false,
-      path,
-    );
+    assert.ok(!matches.some(({ route }) => route.element?.type === AuthGuard), path);
+    assert.ok((await renderAt(path, createStore())).length, path);
   }
-});
-
-test("anonymous direct loads, repeated loads and navigation between all four pages render static fixtures without granting identity or making API/socket calls", async () => {
-  await withReview(true, async () => {
-    const store = createStore();
-    const before = store.getState().auth;
-    const fetch = globalThis.fetch;
-    const connect = socketService.connect;
-    let requests = 0;
-    let connections = 0;
-    globalThis.fetch = () => {
-      requests++;
-      throw new Error("Unexpected protected request");
-    };
-    socketService.connect = () => {
-      connections++;
-      throw new Error("Unexpected socket connection");
-    };
-    try {
-      await store.dispatch(initializeSession());
-      for (let pass = 0; pass < 2; pass++) {
-        for (const [index, path] of reviewPaths.entries()) {
-          const html = await renderAt(path, store);
-          assert.ok(html.includes(`class="${pageMarkers[index]}"`), path);
-          for (const target of reviewPaths)
-            assert.ok(html.includes(`href="${target}"`));
-        }
-      }
-      assert.equal(requests, 0);
-      assert.equal(connections, 0);
-      assert.equal(selectIsAuthenticated(store.getState()), false);
-      assert.equal(selectCurrentRole(store.getState()), null);
-      assert.deepEqual(store.getState().auth, before);
-      assert.deepEqual(Object.keys(store.getState()[baseApi.reducerPath].queries), []);
-      assert.deepEqual(
-        Object.keys(store.getState()[baseApi.reducerPath].mutations),
-        [],
-      );
-    } finally {
-      globalThis.fetch = fetch;
-      socketService.connect = connect;
-      store.dispatch(baseApi.util.resetApiState());
-    }
-  });
-});
-
-test("disabling review restores protection on every review route", async () => {
-  await withReview(false, async () => {
-    const store = createStore();
-    for (const [index, path] of reviewPaths.entries()) {
-      assert.equal(
-        (await renderAt(path, store)).includes(`class="${pageMarkers[index]}"`),
-        false,
-      );
-    }
-  });
-});
-
-test("anonymous profile and dashboard visits remain blocked while review is enabled", async () => {
-  await withReview(true, async () => {
-    const store = createStore();
-    for (const path of [
-      ROUTES.CUSTOMER_SETTINGS,
-      ROUTES.CUSTOMER_LEADERBOARD,
-      ROUTES.CUSTOMER_CREATE_POST,
-      "/profile/taco-paradise",
-      ROUTES.CUSTOMER_DASHBOARD_REDIRECT,
-      ROUTES.ADMIN_DASHBOARD,
-      ROUTES.VENDOR_DASHBOARD,
-      ROUTES.VENDOR_STAFF_DASHBOARD,
-    ]) {
-      assert.equal(await renderAt(path, store), "");
-    }
-  });
-});
-
-test("verified customers keep access with review either on or off; other authenticated roles cannot use the public exception", async () => {
-  for (const enabled of [true, false]) {
-    await withReview(enabled, async () => {
-      const customer = createStore("CUSTOMER");
-      for (const [index, path] of reviewPaths.entries())
-        assert.ok(
-          (await renderAt(path, customer)).includes(`class="${pageMarkers[index]}"`),
-        );
-      assert.ok(
-        (await renderAt(ROUTES.CUSTOMER_CREATE_POST, customer)).includes(
-          'class="create-post-page"',
-        ),
-      );
-      assert.ok(
-        (await renderAt(ROUTES.CUSTOMER_LEADERBOARD, customer)).includes(
-          'class="customer-leaderboard-page"',
-        ),
-      );
-      assert.ok(
-        (await renderAt(ROUTES.CUSTOMER_SETTINGS, customer)).includes(
-          'class="customer-settings-page"',
-        ),
-      );
-      for (const role of ["ADMIN", "VENDOR", "VENDOR_STAFF"]) {
-        const store = createStore(role);
-        for (const path of [
-          ...reviewPaths,
-          ROUTES.CUSTOMER_CREATE_POST,
-          ROUTES.CUSTOMER_LEADERBOARD,
-          ROUTES.CUSTOMER_SETTINGS,
-        ])
-          assert.equal(await renderAt(path, store), "");
-        assert.equal(selectCurrentRole(store.getState()), role);
-      }
-    });
-  }
-});
-
-test("persisted identities still wait for verification or show their session error", async () => {
-  await withReview(true, async () => {
-    const store = createStore();
-    store.dispatch(
-      sessionRestored({
-        accessToken: "unverified-test-access",
-        refreshToken: "unverified-test-refresh",
-        sessionId: "unverified-test-session",
-        user: {
-          id: "unverified",
-          name: "Test",
-          email: "test@example.invalid",
-          role: "CUSTOMER",
-        },
-      }),
-    );
-    const html = await renderAt(ROUTES.CUSTOMER_DISCOVER, store);
-    assert.equal(html.includes('class="discover-page"'), false);
-    assert.equal(selectCurrentRole(store.getState()), null);
-    assert.equal(selectIsAuthenticated(store.getState()), false);
-    store.dispatch(
-      initializationFailed({
-        kind: "NETWORK",
-        message: "Session verification unavailable",
-      }),
-    );
-    const failed = await renderAt(ROUTES.CUSTOMER_DISCOVER, store);
-    assert.ok(failed.includes("Session verification unavailable"));
-    assert.equal(failed.includes('class="discover-page"'), false);
-  });
+  assert.ok(
+    matchRoutes(appRoutes, ROUTES.LOGIN).some(
+      ({ route }) => route.element?.type === GuestGuard,
+    ),
+  );
 });

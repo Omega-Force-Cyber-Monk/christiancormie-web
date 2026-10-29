@@ -19,7 +19,17 @@ export const rawBaseQuery = fetchBaseQuery({
   prepareHeaders: (headers, { getState, endpoint }) => {
     const token = (getState() as RootState).auth.accessToken;
 
-    if (token && endpoint !== "login" && endpoint !== "register") {
+    if (
+      token &&
+      ![
+        "login",
+        "logout",
+        "registerCustomer",
+        "registerVendor",
+        "verifyEmail",
+        "resendVerificationCode",
+      ].includes(endpoint)
+    ) {
       headers.set("authorization", `Bearer ${token}`);
     }
 

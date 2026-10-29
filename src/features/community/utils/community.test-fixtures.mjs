@@ -1,0 +1,63 @@
+import {
+  memberStore,
+  viewerId,
+  memberId,
+  postId,
+  json,
+} from "../../social/utils/member.test-fixtures.mjs";
+export { viewerId, memberId, postId, json };
+export const otherId = "66666666-6666-4666-8666-666666666666";
+export const communityStore = memberStore;
+export const postDto = (overrides = {}) => ({
+  id: postId,
+  createdById: memberId,
+  targetFoodTruckId: null,
+  category: "COMMUNITY",
+  requestType: "EVENT",
+  title: "Actual Community meetup",
+  description: "Backend community content",
+  status: "OPEN",
+  visibility: "PUBLIC",
+  eventType: null,
+  eventDate: null,
+  startTime: null,
+  endTime: null,
+  eventTimezone: null,
+  guestCount: null,
+  budgetMin: null,
+  budgetMax: null,
+  address: null,
+  contactPhone: null,
+  preferredCuisines: null,
+  preferredMenuItems: null,
+  allowPublicComments: true,
+  expiresAt: null,
+  createdAt: "2026-10-29T10:00:00.000Z",
+  deletedAt: null,
+  spotsOpen: null,
+  attendanceMin: null,
+  attendanceMax: null,
+  media: [],
+  author: {
+    id: memberId,
+    displayName: "Actual Community author",
+    avatarUrl: null,
+    roles: ["CUSTOMER"],
+    vendor: null,
+  },
+  counts: { comments: 0, reactions: 0, offers: 0, interestedVendors: 0 },
+  viewer: { isOwner: false, isIgnored: false, isInterested: false },
+  allowedActions: {
+    canEdit: false,
+    canDelete: false,
+    canQuote: false,
+    canSendInterest: false,
+  },
+  ...overrides,
+});
+export const listDto = (overrides = {}) => ({
+  message: "Community posts retrieved successfully",
+  items: [postDto()],
+  pagination: { total: 1, limit: 20, offset: 0, nextOffset: null },
+  ...overrides,
+});

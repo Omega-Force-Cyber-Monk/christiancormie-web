@@ -1,14 +1,17 @@
+import type { AdminBookingDto } from "@/features/admin/types/admin.dto";
 export type BookingRecord = {
   id: string;
+  displayId: string;
+  source: AdminBookingDto;
   customerName: string;
   vendorName: string;
   date: string;
   location: string;
   amount: string;
   fee: string;
-  paymentModel: "Prepaid" | "Deposit";
-  pricingModel: "Per person" | "Flat fee";
-  status: "confirmed" | "pending" | "ongoing" | "disputed";
+  paymentModel: string;
+  pricingModel: string;
+  status: string;
   badgeCount?: number;
 };
 

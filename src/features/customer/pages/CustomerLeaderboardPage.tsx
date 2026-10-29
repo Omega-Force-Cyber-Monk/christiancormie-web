@@ -1,8 +1,11 @@
+import { useRankings } from "@/features/leaderboards/utils/useRankings";
+import { ErrorState } from "@/components/states/ErrorState";
+import { EmptyState } from "@/components/states/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { useId } from "react";
 import { useSearchParams } from "react-router";
 import { LeaderboardRankings } from "@/features/customer/components/leaderboard/LeaderboardRankings";
 import {
-  getLeaderboardRankings,
   getLeaderboardKeyboardCategory,
   leaderboardCategories,
   parseLeaderboardCategory,
@@ -17,11 +20,15 @@ export default function CustomerLeaderboardPage() {
     leaderboardCategories.find((item) => item.id === category) ??
     leaderboardCategories[0];
   const panelId = useId();
+  const rawOffset = Number(params.get("offset") ?? 0);
+  const offset = Number.isSafeInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+  const rankings = useRankings(category, offset);
   function selectCategory(next: LeaderboardCategory) {
     setParams(
       (current) => {
         const updated = new URLSearchParams(current);
         updated.set("category", next);
+        updated.delete("offset");
         return updated;
       },
       { preventScrollReset: true },
@@ -29,7 +36,7 @@ export default function CustomerLeaderboardPage() {
   }
   return (
     <div className="customer-leaderboard-page">
-      <h1 className="sr-only">Leaderboard — static preview</h1>
+      <h1 className="sr-only">Leaderboard</h1>
       <div
         className="leaderboard-tabs"
         role="tablist"
@@ -70,13 +77,53 @@ export default function CustomerLeaderboardPage() {
         aria-labelledby={`${panelId}-${category}`}
         className="leaderboard-panel"
       >
-        <LeaderboardRankings
-          entries={getLeaderboardRankings(category)}
-          label={active.label}
-        />
+        {rankings.query.isLoading ||
+        (rankings.query.isFetching && !rankings.query.currentData) ? (
+          <p role="status">Loading rankings…</p>
+        ) : rankings.query.isError ? (
+          <ErrorState onRetry={() => void rankings.query.refetch()} />
+        ) : rankings.rows.length ? (
+          <LeaderboardRankings entries={rankings.rows} label={active.label} />
+        ) : (
+          <EmptyState title="No leaderboard records" />
+        )}
+        <div className="mt-4 flex gap-3">
+          <Button
+            disabled={offset === 0 || rankings.query.isFetching}
+            onClick={() =>
+              setParams((current) => {
+                const next = new URLSearchParams(current);
+                next.set("offset", String(Math.max(0, offset - 20)));
+                return next;
+              })
+            }
+          >
+            Previous rankings
+          </Button>
+          <Button
+            disabled={
+              rankings.next === null ||
+              rankings.query.isFetching ||
+              rankings.query.isError
+            }
+            onClick={() => {
+              if (rankings.next !== null)
+                setParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.set("offset", String(rankings.next));
+                  return next;
+                });
+            }}
+          >
+            Next rankings
+          </Button>
+        </div>
       </section>
       <p className="mt-4 text-xs leading-5 text-[#B8C1D1]" role="status">
-        {active.label} · 7 sample rankings. Local design preview.
+        Rankings are not guaranteed to update in real time.{" "}
+        {rankings.calculatedAt
+          ? `Calculated ${rankings.calculatedAt}`
+          : "Calculation time unavailable"}
       </p>
     </div>
   );

@@ -12,6 +12,8 @@ import {
   type CommunityReportValues,
 } from "@/features/customer/schemas/community.schema";
 import { FormError } from "@/components/forms/FormError";
+import type { CommunityPost as ApiCommunityPost } from "@/features/community/schemas/community.schema";
+import { ConnectedCommunityReport } from "@/features/community/components/ConnectedCommunityReport";
 
 type CommunityReportPreviewProps = {
   selected: CommunityPost | null;
@@ -21,7 +23,21 @@ type CommunityReportPreviewProps = {
   onBack: () => void;
 };
 
-export function CommunityReportPreview({
+export function CommunityReportPreview(
+  props:
+    CommunityReportPreviewProps | { livePost: ApiCommunityPost; onCancel: () => void },
+) {
+  return "livePost" in props ? (
+    <ConnectedCommunityReport
+      key={props.livePost.id}
+      post={props.livePost}
+      onClose={props.onCancel}
+    />
+  ) : (
+    <LegacyCommunityReportPreview {...props} />
+  );
+}
+function LegacyCommunityReportPreview({
   selected,
   onHide,
   onCopy,

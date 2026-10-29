@@ -9,4 +9,8 @@ const roleHomeRoute = {
 } as const;
 
 export const getRoleHomeRoute = (role: UserRole | null) =>
-  role ? roleHomeRoute[role] : ROUTES.LOGIN;
+  role
+    ? Object.hasOwn(roleHomeRoute, role)
+      ? roleHomeRoute[role]
+      : ROUTES.UNAUTHORIZED
+    : ROUTES.LOGIN;

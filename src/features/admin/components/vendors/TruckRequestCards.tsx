@@ -5,12 +5,14 @@ import { getVendorStatusBadge } from "@/features/admin/components/vendors/vendor
 import { VendorEmptyState } from "@/features/admin/components/vendors/VendorEmptyState";
 
 type TruckRequestCardsProps = {
+  isUpdating?: boolean;
   requests: TruckRequestItem[];
   onMarkCommunicated: (requestId: string) => void;
   onViewDetails: (request: TruckRequestItem) => void;
 };
 
 export function TruckRequestCards({
+  isUpdating = false,
   onMarkCommunicated,
   onViewDetails,
   requests,
@@ -86,6 +88,7 @@ export function TruckRequestCards({
                 <button
                   className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#ff6542] px-4 py-2 text-xs font-semibold text-white shadow-md transition active:scale-95 hover:bg-[#ff5530]"
                   onClick={() => onMarkCommunicated(request.id)}
+                  disabled={isUpdating}
                   type="button"
                 >
                   <CheckCircle className="size-3.5" />

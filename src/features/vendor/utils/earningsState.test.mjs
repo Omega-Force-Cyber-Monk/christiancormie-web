@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
 import { createElement as h } from "react";
@@ -326,6 +326,7 @@ function renderAt(role, query = "") {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -357,7 +358,7 @@ function renderAt(role, query = "") {
     );
   });
 }
-test("Earnings and Analytics retain AuthGuard/Vendor RoleGuard, shared shell and matching active navigation", async () => {
+test("earnings retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_EARNINGS);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(

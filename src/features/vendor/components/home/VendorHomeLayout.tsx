@@ -21,12 +21,11 @@ import { clearSession } from "@/features/auth/store/auth.slice";
 import { selectIsAuthenticated } from "@/features/auth/store/auth.selectors";
 import { DashboardLayout } from "@/layouts/DashboardLayout/DashboardLayout";
 import logo from "@/features/vendor/assets/home/Home-logo.svg";
-import truck from "@/features/vendor/assets/home/Home-truck.webp";
+import { useVendorContext } from "@/features/vendor/utils/useVendorContext";
+import { useGetVendorRequestCountsQuery } from "@/features/vendor/api/vendor.api";
+import { vendorNumber } from "@/features/vendor/utils/vendorAdapters";
 import { VendorHomeDialog } from "@/features/vendor/components/home/VendorHomeDialog";
-import {
-  vendorHomeActivity,
-  vendorHomePreviewDescriptions,
-} from "@/features/vendor/data/home.data";
+
 import "@/features/vendor/components/home/home.css";
 import { getVendorPostCategory } from "@/features/vendor/data/create-posts.data";
 
@@ -77,6 +76,9 @@ export default function VendorHomeLayout() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const authenticated = useAppSelector(selectIsAuthenticated);
+  const context = useVendorContext();
+  const counts = useGetVendorRequestCountsQuery(undefined, { skip: !context.allowed });
+  const identity = context.identity;
   return (
     <>
       <DashboardLayout
@@ -123,6 +125,18 @@ export default function VendorHomeLayout() {
                     >
                       <Icon size={19} aria-hidden="true" />
                       {label}
+                      {label === "Requests" &&
+                      context.allowed &&
+                      counts.currentData?.bookings !== null &&
+                      counts.currentData?.bookings !== undefined &&
+                      !counts.isError ? (
+                        <span
+                          className="ml-auto text-xs"
+                          aria-label={`${counts.currentData.bookings} booking requests`}
+                        >
+                          {vendorNumber(counts.currentData.bookings)}
+                        </span>
+                      ) : null}
                     </Link>
                   ) : (
                     <button
@@ -136,6 +150,18 @@ export default function VendorHomeLayout() {
                     >
                       <Icon size={19} aria-hidden="true" />
                       {label}
+                      {label === "Requests" &&
+                      context.allowed &&
+                      counts.currentData?.bookings !== null &&
+                      counts.currentData?.bookings !== undefined &&
+                      !counts.isError ? (
+                        <span
+                          className="ml-auto text-xs"
+                          aria-label={`${counts.currentData.bookings} booking requests`}
+                        >
+                          {vendorNumber(counts.currentData.bookings)}
+                        </span>
+                      ) : null}
                     </button>
                   ),
                 )}
@@ -198,14 +224,27 @@ export default function VendorHomeLayout() {
                 </p>
               ) : (
                 <>
-                  <img
-                    src={truck}
-                    alt=""
-                    className="hidden size-[50px] rounded-full border border-[#FF5733] object-cover sm:block"
-                  />
+                  {identity?.imageUrl ? (
+                    <img
+                      src={identity.imageUrl}
+                      alt=""
+                      className="hidden size-[50px] rounded-full border border-[#FF5733] object-cover sm:block"
+                    />
+                  ) : (
+                    <span
+                      className="hidden size-[50px] items-center justify-center rounded-full border border-[#FF5733] sm:flex"
+                      aria-hidden="true"
+                    >
+                      {identity?.initials ?? "?"}
+                    </span>
+                  )}
                   <div className="min-w-0">
                     <p className="truncate text-xl leading-8 font-bold sm:text-2xl">
-                      Hello Taco!
+                      {identity
+                        ? identity.name
+                        : context.profile.isFetching
+                          ? "Loading vendor..."
+                          : "Vendor"}
                     </p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-[#B8C1D1] sm:text-sm">
                       <MapPin
@@ -213,7 +252,7 @@ export default function VendorHomeLayout() {
                         className="shrink-0 text-[#00D3DF]"
                         aria-hidden="true"
                       />
-                      San Francisco, CA
+                      {identity?.location ?? "Location unavailable"}
                     </p>
                   </div>
                 </>
@@ -223,26 +262,20 @@ export default function VendorHomeLayout() {
               <button
                 type="button"
                 className="relative grid size-9 place-items-center rounded-full border border-[#CDD5DF] bg-white text-[#414651]"
-                aria-label="Notifications, sample count 3"
+                aria-label="Notifications, not connected"
                 onClick={() => setPreview("Notifications")}
               >
                 <Bell size={16} />
-                <span
-                  className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-red-500 text-[10px] text-white"
-                  aria-hidden="true"
-                >
-                  3
-                </span>
               </button>
               <button
                 type="button"
                 className="grid size-9 place-items-center rounded-full bg-[#FF5733] text-xs text-white"
-                aria-label="Sample Vendor account"
+                aria-label="Vendor account"
                 onClick={() => {
                   void navigate(ROUTES.VENDOR_PROFILE);
                 }}
               >
-                A
+                {identity?.initials ?? "?"}
               </button>
             </div>
           </div>
@@ -254,21 +287,11 @@ export default function VendorHomeLayout() {
             title={`${preview} preview`}
             onClose={() => setPreview(null)}
           >
-            {preview === "Notifications" ? (
-              <ul className="space-y-4 text-sm text-[#B8C1D1]">
-                {vendorHomeActivity.map((item) => (
-                  <li key={item.id}>
-                    {item.text}
-                    <span className="ml-2 text-xs">{item.age}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm leading-6 text-[#B8C1D1]">
-                {vendorHomePreviewDescriptions[preview] ??
-                  "Vendor Leaderboard is outside this Home preview. Rankings are not connected here."}
-              </p>
-            )}
+            <p className="text-sm leading-6 text-[#B8C1D1]">
+              {preview === "Notifications"
+                ? "Notifications are not connected yet. No notification count is available."
+                : "This feature is not connected from the vendor dashboard."}
+            </p>
             {preview === "Profile" && (
               <Link
                 className="mt-5 inline-flex min-h-11 items-center text-[#2ED3D1] underline"

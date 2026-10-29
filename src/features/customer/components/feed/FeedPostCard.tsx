@@ -1,112 +1,76 @@
-import { Clock, Heart, MapPin, MessageCircle, Share2 } from "lucide-react";
-import { useReducer, useState } from "react";
-import { generatePath, Link } from "react-router";
-
-import { ROUTES } from "@/constants/routes";
+﻿import { Clock, MapPin, MessageCircle, Share2 } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
-import tacoSymbol from "@/features/customer/assets/feed/comment-taco.png";
-import fireSymbol from "@/features/customer/assets/feed/comment-fire.png";
-import { FeedCommentsDialog } from "@/features/customer/components/feed/FeedCommentsDialog";
-import { createFeedComments } from "@/features/customer/data/feed-comments.data";
-import type { FeedPost } from "@/features/customer/data/feed.data";
-import {
-  feedCommentsReducer,
-  getFeedCommentCount,
-} from "@/features/customer/utils/feedComments";
-
-type FeedPostCardProps = {
-  post: FeedPost;
-  onShare: (post: FeedPost) => void;
-  onImage: (post: FeedPost) => void;
-};
-
-export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
-  const [liked, setLiked] = useState(false);
+import { FeedCommentsDialog } from "./FeedCommentsDialog";
+import { PostLikeButton } from "@/features/social/components/PostLikeButton";
+import { memberProfilePath } from "@/features/social/utils/profileIdentity";
+import type { SocialCard } from "@/features/social/utils/feedAdapters";
+export function FeedPostCard({
+  post,
+  onShare,
+  onImage,
+  busy = false,
+}: {
+  post: SocialCard;
+  onShare: (post: SocialCard) => void;
+  onImage: (post: SocialCard) => void;
+  busy?: boolean;
+}) {
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [comments, dispatchComments] = useReducer(
-    feedCommentsReducer,
-    post.id,
-    createFeedComments,
-  );
-  const [announcement, setAnnouncement] = useState("");
   const headingId = `feed-post-${post.id}-title`;
-  const commentCount = getFeedCommentCount(
-    post.commentCount,
-    createFeedComments(post.id).length,
-    comments,
-  );
-
   return (
     <article aria-labelledby={headingId} className="feed-post" id={post.id}>
       <header className="flex items-center gap-3">
-        <Link
-          aria-label={`View ${post.author} profile`}
-          className="shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ED3D1]"
-          to={generatePath(ROUTES.CUSTOMER_PROFILE, { id: post.authorId })}
-        >
-          <TruckImage
-            className="feed-post-avatar size-[68px] rounded-full border-2 border-[#FF5733]"
-            name={post.author}
-            src={post.avatar}
-          />
-        </Link>
+        <TruckImage
+          className="feed-post-avatar size-[68px] rounded-full border-2 border-[#FF5733]"
+          name={post.author}
+          src={post.avatar}
+        />
         <div className="min-w-0">
           <h2 className="text-lg leading-7 font-semibold" id={headingId}>
-            <Link
-              className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2ED3D1]"
-              to={generatePath(ROUTES.CUSTOMER_PROFILE, { id: post.authorId })}
-            >
-              {post.author}
-            </Link>
+            {post.authorId ? (
+              <Link to={memberProfilePath(post.authorId)}>{post.author}</Link>
+            ) : (
+              post.author
+            )}
           </h2>
           <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-5 text-[#B8C1D1]">
-            <span className="inline-flex items-center gap-1">
-              <Clock aria-hidden="true" size={16} />
-              {post.age}
-            </span>
-            <span aria-hidden="true">•</span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin aria-hidden="true" size={16} />
-              {post.location}
-            </span>
+            <Clock aria-hidden="true" size={16} />
+            {post.age}
+            {post.location && (
+              <>
+                <span aria-hidden="true">•</span>
+                <MapPin aria-hidden="true" size={16} />
+                {post.location}
+              </>
+            )}
           </p>
         </div>
       </header>
-      <p className="feed-post-copy">
-        {post.textBeforeSymbol} <img alt="" src={tacoSymbol} className="feed-symbol" />{" "}
-        {post.textAfterSymbol} <img alt="" src={fireSymbol} className="feed-symbol" />
-      </p>
-      <button
-        aria-label={`Enlarge photo in ${post.author} post`}
-        className="feed-photo-button"
-        onClick={() => onImage(post)}
-        type="button"
-      >
-        <TruckImage
-          alt={post.imageDescription}
-          className="aspect-[547/423] w-full rounded-2xl"
-          name={post.author}
-          src={post.image}
-        />
-      </button>
-      <div aria-label="Post actions" className="feed-post-actions">
+      <p className="feed-post-copy whitespace-pre-wrap">{post.text}</p>
+      {post.image && (
         <button
-          aria-label={`${liked ? "Unlike" : "Like"} ${post.author} post in local preview`}
-          aria-pressed={liked}
-          className={`feed-reaction ${liked ? "text-[#FF5733]" : "text-[#B8C1D1]"}`}
-          onClick={() => {
-            setLiked((current) => !current);
-            setAnnouncement(
-              liked
-                ? "Like removed from local preview."
-                : "Liked in local preview. No account was updated.",
-            );
-          }}
+          aria-label={`Enlarge photo in ${post.author} post`}
+          className="feed-photo-button"
+          onClick={() => onImage(post)}
           type="button"
         >
-          <Heart aria-hidden="true" className={liked ? "fill-current" : ""} size={24} />
-          <span>{post.likes + Number(liked)}</span>
+          <TruckImage
+            alt={post.imageAlt}
+            className="aspect-[547/423] w-full rounded-2xl"
+            name={post.author}
+            src={post.image}
+          />
         </button>
+      )}
+      <div aria-label="Post actions" className="feed-post-actions">
+        <PostLikeButton
+          postId={post.id}
+          liked={post.liked}
+          count={post.likes}
+          busy={busy}
+        />
         <button
           aria-expanded={commentsOpen}
           aria-haspopup="dialog"
@@ -116,10 +80,10 @@ export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
           type="button"
         >
           <MessageCircle aria-hidden="true" size={24} />
-          <span>{commentCount}</span>
+          <span>{post.commentCount}</span>
         </button>
         <button
-          aria-label={`Share link to ${post.author} sample post`}
+          aria-label={`Share ${post.author} post`}
           className="feed-reaction text-[#B8C1D1]"
           onClick={() => onShare(post)}
           type="button"
@@ -130,25 +94,8 @@ export function FeedPostCard({ post, onShare, onImage }: FeedPostCardProps) {
       <FeedCommentsDialog
         isOpen={commentsOpen}
         post={post}
-        comments={comments}
-        count={commentCount}
         onClose={() => setCommentsOpen(false)}
-        onLike={(id) => dispatchComments({ type: "like", id })}
-        onAdd={(text, parentId) => {
-          dispatchComments({
-            type: "add",
-            id: `${post.id}-${crypto.randomUUID()}`,
-            text,
-            parentId,
-          });
-          setAnnouncement(
-            `${parentId ? "Reply" : "Comment"} added to this local preview. Nothing was published.`,
-          );
-        }}
       />
-      <p aria-live="polite" className="sr-only" role="status">
-        {announcement}
-      </p>
     </article>
   );
 }

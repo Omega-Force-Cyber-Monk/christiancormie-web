@@ -28,7 +28,7 @@ export type SourceAuthUser = {
   id: string;
   email: string;
   displayName: string;
-  roles: Array<AuthenticatedUser["role"]>;
+  roles: string[];
   vendor?: {
     id: string;
     businessName: string;
@@ -51,20 +51,40 @@ export type SourceLoginResponse = {
   user: SourceAuthUser;
 };
 
-export type RegisterRequest = {
+export type RegisterCustomerRequest = {
   name: string;
-  businessName: string;
-  address_Pickup_Location: string;
-  phone: string;
   email: string;
   password: string;
+  dateOfBirth: string;
+  referralCode?: string;
 };
 
-export type SourceRegisterResponse = {
-  success: boolean;
-  message: string;
-  data: SourceAuthUser;
+export type RegisterVendorRequest = {
+  email: string;
+  phone: string;
+  password: string;
+  dateOfBirth?: string;
+  businessName?: string;
+  businessEmail?: string;
+  businessPhone?: string;
+  description?: string;
+  websiteUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  timezone?: string;
+  referralCode?: string;
 };
+
+export type PendingVerificationResponse = {
+  success: true;
+  status: "PENDING";
+  message: string;
+  email: string;
+};
+
+export type VerifyEmailRequest = { email: string; code: string };
+export type ResendVerificationRequest = { email: string };
 
 export type StoredSession = SessionTokens & {
   sessionId: string;
@@ -72,3 +92,7 @@ export type StoredSession = SessionTokens & {
 };
 
 export type LogoutReason = "manual" | "invalid-session" | "storage";
+
+/** Captured locally before cleanup; only refreshToken is sent in the JSON body. */
+export type LogoutCredentials = Pick<SessionTokens, "accessToken" | "refreshToken">;
+export type LogoutResponse = { success: true };

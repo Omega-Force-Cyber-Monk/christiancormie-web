@@ -2,36 +2,34 @@ import { Search } from "lucide-react";
 import { useId } from "react";
 
 import { NoResultsState } from "@/components/states/NoResultsState";
-import type { MessageConversation } from "@/features/customer/data/message.data";
+import type { ConversationRow } from "@/features/messaging/types/messaging.types";
 
 export function MessageConversationList({
   conversations,
   selectedId,
-  readIds,
   search,
   onSearch,
   onSelect,
 }: {
-  conversations: MessageConversation[];
+  conversations: ConversationRow[];
   selectedId: string;
-  readIds: string[];
   search: string;
   onSearch: (value: string) => void;
-  onSelect: (conversation: MessageConversation) => void;
+  onSelect: (conversation: ConversationRow) => void;
 }) {
   const searchId = useId();
   return (
-    <section aria-label="Sample conversations" className="message-conversations">
+    <section aria-label="Conversations" className="message-conversations">
       <div className="message-search">
         <label className="sr-only" htmlFor={searchId}>
-          Search conversations
+          Filter loaded conversations
         </label>
         <Search aria-hidden="true" size={18} />
         <input
           autoComplete="off"
           id={searchId}
           onChange={(event) => onSearch(event.target.value)}
-          placeholder="Search conversations..."
+          placeholder="Filter loaded conversations..."
           type="search"
           value={search}
         />
@@ -39,22 +37,24 @@ export function MessageConversationList({
       {conversations.length ? (
         <ul className="message-conversation-list">
           {conversations.map((conversation) => {
-            const unread = readIds.includes(conversation.id) ? 0 : conversation.unread;
+            const unread = conversation.unread;
             return (
               <li key={conversation.id}>
                 <button
                   aria-current={selectedId === conversation.id ? "true" : undefined}
-                  aria-label={`${conversation.name}, ${conversation.age}, ${unread} unread sample messages`}
+                  aria-label={`${conversation.name}, ${conversation.status}, ${conversation.age}, ${unread} unread messages`}
                   className={`message-conversation ${unread ? "message-conversation--unread" : ""}`}
                   onClick={() => onSelect(conversation)}
                   type="button"
                 >
                   <span aria-hidden="true" className="message-empty-avatar">
-                    <span
-                      className={
-                        conversation.online ? "message-online" : "message-offline"
-                      }
-                    />
+                    {conversation.avatarUrl && (
+                      <img
+                        src={conversation.avatarUrl}
+                        alt=""
+                        className="size-full rounded-full object-cover"
+                      />
+                    )}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">

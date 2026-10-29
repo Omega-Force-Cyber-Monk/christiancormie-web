@@ -1,6 +1,6 @@
 ﻿import type { FileUploadItemValue } from "@/components/forms/FileUpload/file-upload.types";
 import { validateFile } from "@/utils/files/validateFile";
-import { DEFAULT_MAX_FILE_SIZE_BYTES } from "@/utils/files/file.constants";
+import { communityFileLimit } from "@/features/community/utils/communityPublishing";
 import type {
   GeneralPostCategory,
   VendorPostCategory,
@@ -16,14 +16,14 @@ import {
 export const postFileOptions = {
   allowedMimeTypes: ["image/jpeg", "image/png", "application/pdf"],
   allowedExtensions: ["jpg", "jpeg", "png", "pdf"],
-  maxSizeBytes: DEFAULT_MAX_FILE_SIZE_BYTES,
+  maxSizeBytes: communityFileLimit,
 };
 export const postFilesError = (items: FileUploadItemValue[]): string | undefined => {
   if (items.length > 5) return "Attach up to 5 files.";
   for (const item of items) {
     const error = validateFile(item.file, postFileOptions);
     if (error)
-      return `${item.file.name}: ${error} Use JPG, PNG or PDF, up to 5 MB per file for this local preview.`;
+      return `${item.file.name}: ${error} Use JPG, PNG or PDF, up to 10 MB per file.`;
   }
 };
 export function appendPostFiles(

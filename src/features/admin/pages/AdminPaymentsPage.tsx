@@ -1,7 +1,9 @@
+import { AdminOperationalTable } from "@/features/admin/components/AdminOperationalTable";
+import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
+import { paymentRows } from "@/features/admin/utils/adminOperations";
 import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { useGetAdminPaymentsManagementQuery } from "@/features/admin/api/admin.api";
@@ -9,7 +11,8 @@ import { AdminDataPanel } from "@/features/admin/components/AdminDataPanel";
 import { AdminLoading } from "@/features/admin/components/AdminLoading";
 import { AdminSection } from "@/features/admin/components/AdminSection";
 import { AdminStatGrid } from "@/features/admin/components/AdminStatGrid";
-import { formatCurrency, formatNumber } from "@/features/admin/utils/adminFormat";
+import { formatNumber } from "@/features/admin/utils/adminFormat";
+import { bookingMoney } from "@/features/admin/utils/adminBookings";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 
 const tabs = [
@@ -21,8 +24,20 @@ const tabs = [
 
 export default function AdminPaymentsPage() {
   const [activeTab, setActiveTab] = useState("Payout Requests");
-  const { data, error, isError, isLoading, refetch } =
-    useGetAdminPaymentsManagementQuery();
+  const list = useAdminList(10, activeTab);
+  const paged = activeTab === "Payout Requests";
+  const {
+    currentData: data,
+    error,
+    isError,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAdminPaymentsManagementQuery(paged ? list.query : { limit: 100 });
+  const allRows = paymentRows(activeTab, data);
+  const result = paged
+    ? adminPage(allRows, list.pageSize)
+    : { rows: allRows, hasNextPage: false };
 
   if (isLoading) return <AdminLoading />;
   if (isError && !data) {
@@ -60,17 +75,17 @@ export default function AdminPaymentsPage() {
                 },
                 {
                   label: "Total Amount",
-                  value: formatCurrency(data.summary.totalAmount),
+                  value: bookingMoney(data.summary.totalAmount),
                   icon: DollarSign,
                 },
                 {
                   label: "Revenue This Month",
-                  value: formatCurrency(data.summary.revenueThisMonth),
+                  value: bookingMoney(data.summary.revenueThisMonth),
                   icon: TrendingUp,
                 },
                 {
                   label: "Commission Earned",
-                  value: formatCurrency(data.summary.commissionEarned),
+                  value: bookingMoney(data.summary.commissionEarned),
                   icon: Wallet,
                 },
               ]
@@ -93,27 +108,24 @@ export default function AdminPaymentsPage() {
               </Button>
             ))}
           </div>
-          {activeTab === "Revenue Overview" ? (
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[var(--text-muted)]">Revenue This Month</dt>
-                <dd className="font-medium">
-                  {formatCurrency(data?.summary.revenueThisMonth)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Commission Earned</dt>
-                <dd className="font-medium">
-                  {formatCurrency(data?.summary.commissionEarned)}
-                </dd>
-              </div>
-            </dl>
+          {isFetching && !data ? (
+            <AdminLoading cards={0} />
           ) : (
-            <EmptyState
-              title={`No ${activeTab.toLowerCase()} found`}
-              description="The source dashboard defined this tab UI with local empty data; no additional backend row contract was available to migrate."
+            <AdminOperationalTable
+              rows={result.rows}
+              emptyMessage={`No ${activeTab.toLowerCase()} found`}
+              pagination={
+                paged
+                  ? { ...list.pagination, hasNextPage: result.hasNextPage, isFetching }
+                  : undefined
+              }
             />
           )}
+          {!paged && activeTab === "Transaction History" ? (
+            <p className="text-sm text-[var(--text-muted)]">
+              Showing up to 100 returned transactions.
+            </p>
+          ) : null}
         </div>
       </AdminDataPanel>
     </AdminSection>

@@ -1,3 +1,19 @@
+import type {
+  AdminPayoutDto,
+  AdminTransactionDto,
+  AdminPaymentMethodDto,
+  AdminRevenueDto,
+  AdminRewardLeaderboardDto,
+  AdminRewardRedemptionDto,
+  AdminRewardTopUserDto,
+} from "./admin.dto";
+import type {
+  AdminUserDto,
+  AdminBookingDto,
+  AdminVendorDto,
+  AdminCommunityPostDto,
+  AdminReviewDto,
+} from "./admin.dto";
 export type AdminListQuery = {
   search?: string;
   status?: string;
@@ -9,8 +25,8 @@ export type AdminListQuery = {
 };
 
 export type ChangeCard = {
-  value: number;
-  changePercent?: number;
+  value: number | null;
+  changePercent?: number | null;
 };
 
 export type AdminDashboardResponse = {
@@ -23,19 +39,19 @@ export type AdminDashboardResponse = {
     revenueThisMonth: ChangeCard;
     commissionEarned: ChangeCard;
     pendingPayouts: Pick<ChangeCard, "value">;
-    activeDisputes: Pick<ChangeCard, "value">;
+    activeDisputes: Pick<ChangeCard, "value"> & { source: "review_reports" };
   };
   charts: {
-    revenueTrend: Array<{ month: string; revenue: number }>;
-    monthlyBookings: Array<{ month: string; bookings: number }>;
+    revenueTrend: Array<{ month: string; revenue: number | null }>;
+    monthlyBookings: Array<{ month: string; bookings: number | null }>;
   };
   recentActivity: Array<{
     id: string;
     type: string;
-    title: string;
-    subtitle: string;
-    status: string;
-    createdAt: string;
+    title: string | null;
+    subtitle: string | null;
+    status: string | null;
+    createdAt: string | null;
   }>;
 };
 
@@ -45,30 +61,13 @@ export type AdminBookingsManagementResponse = {
     totalBookings: number;
     thisMonth: number;
     totalRevenue: number;
-    pendingPaymentRelease: number;
     disputed: number;
+    disputedSource: "review_reports";
   };
-  bookings: Array<{
-    id: string;
-    bookingNumber: string;
-    customer: { id: string; name: string; email: string; phone?: string };
-    vendor: { id: string; name: string; email: string; phone?: string };
-    event: { title: string; type: string; date: string; location: string };
-    payment: {
-      paymentModel: string;
-      pricingModel: string;
-      totalAmount: number;
-      commissionAmount: number;
-      vendorPayout: number;
-      fundsStatus: string;
-    };
-    status: string;
-    actions?: { canViewDetails?: boolean };
-  }>;
+  bookings: AdminBookingDto[];
 };
 
 export type AdminVendorsManagementResponse = {
-  generatedAt: string;
   summary: {
     totalVendors: number;
     active: number;
@@ -76,36 +75,7 @@ export type AdminVendorsManagementResponse = {
     suspended: number;
   };
   tabs?: Record<string, number> | null;
-  vendors?: Array<{
-    id: string;
-    vendorDisplayId: string;
-    businessName: string;
-    ownerName: string;
-    email: string;
-    phone: string;
-    cuisineType: string;
-    serviceArea: string;
-    rating: number;
-    reviews: number;
-    followers: number;
-    totalBookings: number;
-    revenueGenerated: number;
-    status: string;
-    isVerified: boolean;
-    badges: unknown[];
-    documents: unknown[];
-  }> | null;
-  truckRequests?: Array<{
-    id: string;
-    requestDisplayId: string;
-    truckName: string;
-    usualLocation: string;
-    phone?: string;
-    description: string;
-    reason?: string;
-    status: string;
-    requester: { id: string; name: string; email: string };
-  }> | null;
+  vendors: AdminVendorDto[];
 };
 
 export type AdminUsersManagementResponse = {
@@ -116,23 +86,7 @@ export type AdminUsersManagementResponse = {
     newThisWeek: number;
     suspended: number;
   };
-  users: Array<{
-    id: string;
-    userDisplayId: string;
-    name: string;
-    email: string;
-    phone?: string;
-    location?: string;
-    joinDate: string;
-    activity?: { bookings: number; referrals: number } | null;
-    loyalty?: {
-      availablePoints: number;
-      lifetimePoints: number;
-      redeemedPoints: number;
-    } | null;
-    status: string;
-    actions: { canView: boolean; canSuspend: boolean; canRetrieve: boolean };
-  }>;
+  users: AdminUserDto[];
 };
 
 export type AdminCommunityManagementResponse = {
@@ -144,26 +98,7 @@ export type AdminCommunityManagementResponse = {
     removedToday: number;
   };
   tabs: Record<string, number>;
-  posts: Array<{
-    id: string;
-    postDisplayId: string;
-    author: { id: string; name: string; email: string };
-    category: string;
-    type: string;
-    content: string;
-    media: unknown[];
-    likes: number;
-    commentsCount: number;
-    status: string;
-    reported: boolean;
-    reports: Array<{ reason?: string }>;
-    comments: Array<{
-      id: string;
-      author: { name: string };
-      content: string;
-      createdAt: string;
-    }>;
-  }>;
+  posts: AdminCommunityPostDto[];
 };
 
 export type AdminReviewsManagementResponse = {
@@ -175,21 +110,7 @@ export type AdminReviewsManagementResponse = {
     removedThisWeek: number;
   };
   tabs: Record<string, number>;
-  reviews: Array<{
-    id: string;
-    reviewDisplayId: string;
-    source: string;
-    customer: { id: string; name: string };
-    vendor: { id: string; name: string };
-    foodTruck?: { id: string; name: string };
-    booking?: { id: string; bookingNumber: string };
-    rating: number;
-    content: string;
-    isVerified: boolean;
-    status: string;
-    reported: boolean;
-    reportReason?: string;
-  }>;
+  reviews: AdminReviewDto[];
 };
 
 export type AdminPaymentsManagementResponse = {
@@ -201,10 +122,13 @@ export type AdminPaymentsManagementResponse = {
     commissionEarned: number;
   };
   tabs: Record<string, number | boolean>;
-  payoutRequests: unknown[];
-  revenueOverview: unknown;
-  transactions: unknown[];
-  paymentMethods: unknown[];
+  payoutRequests: AdminPayoutDto[];
+  revenueOverview: AdminRevenueDto;
+  transactions: AdminTransactionDto[];
+  paymentMethods: {
+    summary: { bankTransfers: number; paypalAccounts: number; stripeConnected: number };
+    methods: AdminPaymentMethodDto[];
+  };
   schemaGaps?: Record<string, string>;
 };
 
@@ -219,8 +143,8 @@ export type AdminRewardsManagementResponse = {
   paymentSummary: AdminPaymentsManagementResponse["summary"];
   tabs: Record<string, number>;
   tierCounts: Record<string, number>;
-  leaderboard: unknown[];
-  redeemTransactions: unknown[];
-  topUsers: unknown[];
+  leaderboard: AdminRewardLeaderboardDto[];
+  redeemTransactions: AdminRewardRedemptionDto[];
+  topUsers: AdminRewardTopUserDto[];
   schemaGaps?: Record<string, string>;
 };

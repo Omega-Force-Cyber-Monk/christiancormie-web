@@ -1,68 +1,48 @@
-import { Star } from "lucide-react";
-
-import { EmptyState } from "@/components/states/EmptyState";
+﻿import { EmptyState } from "@/components/states/EmptyState";
 import { TruckImage } from "@/features/customer/components/discover/DiscoverTruckCard";
-import { profileReviews } from "@/features/customer/data/profile-reviews.data";
-
-export function ProfileReviews() {
-  if (!profileReviews.length) {
-    return (
-      <EmptyState
-        title="No sample reviews"
-        description="There are no reviews in this static preview."
-      />
-    );
-  }
-
+import type { ReviewsDto } from "@/features/customer/types/discovery.types";
+import { safeImage } from "@/features/customer/utils/discoveryAdapters";
+export function ProfileReviews({ reviews }: { reviews: ReviewsDto["items"] }) {
+  if (!reviews.length) return <EmptyState title="No reviews yet" />;
   return (
-    <ul aria-label="Sample customer reviews" className="space-y-4">
-      {profileReviews.map((review) => (
+    <ul aria-label="Customer reviews" className="space-y-4">
+      {reviews.map((review) => (
         <li key={review.id}>
           <article
             aria-labelledby={`profile-review-${review.id}`}
-            className={`profile-review ${review.bordered ? "" : "profile-review--unbordered"}`}
+            className="profile-review"
           >
             <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
               <TruckImage
-                alt={`${review.name} — sample reviewer`}
-                className={`size-10 shrink-0 border border-[#2ED3D1]/30 ${review.avatarShape === "circle" ? "rounded-full" : "rounded-none"}`}
-                name={review.name}
-                src={review.avatar}
+                alt={review.customer.name}
+                className="size-10 shrink-0 rounded-full border border-[#2ED3D1]/30"
+                name={review.customer.name}
+                src={safeImage(review.customer.avatarUrl)}
               />
               <div className="min-w-[100px] flex-1">
                 <h3
-                  className="text-base leading-6 font-semibold"
                   id={`profile-review-${review.id}`}
+                  className="text-base font-semibold"
                 >
-                  {review.name}
+                  {review.customer.name}
                 </h3>
-                <span
-                  aria-label={`${review.rating} out of 5 stars`}
-                  className="mt-1 flex h-4 items-center gap-1 text-[#FFB547]"
-                  role="img"
-                >
-                  {Array.from({ length: review.rating }, (_, index) => (
-                    <Star
-                      aria-hidden="true"
-                      className="fill-current"
-                      key={index}
-                      size={16}
-                      strokeWidth={1.5}
-                    />
-                  ))}
-                </span>
+                <p className="text-[#FFB547]">
+                  {review.rating} / 5{review.isVerified ? " · Verified review" : ""}
+                </p>
               </div>
-              <span className="mt-1 ml-auto text-xs leading-4 whitespace-nowrap text-[#B8C1D1]">
-                {review.age}
+              <span className="text-xs text-[#B8C1D1]">
+                {Number.isNaN(Date.parse(review.createdAt))
+                  ? "Date unavailable"
+                  : new Date(review.createdAt).toLocaleDateString("en-US", {
+                      timeZone: "UTC",
+                    })}
               </span>
             </div>
-            <p className="mt-5 text-base leading-6 text-[#E7E8E9]">
-              {review.lines.map((line) => (
-                <span className="block" key={line}>
-                  {line}
-                </span>
-              ))}
-            </p>
+            {review.title && <h4 className="mt-4 font-semibold">{review.title}</h4>}
+            <p className="mt-5 text-base leading-6 text-[#E7E8E9]">{review.content}</p>
+            {review.vendorResponse && (
+              <p className="mt-3 text-sm">Vendor response: {review.vendorResponse}</p>
+            )}
           </article>
         </li>
       ))}

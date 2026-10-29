@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 import { File } from "node:buffer";
 import { PassThrough } from "node:stream";
@@ -28,6 +28,15 @@ import { AuthGuard } from "../../../router/guards/AuthGuard.tsx";
 import { RoleGuard } from "../../../router/guards/RoleGuard.tsx";
 import { ROUTES } from "../../../constants/routes.ts";
 import { navigationItems } from "../../../config/navigation/navigation.config.ts";
+import {
+  conversationDto,
+  messageDto,
+  viewerId,
+} from "../../messaging/utils/messaging.test-fixtures.mjs";
+import {
+  conversationRow,
+  orderedMessages,
+} from "../../messaging/utils/messagingAdapters.ts";
 const noop = () => {};
 const reduce = vendorMessagesReducer;
 const file = (name = "photo.jpg", type = "image/jpeg") => ({
@@ -160,16 +169,16 @@ test("clear affects only the selected local history, preserves drafts and expose
   assert.equal(state.drafts["seoul-1"].text, "Keep draft");
   const html = renderToStaticMarkup(
     h(VendorMessageThread, {
-      conversation: state.conversations[0],
+      conversation: conversationRow(conversationDto()),
+      messages: [],
       mobileOpen: false,
       onBack: noop,
       onDetails: noop,
-      onUnread: noop,
-      onClear: noop,
+      onUnavailable: noop,
     }),
   );
   assert.match(html, /No messages/);
-  assert.match(html, /local preview/);
+  assert.match(html, /when sending is available/);
   assert.equal(initialVendorMessagesState().conversations[0].messages.length, 6);
 });
 test("unknown conversation IDs do not change selection, drafts, files, unread counts or history", () => {
@@ -184,20 +193,20 @@ test("unknown conversation IDs do not change selection, drafts, files, unread co
   ])
     assert.equal(reduce(state, action), state);
 });
-test("list and thread use accessible native controls and reproduce source text and attachments", () => {
+test("list and thread use accessible native controls with backend identities and read-only attachments", () => {
   const list = renderToStaticMarkup(
     h(VendorConversationList, {
-      conversations: vendorConversations,
+      conversations: [conversationRow(conversationDto())],
       selectedId: "seoul-1",
       query: "",
       onQuery: noop,
       onSelect: noop,
     }),
   );
-  assert.match(list, /Search conversations/);
-  assert.match(list, /Emily Rodriguez/);
-  assert.match(list, /2 unread/);
-  assert.equal((list.match(/vendor-conversation-card /g) ?? []).length, 7);
+  assert.match(list, /Filter loaded conversations/);
+  assert.match(list, /Actual Recipient/);
+  assert.match(list, /3 unread/);
+  assert.equal((list.match(/vendor-conversation-card /g) ?? []).length, 1);
   const noResults = renderToStaticMarkup(
     h(VendorConversationList, {
       conversations: [],
@@ -211,44 +220,49 @@ test("list and thread use accessible native controls and reproduce source text a
   assert.match(noResults, /Clear conversation search/);
   const thread = renderToStaticMarkup(
     h(VendorMessageThread, {
-      conversation: vendorConversations[0],
+      conversation: conversationRow(conversationDto()),
+      messages: orderedMessages(
+        [
+          messageDto({
+            messageType: "FILE",
+            attachmentUrl: "https://example.invalid/message.pdf",
+          }),
+        ],
+        viewerId,
+      ),
       mobileOpen: false,
       onBack: noop,
       onDetails: noop,
-      onUnread: noop,
-      onClear: noop,
+      onUnavailable: noop,
     }),
   );
   for (const text of [
-    "Emily Rodriguez",
-    "integration by parts",
-    "Integration Practice Problems.pdf",
-    "Formula Sheet.pdf",
-    "245 KB",
-    "180 KB",
+    "Actual Recipient",
+    "Actual incoming message",
+    "Open file attachment",
     "Conversation options",
     "Mark as unread",
-    "Clear local history",
+    "Clear history (unavailable)",
   ])
     assert.ok(thread.includes(text), text);
-  assert.match(thread, /download="Sample - Integration Practice Problems.pdf"/);
+  assert.match(thread, /href="https:\/\/example.invalid\/message.pdf"/);
+  assert.doesNotMatch(thread, /download=|sample status/);
 });
-test("composer retains selected-thread text, labels local send/attachments, and documents keyboard behavior", () => {
+test("composer retains selected-thread text and labels send and unavailable attachments", () => {
   const html = renderToStaticMarkup(
     h(VendorMessageComposer, {
-      draft: { text: "Retained draft", files: [file()] },
+      text: "Retained draft",
+      pending: false,
+      disabled: false,
       onText: noop,
-      onFiles: noop,
       onSend: noop,
     }),
   );
   for (const text of [
     "Retained draft",
-    "Attach files",
-    "Attach images",
-    "Send message locally",
-    "Shift plus Enter",
-    "Remove photo.jpg",
+    "Attachment uploads unavailable",
+    "Image uploads unavailable",
+    "Send message",
   ])
     assert.ok(html.includes(text), text);
   assert.doesNotMatch(html, /<iframe|<object|<embed|blob:/);
@@ -308,6 +322,7 @@ function renderAt(role) {
         id: "test-vendor",
         name: "Test Vendor",
         email: "test@example.invalid",
+        roles: [role],
         role,
       }),
     );
@@ -335,7 +350,7 @@ function renderAt(role) {
     );
   });
 }
-test("Vendor Messages keeps authentication, Vendor role isolation, one shared shell and active Message navigation", async () => {
+test("messages retains authentication, Vendor role protection and existing UI", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_MESSAGE);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -351,8 +366,9 @@ test("Vendor Messages keeps authentication, Vendor role isolation, one shared sh
   assert.match(html, /vendor-messages-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/messages"/);
-  assert.match(html, /Emily Rodriguez/);
-  assert.match(html, /no messages are delivered/);
+  assert.match(html, /Choose a conversation/);
+  assert.match(html, /Use Refresh for updates/);
+  assert.doesNotMatch(html, /Emily Rodriguez/);
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role), "");
 });

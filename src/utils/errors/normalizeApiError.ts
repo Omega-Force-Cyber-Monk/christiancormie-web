@@ -20,16 +20,31 @@ const statusToKind = (status?: number): AppErrorKind => {
   return "UNKNOWN";
 };
 
+const messagesFrom = (value: unknown): string[] => {
+  const values: unknown[] = Array.isArray(value) ? value : [value];
+  return [
+    ...new Set(
+      values
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+};
+
+export const isSafeFieldPath = (field: string) =>
+  Boolean(field) &&
+  !field
+    .split(/[.[\]]/)
+    .some((part) => ["__proto__", "prototype", "constructor"].includes(part));
+
 const normalizeFieldErrors = (errors: unknown): FieldErrors | undefined => {
   if (!errors || typeof errors !== "object" || Array.isArray(errors)) return undefined;
 
   const fieldErrors = Object.entries(errors).reduce<FieldErrors>(
     (accumulator, [field, value]) => {
-      if (typeof value === "string") {
-        accumulator[field] = value;
-      } else if (Array.isArray(value) && typeof value[0] === "string") {
-        accumulator[field] = value[0];
-      }
+      const [message] = messagesFrom(value);
+      if (isSafeFieldPath(field) && message) accumulator[field] = message;
 
       return accumulator;
     },
@@ -47,7 +62,6 @@ export const normalizeApiError = (error: unknown): AppError => {
       kind: "NETWORK",
       message: "Network connection failed. Please check your connection.",
       code: fetchError.status,
-      details: fetchError.error,
     };
   }
 
@@ -58,23 +72,31 @@ export const normalizeApiError = (error: unknown): AppError => {
       !Array.isArray(fetchError.data)
         ? (fetchError.data as BackendErrorShape)
         : {};
-    const fieldErrors = normalizeFieldErrors(data.errors);
-    const message =
-      fetchError.status >= 500
-        ? "The server could not complete the request. Please try again."
-        : typeof data.message === "string"
-          ? data.message
-          : fieldErrors
-            ? "Please correct the highlighted fields."
-            : "The request could not be completed.";
+    const isServerError = fetchError.status >= 500;
+    const fieldErrors = isServerError ? undefined : normalizeFieldErrors(data.errors);
+    const messages = isServerError ? [] : messagesFrom(data.message);
+    const validationMessages =
+      (fetchError.status === 400 || fetchError.status === 422) &&
+      Array.isArray(data.message) &&
+      messages.length
+        ? messages
+        : undefined;
+    const message = isServerError
+      ? "The server could not complete the request. Please try again."
+      : messages.length
+        ? messages.join(" ")
+        : fieldErrors
+          ? "Please correct the highlighted fields."
+          : "The request could not be completed.";
 
     return {
       kind: statusToKind(fetchError.status),
       status: fetchError.status,
-      code: typeof data.code === "string" ? data.code : undefined,
+      code: !isServerError && typeof data.code === "string" ? data.code : undefined,
       message,
       fieldErrors,
-      details: data.details,
+      validationMessages,
+      details: isServerError ? undefined : data.details,
     };
   }
 

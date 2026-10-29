@@ -1,3 +1,14 @@
+import { Provider } from "react-redux";
+import {
+  feedStore,
+  memberId,
+  viewerId,
+  truckId,
+} from "../../social/utils/socialFeed.test-fixtures.mjs";
+import { socialFeedApi } from "../../social/api/socialFeed.api.ts";
+import { socialProfileApi } from "../../social/api/socialProfile.api.ts";
+import { memberDto } from "../../social/utils/member.test-fixtures.mjs";
+import { baseApi } from "../../../services/api/baseApi.ts";
 import assert from "node:assert/strict";
 import { File } from "node:buffer";
 import test from "node:test";
@@ -111,30 +122,51 @@ test("reset creates an empty independent draft and does not erase local results"
   assert.equal(posts[0].media.length, 3);
 });
 
-test("all three design states render semantic controls without a server or DOM", () => {
-  const compose = renderToStaticMarkup(h(CustomerCreatePostPage));
+test("all three design states retain semantic controls with real options and no sample draft", async () => {
+  const store = feedStore();
+  const compose = renderToStaticMarkup(
+    h(Provider, { store }, h(CustomerCreatePostPage)),
+  );
   assert.match(compose, /Post content/);
   assert.match(compose, /aria-label="Add photos"/);
   assert.match(compose, /aria-label="Tag friends"/);
-  assert.equal((compose.match(/class="post-media-preview"/g) ?? []).length, 3);
+  assert.equal((compose.match(/class="post-media-preview"/g) ?? []).length, 0);
+  await store.dispatch(
+    socialFeedApi.util.upsertQueryData("getSocialPlaces", { search: "", offset: 0 }, [
+      { id: truckId, name: "Actual park", address: null },
+    ]),
+  );
+  await store.dispatch(
+    socialProfileApi.util.upsertQueryData(
+      "getMemberConnections",
+      { userId: viewerId, direction: "following", search: "", offset: 0, limit: 20 },
+      {
+        items: [{ ...memberDto(), followedAt: "2026-10-28T12:00:00Z" }],
+        total: 1,
+        limit: 20,
+        offset: 0,
+        nextOffset: null,
+      },
+    ),
+  );
   const props = {
-    locationId: "downtown",
-    friendIds: ["alex"],
+    locationId: truckId,
+    friendIds: [memberId],
     onLocation() {},
     onFriend() {},
   };
   const locations = renderToStaticMarkup(
-    h(PostDetailsPicker, { ...props, screen: "location" }),
+    h(Provider, { store }, h(PostDetailsPicker, { ...props, screen: "location" })),
   );
-  assert.match(locations, /Downtown Food Park/);
+  assert.match(locations, /Actual park/);
   assert.match(locations, /aria-pressed="true"/);
   const friends = renderToStaticMarkup(
-    h(PostDetailsPicker, { ...props, screen: "friends" }),
+    h(Provider, { store }, h(PostDetailsPicker, { ...props, screen: "friends" })),
   );
-  assert.equal((friends.match(/type="checkbox"/g) ?? []).length, 5);
+  assert.equal((friends.match(/type="checkbox"/g) ?? []).length, 1);
   assert.match(friends, /checked=""/);
+  store.dispatch(baseApi.util.resetApiState());
 });
-
 test("Create Post uses the existing customer authentication and role guards", () => {
   const matches = matchRoutes(discoverRoutes, ROUTES.CUSTOMER_CREATE_POST);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));

@@ -1,14 +1,15 @@
 ﻿import { z } from "zod";
-import {
-  truckEventTypes,
-  truckMenuOptions,
-} from "@/features/vendor/data/create-posts.data";
+import { truckEventTypes } from "@/features/vendor/data/create-posts.data";
 
 export const generalPostSchema = z
   .object({
     category: z.enum(["callout", "sale", "jobs", "help", "community"]),
-    title: z.string().trim(),
-    description: z.string().trim().min(1, "Describe your post before saving it."),
+    title: z.string().trim().max(255),
+    description: z
+      .string()
+      .trim()
+      .min(1, "Describe your post before saving it.")
+      .max(5000),
   })
   .superRefine((values, ctx) => {
     if (values.category === "sale" && !values.title)
@@ -52,18 +53,11 @@ export const truckPostSchema = z.object({
     .string()
     .trim()
     .refine(
-      (v) => !!parsePostBudget(v),
+      (v) => !v || !!parsePostBudget(v),
       "Enter a valid budget or range, e.g. $500-800. Minimum cannot exceed maximum.",
     ),
-  description: z.string().trim().min(1, "Describe your event."),
-  menus: z.array(
-    z
-      .string()
-      .refine(
-        (v) => truckMenuOptions.some((m) => m.label === v),
-        "Choose a listed menu item.",
-      ),
-  ),
+  description: z.string().trim().min(1, "Describe your event.").max(5000),
+  menus: z.array(z.string().trim().min(1).max(150)).max(30),
 });
 export type TruckPostValues = z.infer<typeof truckPostSchema>;
 export const emptyTruckPost = (): TruckPostValues => ({

@@ -1,7 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import { env } from "@/config/env";
-import type { UserRole } from "@/constants/roles";
 import type {
   AuthState,
   LogoutReason,
@@ -9,17 +7,15 @@ import type {
   StoredSession,
   SessionTokens,
 } from "@/features/auth/types/auth.types";
-import { createMockUser, getInitialMockRole } from "@/features/auth/utils/mockAuth";
 import { sessionStorageService } from "@/features/auth/utils/sessionStorage";
 import type { AuthenticatedUser } from "@/types/user.types";
 import type { AppError } from "@/utils/errors/error.types";
+import { ALL_USER_ROLES, type UserRole } from "@/constants/roles";
 
 const initialState = (): AuthState => {
   const session = sessionStorageService.readSession();
   return {
-    user:
-      session?.user ??
-      (env.enableMockAuth && !session ? createMockUser(getInitialMockRole()) : null),
+    user: session?.user ?? null,
     accessToken: session?.accessToken ?? null,
     refreshToken: session?.refreshToken ?? null,
     sessionId: session?.sessionId ?? null,
@@ -35,11 +31,6 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setMockRole(state, action: PayloadAction<UserRole>) {
-      if (env.enableMockAuth && !state.accessToken) {
-        state.user = createMockUser(action.payload);
-      }
-    },
     sessionStarted: {
       prepare(session: SessionTokens) {
         return { payload: { ...session, user: null, sessionId: crypto.randomUUID() } };
@@ -57,7 +48,6 @@ export const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.expiresAt = action.payload.expiresAt ?? null;
-      if (action.payload.user) state.user = action.payload.user;
       // Refreshing tokens must not verify an identity loaded from local storage.
       state.isHydrated = state.isIdentityVerified;
       if (state.isHydrated) state.isInitializing = false;
@@ -81,6 +71,15 @@ export const authSlice = createSlice({
       state.isHydrated = true;
       state.isInitializing = false;
       state.initializationError = null;
+    },
+    activeRoleSelected(state, action: PayloadAction<UserRole>) {
+      if (
+        state.isIdentityVerified &&
+        state.user?.roles.includes(action.payload) &&
+        ALL_USER_ROLES.includes(action.payload)
+      ) {
+        state.user.role = action.payload;
+      }
     },
     initializationFailed(state, action: PayloadAction<AppError>) {
       state.isInitializing = false;
@@ -106,6 +105,7 @@ export const authSlice = createSlice({
 });
 
 export const {
+  activeRoleSelected,
   clearSession,
   initializationFailed,
   identityVerified,
@@ -113,6 +113,5 @@ export const {
   sessionRestored,
   sessionStarted,
   sessionUpdated,
-  setMockRole,
 } = authSlice.actions;
 export const authReducer = authSlice.reducer;
