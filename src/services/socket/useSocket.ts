@@ -1,30 +1,39 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useSyncExternalStore } from "react";
+import { z } from "zod";
 import { useAppSelector } from "@/app/hooks";
-import { selectAccessToken } from "@/features/auth/store/auth.selectors";
-import { socketService } from "@/services/socket/socket";
-import type { SocketStatus } from "@/services/socket/socket.types";
-
-export const useSocket = () => {
-  const accessToken = useAppSelector(selectAccessToken);
-  const [status, setStatus] = useState<SocketStatus>("idle");
-
+import {
+  selectCurrentRole,
+  selectIsAuthenticated,
+} from "@/features/auth/store/auth.selectors";
+import { idleSocketSnapshot, socketService } from "./socket";
+export function useSocket() {
+  const verified = useAppSelector(selectIsAuthenticated);
+  const role = useAppSelector(selectCurrentRole);
+  const auth = useAppSelector((s) => s.auth);
+  const enabled =
+    verified &&
+    (role === "CUSTOMER" || role === "VENDOR") &&
+    z.uuid().safeParse(auth.user?.id).success;
+  const owner =
+    enabled && auth.sessionId && auth.user
+      ? `${auth.sessionId}:${auth.user.id}:${role}`
+      : "";
+  const accessToken = auth.accessToken;
+  const snapshot = useSyncExternalStore(
+    socketService.subscribeState,
+    socketService.getSnapshot,
+    () => idleSocketSnapshot,
+  );
   useEffect(() => {
-    const socket = socketService.connect(accessToken);
-
-    if (!socket) return undefined;
-
-    const handleConnect = () => setStatus("connected");
-    const handleDisconnect = () => setStatus("disconnected");
-
-    socket.on("connect", handleConnect);
-    socket.on("disconnect", handleDisconnect);
-
-    return () => {
-      socket.off("connect", handleConnect);
-      socket.off("disconnect", handleDisconnect);
-    };
-  }, [accessToken]);
-
-  return { status, socket: socketService.getSocket() };
-};
+    if (!owner || !accessToken) return;
+    return socketService.acquire(accessToken, owner);
+  }, [owner, accessToken]);
+  const current = snapshot.owner === owner ? snapshot : idleSocketSnapshot;
+  return {
+    ...current,
+    token: accessToken,
+    retry: () => {
+      if (owner && accessToken) socketService.retry(accessToken, owner);
+    },
+  };
+}

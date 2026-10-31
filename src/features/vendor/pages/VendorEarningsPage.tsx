@@ -4,6 +4,8 @@ import { VendorEarningsOverview } from "@/features/vendor/components/earnings/Ve
 import { VendorAnalyticsOverview } from "@/features/vendor/components/earnings/VendorAnalyticsOverview";
 import { VendorCreditDetails } from "@/features/vendor/components/earnings/VendorCreditDetails";
 import { VendorPaymentMethodPreview } from "@/features/vendor/components/earnings/VendorPaymentMethodPreview";
+import { VendorConnectAccountStatus } from "@/features/vendor/components/earnings/VendorConnectAccountStatus";
+import { VendorFinancialPanel } from "@/features/vendor/components/earnings/VendorFinancialPanel";
 import {
   initialVendorEarningsState,
   parseEarningsTab,
@@ -73,6 +75,8 @@ export default function VendorEarningsPage() {
         >
           {tab === "earnings" && (
             <VendorEarningsOverview
+              connectStatus={<VendorConnectAccountStatus />}
+              financialContent={<VendorFinancialPanel />}
               methods={state.methods}
               defaultMethodId={state.defaultMethodId}
               onAdd={() => dispatch({ type: "add-open", open: true })}
@@ -89,19 +93,25 @@ export default function VendorEarningsPage() {
           hidden={tab !== "analytics"}
         >
           {tab === "analytics" && (
-            <VendorAnalyticsOverview
-              accepting={state.acceptingCredits}
-              creditsOpen={state.creditsOpen}
-              onToggle={() => dispatch({ type: "toggle-credits" })}
-              onOpen={() => dispatch({ type: "credits-open", open: true })}
-            />
+            <>
+              <p className="p-4 text-sm">
+                Analytics preview: sample charts and credit conversions are separate
+                from live financial records.
+              </p>
+              <VendorAnalyticsOverview
+                accepting={state.acceptingCredits}
+                creditsOpen={state.creditsOpen}
+                onToggle={() => dispatch({ type: "toggle-credits" })}
+                onOpen={() => dispatch({ type: "credits-open", open: true })}
+              />
+            </>
           )}
         </div>
       </div>
       <p className="mt-4 text-xs leading-5 text-[#B8C1D1]">
-        Sample Vendor data. Payment methods, credit acceptance and displayed activity
-        are local previews. Chart points are illustrative; financial terms and business
-        claims are unverified design copy.
+        Stripe Connect status is retrieved from the server. Bank-method entries, credit
+        acceptance and charts remain local previews. Financial terms and business claims
+        in previews are unverified design copy.
       </p>
       <p role="status" className="mt-2 text-sm text-[#2ED3D1]">
         {state.status}

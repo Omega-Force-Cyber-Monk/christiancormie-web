@@ -4,6 +4,10 @@
 } from "@/features/admin/types/admin.types";
 import { formatDate, formatNumber } from "@/features/admin/utils/adminFormat";
 import { bookingMoney } from "@/features/admin/utils/adminBookings";
+import {
+  financialAmount,
+  formatFinancialAmount,
+} from "@/features/payments/utils/financialValues";
 
 export type AdminOperationalRow = {
   id: string;
@@ -23,7 +27,7 @@ export function paymentRows(
       displayId: row.payoutId,
       name: row.vendorName ?? "N/A",
       detail: `${formatDate(row.requestedAt)}; ${row.payoutMethod?.label ?? "N/A"}`,
-      value: bookingMoney(row.amount, row.currency),
+      value: formatFinancialAmount(financialAmount(row.amount, row.currency, "major")),
       status: row.status,
     }));
   if (tab === "Transaction History")

@@ -5,6 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField } from "@/components/forms/FormField";
 import { FormError } from "@/components/forms/FormError";
 import {
+  LiveRequestQuoteForm,
+  type LiveRequestQuoteProps,
+} from "./LiveRequestQuoteForm";
+import {
   defaultQuote,
   dollars,
   quoteSchema,
@@ -81,7 +85,16 @@ export function QuoteBreakdown({
     </section>
   );
 }
-export function RequestQuoteForm({
+export function RequestQuoteForm(
+  props: LiveRequestQuoteProps | Parameters<typeof RequestQuotePreview>[0],
+) {
+  return "booking" in props ? (
+    <LiveRequestQuoteForm {...props} />
+  ) : (
+    <RequestQuotePreview {...props} />
+  );
+}
+function RequestQuotePreview({
   event,
   draft = defaultQuote(),
   onBack,

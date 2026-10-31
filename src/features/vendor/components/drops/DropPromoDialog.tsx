@@ -11,8 +11,18 @@ import {
   dropPromoSchema,
   type DropPromoValues,
 } from "@/features/vendor/schemas/drops.schema";
+import { LiveDropPromoDialog, type LivePromoProps } from "./LiveDropPromoDialog";
 
-export function DropPromoDialog({
+export function DropPromoDialog(
+  props: LivePromoProps | Parameters<typeof PreviewDropPromoDialog>[0],
+) {
+  return "scope" in props ? (
+    <LiveDropPromoDialog {...props} />
+  ) : (
+    <PreviewDropPromoDialog {...props} />
+  );
+}
+function PreviewDropPromoDialog({
   promo,
   onSave,
   onClose,

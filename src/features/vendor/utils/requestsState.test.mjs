@@ -36,6 +36,7 @@ import { ROUTES } from "../../../constants/routes.ts";
 import { appRoutes } from "../../../router/routes/app.routes.tsx";
 import { AuthGuard } from "../../../router/guards/AuthGuard.tsx";
 import { RoleGuard } from "../../../router/guards/RoleGuard.tsx";
+import { seedVendorHome, ownerId } from "./vendor.test-fixtures.mjs";
 
 const reduce = (state, action) => requestsReducer(state, action);
 test("all six design states connect with selected context and return navigation", () => {
@@ -288,7 +289,7 @@ async function renderAt(role) {
     );
     store.dispatch(
       identityVerified({
-        id: "test-vendor",
+        id: ownerId,
         name: "Test Vendor",
         email: "test@example.invalid",
         roles: [role],
@@ -296,13 +297,17 @@ async function renderAt(role) {
       }),
     );
   }
+  if (role === "VENDOR") await seedVendorHome(store);
   return new Promise((resolve, reject) => {
     let html = "";
     const output = new PassThrough();
     output.on("data", (chunk) => {
       html += chunk;
     });
-    output.on("end", () => resolve(html));
+    output.on("end", () => {
+      store.dispatch(baseApi.util.resetApiState());
+      resolve(html);
+    });
     output.on("error", reject);
     const stream = renderToPipeableStream(
       h(
@@ -319,7 +324,7 @@ async function renderAt(role) {
     );
   });
 }
-test("requests retains authentication, Vendor role protection and existing UI", async () => {
+test("requests retains authentication and Vendor route protection while loading real records without fixtures", async () => {
   const matches = matchRoutes(appRoutes, ROUTES.VENDOR_ORDERS);
   assert.ok(matches.some(({ route }) => route.element?.type === AuthGuard));
   assert.deepEqual(
@@ -331,7 +336,8 @@ test("requests retains authentication, Vendor role protection and existing UI", 
   assert.match(html, /vendor-requests-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/orders"/);
-  assert.match(html, /Sarah Johnson/);
+  assert.doesNotMatch(html, /Sarah Johnson/);
+  assert.match(html, /Loading bookings/);
   assert.match(html, /My orders/);
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role), "");

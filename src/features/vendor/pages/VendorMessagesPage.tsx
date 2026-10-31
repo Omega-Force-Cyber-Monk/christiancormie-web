@@ -102,8 +102,9 @@ function VendorWorkspace({ scope, viewer }: { scope: MessagingScope; viewer: str
         </div>
       </div>
       <p className="mt-3 text-xs leading-5 text-[#B8C1D1]">
-        Text messaging. Use Refresh for updates. Attachments, presence and realtime
-        updates are unavailable.
+        Text sending uses HTTP; selected conversations receive realtime updates when
+        connected. Attachment uploads and presence are unavailable. Use Refresh for
+        updates when realtime is unavailable.
       </p>
       {details && w.conversation && (
         <VendorHomeDialog

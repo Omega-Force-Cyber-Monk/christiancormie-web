@@ -23,6 +23,38 @@ import {
   vendorStaffEmailSchema,
 } from "../schemas/settings.schema.ts";
 import { vendorStaffFixtures, vendorSettingsPreviews } from "../data/settings.data.ts";
+import { vendorTestStore, seedVendorHome, ownerId } from "./vendor.test-fixtures.mjs";
+import { vendorStaffApi } from "../api/vendorStaff.api.ts";
+const realStaff = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "actual.staff@example.com",
+    status: "ACTIVE",
+    addedAt: "2026-10-29T12:00:00Z",
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    email: "second.staff@example.com",
+    status: "DISABLED",
+    addedAt: "2026-10-28T12:00:00Z",
+  },
+];
+async function staffStore(items) {
+  const store = vendorTestStore();
+  await seedVendorHome(store);
+  await store.dispatch(
+    vendorStaffApi.util.upsertQueryData(
+      "getVendorStaff",
+      {
+        sessionId: store.getState().auth.sessionId,
+        userId: ownerId,
+        role: "VENDOR",
+      },
+      { items },
+    ),
+  );
+  return store;
+}
 import { rootReducer } from "../../../app/rootReducer.ts";
 import { baseApi } from "../../../services/api/baseApi.ts";
 import { sessionRestored, identityVerified } from "../../auth/store/auth.slice.ts";
@@ -100,7 +132,7 @@ test("lock toggle and PIN reset affect only the selected sample member", () => {
   const resetAgain = reduce(reset, { type: "reset-pin", id: "jake" });
   assert.notEqual(resetAgain.staff[1].pin, reset.staff[1].pin);
 });
-test("confirmed local removal supports empty and re-add while missing IDs are ignored", () => {
+test("confirmed local removal supports empty and re-add while missing IDs are ignored", async () => {
   let state = initialVendorSettingsState();
   for (const type of ["remove", "reset-pin", "toggle-lock"])
     assert.equal(reduce(state, { type, id: "missing" }), state);
@@ -109,11 +141,13 @@ test("confirmed local removal supports empty and re-add while missing IDs are ig
   assert.equal(state.staff[0].id, "jake");
   state = reduce(state, { type: "remove", id: "jake" });
   assert.equal(state.staff.length, 0);
+  const store = await staffStore([]);
   const empty = renderToStaticMarkup(
-    h(VendorStaffManagement, { state, dispatch: noop, onBack: noop }),
+    h(Provider, { store }, h(VendorStaffManagement, { onBack: noop })),
   );
   assert.match(empty, /No staff members/);
   assert.match(empty, /Add Staff/);
+  store.dispatch(baseApi.util.resetApiState());
   state = reduce(state, addition());
   assert.equal(state.staff.length, 1);
   assert.equal(initialVendorSettingsState().staff.length, 2);
@@ -172,33 +206,32 @@ test("password form has associated private fields, autocomplete, cancellation an
   assert.equal((html.match(/<label[^>]*for=/g) ?? []).length, 3);
   assert.match(html, /noValidate=""/i);
 });
-test("staff design exposes initial count, dates, demo PINs and accessible controls for every sample member", () => {
+test("staff design exposes backend identities, count, statuses and masked PIN input", async () => {
+  const store = await staffStore(realStaff);
   const html = renderToStaticMarkup(
-    h(VendorStaffManagement, {
-      state: initialVendorSettingsState(),
-      dispatch: noop,
-      onBack: noop,
-    }),
+    h(Provider, { store }, h(VendorStaffManagement, { onBack: noop })),
   );
   for (const text of [
     "Staff Management",
     "Staff Members (2)",
     "Staff email address",
-    "maria@example.com",
-    "jake@example.com",
-    "15/05/2026",
-    "18/05/2026",
-    "1504",
-    "5678",
+    "actual.staff@example.com",
+    "second.staff@example.com",
+    "ACTIVE",
+    "DISABLED",
+    "2026-10-29T12:00:00Z",
     "Add Staff",
     "Back to Settings",
   ]) {
     assert.ok(html.includes(text), text);
   }
   assert.match(html, /aria-expanded="true"/);
-  assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 2);
+  assert.match(html, /type="password"/);
+  assert.doesNotMatch(html, /1504|5678|Sample PIN|local sample/);
+  assert.match(html, /Lock\/unlock is unavailable/);
   assert.equal((html.match(/aria-label="Remove /g) ?? []).length, 2);
-  assert.equal((html.match(/aria-label="Reset sample PIN/g) ?? []).length, 2);
+  assert.equal((html.match(/aria-label="Reset PIN/g) ?? []).length, 2);
+  store.dispatch(baseApi.util.resetApiState());
 });
 test("unsupported settings destinations have explicit local previews without invented prices or deletion claims", () => {
   assert.equal(Object.keys(vendorSettingsPreviews).length, 4);
@@ -213,7 +246,7 @@ test("unsupported settings destinations have explicit local previews without inv
 function RouteTree() {
   return useRoutes(appRoutes);
 }
-function renderAt(role, query = "") {
+async function renderAt(role, query = "") {
   const store = configureStore({
     reducer: rootReducer,
     middleware: (d) => d().concat(baseApi.middleware),
@@ -229,7 +262,7 @@ function renderAt(role, query = "") {
     );
     store.dispatch(
       identityVerified({
-        id: "test-vendor",
+        id: ownerId,
         name: "Test Vendor",
         email: "test@example.invalid",
         roles: [role],
@@ -237,13 +270,17 @@ function renderAt(role, query = "") {
       }),
     );
   }
+  if (role === "VENDOR" && query === "?view=staff") await seedVendorHome(store);
   return new Promise((resolve, reject) => {
     let html = "";
     const output = new PassThrough();
     output.on("data", (chunk) => {
       html += chunk;
     });
-    output.on("end", () => resolve(html));
+    output.on("end", () => {
+      store.dispatch(baseApi.util.resetApiState());
+      resolve(html);
+    });
     output.on("error", reject);
     const stream = renderToPipeableStream(
       h(
@@ -295,7 +332,7 @@ test("settings retains authentication, Vendor role protection and existing UI", 
     "Delete account",
   ])
     assert.ok(html.includes(label), label);
-  assert.match(await renderAt("VENDOR", "?view=staff"), /maria@example.com/);
+  assert.match(await renderAt("VENDOR", "?view=staff"), /Staff Management/);
   assert.match(await renderAt("VENDOR", "?view=invalid"), /Current Password/);
   for (const role of [undefined, "CUSTOMER", "ADMIN", "VENDOR_STAFF"])
     assert.equal(await renderAt(role, "?view=staff"), "");

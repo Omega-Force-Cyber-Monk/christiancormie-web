@@ -1,3 +1,11 @@
 export type SocketEventHandler<TPayload = unknown> = (payload: TPayload) => void;
 
-export type SocketStatus = "idle" | "connecting" | "connected" | "disconnected";
+export type SocketStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected"
+  | "error"
+  | "expired"
+  | "unavailable";

@@ -66,7 +66,7 @@ export function CommunityTrackView({
           )}
         </div>
         <section className="community-track-timeline mt-4">
-          <h2 className="mb-4 font-semibold">Booking Timeline</h2>
+          <h2 className="mb-4 font-semibold">Sample Booking Timeline</h2>
           <ol className="space-y-5">
             {[
               "Booking confirmed",
@@ -84,8 +84,7 @@ export function CommunityTrackView({
                 >
                   {index < 2 || complete ? <Check size={16} /> : "•"}
                 </span>
-                {label}
-                {complete && index === 4 ? " (preview only)" : ""}
+                {label} (sample only)
               </li>
             ))}
           </ol>

@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import { toast } from "sonner";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 
 type NavbarActionsProps = {
   isLegacyAdmin?: boolean;
@@ -19,14 +19,5 @@ export function NavbarActions({ isLegacyAdmin = false }: NavbarActionsProps) {
     );
   }
 
-  return (
-    <button
-      aria-label="Show notification example"
-      className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-      onClick={() => toast.info("Notifications are ready for backend events.")}
-      type="button"
-    >
-      <Bell size={18} />
-    </button>
-  );
+  return <NotificationBell square />;
 }

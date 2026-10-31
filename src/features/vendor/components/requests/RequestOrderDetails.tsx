@@ -10,7 +10,20 @@ import { useState } from "react";
 import { EventFacts, EventIdentity } from "./RequestCards";
 import { QuoteBreakdown } from "./RequestQuoteForm";
 import { defaultQuote, type VendorOrder } from "@/features/vendor/utils/requestsState";
-export function RequestOrderDetails({
+import {
+  LiveRequestOrderDetails,
+  type LiveRequestOrderDetailsProps,
+} from "./VendorBookingViews";
+export function RequestOrderDetails(
+  props: LiveRequestOrderDetailsProps | Parameters<typeof RequestOrderPreview>[0],
+) {
+  return "booking" in props ? (
+    <LiveRequestOrderDetails {...props} />
+  ) : (
+    <RequestOrderPreview {...props} />
+  );
+}
+function RequestOrderPreview({
   order,
   onBack,
   onLocation,
@@ -76,7 +89,7 @@ export function RequestOrderDetails({
             aria-controls="booking-timeline"
             onClick={() => setTimeline(!timeline)}
           >
-            Booking Timeline
+            Sample Booking Timeline
             {timeline ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </button>
           {timeline && (

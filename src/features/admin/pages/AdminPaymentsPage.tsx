@@ -1,4 +1,5 @@
 import { AdminOperationalTable } from "@/features/admin/components/AdminOperationalTable";
+import { AdminFinancialOperations } from "@/features/admin/components/AdminFinancialOperations";
 import { adminPage, useAdminList } from "@/features/admin/utils/adminList";
 import { paymentRows } from "@/features/admin/utils/adminOperations";
 import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
@@ -126,6 +127,13 @@ export default function AdminPaymentsPage() {
               Showing up to 100 returned transactions.
             </p>
           ) : null}
+          {paged && !isError && data && (
+            <AdminFinancialOperations
+              payouts={result.rows
+                .map((r) => data.payoutRequests.find((p) => p.id === r.id))
+                .filter((p) => p !== undefined)}
+            />
+          )}
         </div>
       </AdminDataPanel>
     </AdminSection>

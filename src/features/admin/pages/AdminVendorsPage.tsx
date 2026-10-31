@@ -217,7 +217,7 @@ export default function AdminVendorsPage() {
         isOpen={Boolean(selectedVendor)}
         onClose={() => setSelectedVendor(null)}
         onViewDocument={setSelectedDocument}
-        vendor={selectedVendor}
+        vendor={vendors.find((v) => v.id === selectedVendor?.id) ?? selectedVendor}
       />
       <TruckRequestModal
         isOpen={Boolean(selectedRequest)}
@@ -229,7 +229,17 @@ export default function AdminVendorsPage() {
         request={selectedRequest}
       />
       <BusinessLicenseModal
-        document={selectedDocument}
+        document={
+          vendors
+            .flatMap((v) => v.documents)
+            .find(
+              (d) =>
+                selectedDocument?.verification &&
+                d.verification?.requestId === selectedDocument.verification.requestId &&
+                d.verification?.documentKey ===
+                  selectedDocument.verification.documentKey,
+            ) ?? selectedDocument
+        }
         isOpen={Boolean(selectedDocument)}
         onClose={() => setSelectedDocument(null)}
       />

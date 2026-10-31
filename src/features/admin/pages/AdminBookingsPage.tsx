@@ -14,10 +14,7 @@ import {
   getBookingStatusBadge,
   getPaymentModelBadge,
 } from "@/features/admin/components/bookings/bookingBadges";
-import type {
-  BookingRecord,
-  MessageRecipient,
-} from "@/features/admin/components/bookings/bookings.types";
+import type { BookingRecord } from "@/features/admin/components/bookings/bookings.types";
 import { formatCurrency, formatNumber } from "@/features/admin/utils/adminFormat";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 
@@ -111,11 +108,6 @@ export default function AdminBookingsPage() {
   const list = useAdminList(5);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
-  const [messageRecipient, setMessageRecipient] = useState<MessageRecipient>({
-    name: "N/A",
-    type: "customer",
-    conversationId: "N/A",
-  });
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const {
     currentData: data,
@@ -175,9 +167,8 @@ export default function AdminBookingsPage() {
           <div>
             <h2 className="font-semibold text-white">Payment Release</h2>
             <p className="text-sm text-slate-300">
-              You can manually release payments for completed bookings if the customer
-              forgets to approve the completion request. This ensures vendors receive
-              their earnings promptly.
+              Payment release and refunds are unavailable until financial security,
+              settlement and reconciliation are verified and explicitly approved.
             </p>
           </div>
         </div>
@@ -237,18 +228,20 @@ export default function AdminBookingsPage() {
       />
 
       <BookingDetailsModal
-        booking={selectedBooking}
+        booking={bookings.find((b) => b.id === selectedBooking?.id) ?? selectedBooking}
         isOpen={Boolean(selectedBooking)}
-        onClose={() => setSelectedBooking(null)}
-        onOpenMessage={(recipient) => {
-          setMessageRecipient(recipient);
+        onClose={() => {
+          setSelectedBooking(null);
+          setIsMessageOpen(false);
+        }}
+        onOpenMessage={() => {
           setIsMessageOpen(true);
         }}
       />
       <BookingMessageModal
         isOpen={isMessageOpen}
         onClose={() => setIsMessageOpen(false)}
-        recipient={messageRecipient}
+        booking={bookings.find((b) => b.id === selectedBooking?.id) ?? selectedBooking}
       />
     </div>
   );

@@ -104,7 +104,7 @@ export function CommunityBookingConfirmation({
     >
       <img src={successImage} alt="" className="mx-auto h-28 w-28" />
       <h2 id={id} className="mt-3 text-center text-2xl font-bold">
-        Booking confirmed!
+        Booking preview complete
       </h2>
       <p className="mt-2 text-center text-sm text-[#B8C1D1]">
         Local preview · No deposit paid or vendor notified
@@ -135,14 +135,16 @@ export function CommunityBookingConfirmation({
           </div>
         </dl>
       )}
-      <h3 className="mt-7 text-xs font-semibold text-[#7C8799]">BOOKING TIMELINE</h3>
+      <h3 className="mt-7 text-xs font-semibold text-[#7C8799]">
+        SAMPLE BOOKING TIMELINE
+      </h3>
       <ol className="mt-6 space-y-6">
         {[
-          "Quote accepted",
-          "Deposit paid",
-          "Event day",
-          "Request pending",
-          "Balance paid",
+          "Sample quote review",
+          "Sample deposit review",
+          "Sample event day",
+          "Sample completion review",
+          "Sample balance review",
         ].map((label, index) => (
           <li key={label} className="flex items-start gap-4 text-sm">
             <span
@@ -165,7 +167,7 @@ export function CommunityBookingConfirmation({
         ))}
       </ol>
       <Button className="community-primary mt-8 w-full" onClick={onView}>
-        View booking
+        View booking preview
       </Button>
     </Modal>
   );

@@ -13,6 +13,7 @@ export function ConfirmationDialog({
   cancelText = "Cancel",
   confirmText = "Confirm",
   description,
+  children,
   error,
   isOpen,
   isProcessing = false,
@@ -66,6 +67,7 @@ export function ConfirmationDialog({
         <p className="text-sm leading-6 text-[var(--text-muted)]" id={descriptionId}>
           {description}
         </p>
+        {children}
         {failure ? (
           <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
             {failure.message}

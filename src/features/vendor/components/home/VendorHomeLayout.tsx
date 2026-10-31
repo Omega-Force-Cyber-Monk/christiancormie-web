@@ -1,6 +1,5 @@
 import {
   Activity,
-  Bell,
   House,
   LogOut,
   MapPin,
@@ -14,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useState } from "react";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { Link, useMatch, useNavigate, useSearchParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { ROUTES } from "@/constants/routes";
@@ -259,14 +259,7 @@ export default function VendorHomeLayout() {
               )}
             </div>
             <div className="flex shrink-0 items-center gap-4">
-              <button
-                type="button"
-                className="relative grid size-9 place-items-center rounded-full border border-[#CDD5DF] bg-white text-[#414651]"
-                aria-label="Notifications, not connected"
-                onClick={() => setPreview("Notifications")}
-              >
-                <Bell size={16} />
-              </button>
+              <NotificationBell />
               <button
                 type="button"
                 className="grid size-9 place-items-center rounded-full bg-[#FF5733] text-xs text-white"
@@ -288,9 +281,7 @@ export default function VendorHomeLayout() {
             onClose={() => setPreview(null)}
           >
             <p className="text-sm leading-6 text-[#B8C1D1]">
-              {preview === "Notifications"
-                ? "Notifications are not connected yet. No notification count is available."
-                : "This feature is not connected from the vendor dashboard."}
+              This feature is not connected from the vendor dashboard.
             </p>
             {preview === "Profile" && (
               <Link

@@ -75,8 +75,9 @@ function CustomerWorkspace({
         </div>
       </div>
       <p className="message-preview-note">
-        Text messaging. Use Refresh for updates. Attachments, presence and realtime
-        updates are unavailable.
+        Text sending uses HTTP; selected conversations receive realtime updates when
+        connected. Attachment uploads and presence are unavailable. Use Refresh for
+        updates when realtime is unavailable.
       </p>
     </div>
   );

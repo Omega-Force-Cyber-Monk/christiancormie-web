@@ -22,6 +22,10 @@ import {
   type CommunityQuote,
 } from "@/features/customer/data/community-requests.data";
 import { communityQuoteConsentSchema } from "@/features/customer/schemas/community.schema";
+import {
+  CustomerCommunityOffers,
+  type CustomerCommunityOffersProps,
+} from "@/features/community/components/CustomerCommunityOffers";
 
 function CommunityQuoteCard({
   quote,
@@ -149,11 +153,9 @@ function CommunityQuoteCard({
         <p className="mt-4 flex gap-3 rounded-2xl border border-[#FFB547]/30 bg-[#FFB547]/10 p-4 text-xs leading-5 text-[#B8C1D1]">
           <TriangleAlert size={18} className="shrink-0 text-[#FFB547]" />
           <span>
-            <strong className="text-[#FFB547]">
-              Deposit is non-refundable in the sample quote.
-            </strong>{" "}
-            This preview does not take a deposit, notify a vendor, or create a binding
-            booking.
+            <strong className="text-[#FFB547]">Sample deposit amount only.</strong> Live
+            payment and refund terms are unavailable. This preview does not take a
+            deposit, notify a vendor, or create a binding booking.
           </span>
         </p>
         <label className="mt-4 flex items-start gap-3 text-sm">
@@ -176,8 +178,8 @@ function CommunityQuoteCard({
             aria-describedby={errors.deposit ? `${id}-deposit-error` : undefined}
           />
           <span>
-            I understand the {communityMoney(quote.depositCents)} sample deposit is
-            non-refundable once paid.
+            I have reviewed the {communityMoney(quote.depositCents)} sample deposit. No
+            payment or refund terms are agreed here.
           </span>
         </label>
         <FormError id={`${id}-deposit-error`} message={errors.deposit?.message} />
@@ -191,14 +193,23 @@ function CommunityQuoteCard({
           <MessageCircle size={18} />
         </Button>
         <Button type="submit" className="community-primary" disabled={isSubmitting}>
-          {payment ? "Confirm (preview)" : "Accept"}
+          {payment ? "Complete preview" : "Review sample quote"}
         </Button>
       </footer>
     </form>
   );
 }
 
-export function CommunityOffersView({
+export function CommunityOffersView(
+  props: CustomerCommunityOffersProps | Parameters<typeof CommunityOffersPreview>[0],
+) {
+  return "scope" in props ? (
+    <CustomerCommunityOffers {...props} />
+  ) : (
+    <CommunityOffersPreview {...props} />
+  );
+}
+function CommunityOffersPreview({
   post,
   payment,
   selectedQuoteId,
@@ -232,7 +243,7 @@ export function CommunityOffersView({
           <ArrowLeft size={20} />
         </Button>
         <div>
-          <h1>{payment ? "Payment" : "Quotes Received"}</h1>
+          <h1>{payment ? "Payment preview" : "Quotes Received (sample)"}</h1>
           <p>
             {quotes.length} sample offers for your {post.request?.occasion ?? "event"}
           </p>

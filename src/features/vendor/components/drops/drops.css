@@ -5,6 +5,17 @@
 .vendor-home-shell.vendor-drops-shell main {
   padding: 35px 26px 80px;
 }
+.vendor-drops-page .request-secondary {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #343c4c;
+  border-radius: 8px;
+  background: #121826;
+}
+.vendor-drops-map[data-live="true"] {
+  background: #121826;
+  color: #fafafa;
+}
 .vendor-drops-page {
   width: 100%;
   max-width: 960px;
