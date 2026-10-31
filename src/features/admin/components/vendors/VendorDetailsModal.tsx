@@ -1,17 +1,6 @@
-import {
-  BadgeCheck,
-  Ban,
-  CheckCircle,
-  Download,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Star,
-  Undo2,
-  Users,
-  X,
-} from "lucide-react";
+import { BadgeCheck, Download, Mail, Phone, Star, Users, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { VendorAccountOperations } from "./VendorOperations";
 
 import { Modal } from "@/components/overlays/Modal/Modal";
 import type {
@@ -180,24 +169,7 @@ export function VendorDetailsModal({
             </DetailSection>
 
             <DetailSection title="Account Actions">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <AccountAction
-                  icon={<ShieldCheck className="size-4" />}
-                  label="Remove Verified Badge"
-                />
-                <AccountAction
-                  icon={<Ban className="size-4" />}
-                  label="Suspend Account"
-                />
-                <AccountAction
-                  icon={<CheckCircle className="size-4" />}
-                  label="Approve vendor"
-                />
-                <AccountAction
-                  icon={<Undo2 className="size-4" />}
-                  label="Retrieve account"
-                />
-              </div>
+              <VendorAccountOperations vendor={vendor} />
             </DetailSection>
           </div>
         </>
@@ -245,17 +217,5 @@ function MetricCard({
       </div>
       <div className="mt-2 text-lg font-bold text-white">{value}</div>
     </div>
-  );
-}
-
-function AccountAction({ icon, label }: { icon: ReactNode; label: string }) {
-  return (
-    <button
-      className="flex items-center justify-center gap-2 rounded-xl border border-[#2e3443] bg-[#182030] px-4 py-3 text-xs font-semibold text-slate-200 transition hover:bg-[#1e2638]"
-      type="button"
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
   );
 }

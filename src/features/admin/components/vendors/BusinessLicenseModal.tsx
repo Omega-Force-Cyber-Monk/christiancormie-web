@@ -1,5 +1,5 @@
-import { Check, Download, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { Download, X } from "lucide-react";
+import { VerificationDocumentOperations } from "./VendorOperations";
 
 import { Modal } from "@/components/overlays/Modal/Modal";
 import type { LicenseDocument } from "@/features/admin/components/vendors/vendors.types";
@@ -43,14 +43,7 @@ export function BusinessLicenseModal({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <DocumentAction tone="danger">
-                <X className="size-3.5" />
-                <span>Decline</span>
-              </DocumentAction>
-              <DocumentAction tone="success">
-                <Check className="size-3.5" />
-                <span>Approve</span>
-              </DocumentAction>
+              <VerificationDocumentOperations document={document} />
               <a
                 className="rounded-lg border border-[#2e3443] p-2 text-[#8091a7] transition hover:bg-[#1e2638] hover:text-white"
                 href={document.url}
@@ -133,28 +126,6 @@ export function BusinessLicenseModal({
         </>
       ) : null}
     </Modal>
-  );
-}
-
-function DocumentAction({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: "danger" | "success";
-}) {
-  const className =
-    tone === "success"
-      ? "border-[#14535e]/60 bg-[#0c2e32] text-[#2dd4bf] hover:bg-[#113b41]"
-      : "border-[#7f1d1d]/60 bg-[#381418] text-[#f87171] hover:bg-[#46161b]";
-
-  return (
-    <button
-      className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition ${className}`}
-      type="button"
-    >
-      {children}
-    </button>
   );
 }
 

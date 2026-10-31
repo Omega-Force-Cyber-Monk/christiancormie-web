@@ -31,6 +31,8 @@ import { useCommunityPublisher } from "@/features/community/utils/useCommunityPu
 import { useCommunityPostManagement } from "@/features/community/utils/useCommunityPostManagement";
 import { editableCommunityPost } from "@/features/community/utils/communityPublishing";
 import { ConfirmationDialog } from "@/components/overlays/ConfirmationDialog/ConfirmationDialog";
+import { CommunityOffersView } from "@/features/customer/components/community/CommunityOffersView";
+import { ownsOfferRequest } from "@/features/community/schemas/communityOffers.schema";
 import "@/features/customer/components/community/community.css";
 
 export default function CustomerCommunityPage() {
@@ -79,6 +81,7 @@ function CommunityWorkspace({
     z.uuid().safeParse(initialId).success ? initialId : "",
   );
   const [photo, setPhoto] = useState<string | null>(null);
+  const [openOffers, setOpenOffers] = useState(false);
   const [composing, setComposing] = useState(false);
   const [editingId, setEditingId] = useState("");
   const publisher = useCommunityPublisher();
@@ -257,7 +260,18 @@ function CommunityWorkspace({
                     key={post.id}
                     post={post}
                     mine={filters.mine}
-                    onDetails={() => setSelectedId(post.id)}
+                    onDetails={() => {
+                      setOpenOffers(false);
+                      setSelectedId(post.id);
+                    }}
+                    onOffers={
+                      ownsOfferRequest(post, scope.userId)
+                        ? () => {
+                            setOpenOffers(true);
+                            setSelectedId(post.id);
+                          }
+                        : undefined
+                    }
                     onImage={setPhoto}
                   />
                 ))}
@@ -291,6 +305,7 @@ function CommunityWorkspace({
       {selectedId && (
         <CommunityDetail
           scope={scope}
+          initialOffers={openOffers}
           postId={selectedId}
           onClose={() => setSelectedId("")}
           onImage={setPhoto}
@@ -325,18 +340,21 @@ function CommunityWorkspace({
 
 function CommunityDetail({
   scope,
+  initialOffers,
   postId,
   onClose,
   onImage,
   onEdit,
 }: {
   scope: CommunityScope;
+  initialOffers: boolean;
   postId: string;
   onClose: () => void;
   onImage: (url: string) => void;
   onEdit: () => void;
 }) {
   const query = useGetCommunityPostQuery({ ...scope, postId });
+  const [showOffers, setShowOffers] = useState(initialOffers);
   // A definitive permission/missing response supersedes a previously cached detail.
   const status =
     query.error && "status" in query.error ? query.error.status : undefined;
@@ -365,7 +383,7 @@ function CommunityDetail({
             empty={!post}
             onRetry={() => void query.refetch()}
           />
-          {post && (
+          {post && !showOffers && (
             <CommunityReadCard
               interactive
               detail
@@ -381,9 +399,22 @@ function CommunityDetail({
               busy={management.pending}
             />
           )}
+          {!query.error &&
+            post &&
+            ownsOfferRequest(post, scope.userId) &&
+            (showOffers ? (
+              <CommunityOffersView
+                scope={{ ...scope, postId }}
+                post={post}
+                onBack={() => setShowOffers(false)}
+              />
+            ) : (
+              <Button className="mt-4" onClick={() => setShowOffers(true)}>
+                View received offers
+              </Button>
+            ))}
           <p className="mt-4 text-xs text-[#B8C1D1]">
-            Offers and booking actions remain unavailable. Organizer invitations are not
-            supported.
+            Payments and organizer invitations are unavailable.
           </p>
         </div>
       </Modal>

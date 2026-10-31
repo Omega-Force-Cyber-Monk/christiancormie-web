@@ -23,6 +23,7 @@ export const rawBaseQuery = fetchBaseQuery({
       token &&
       ![
         "login",
+        "staffLogin",
         "logout",
         "registerCustomer",
         "registerVendor",

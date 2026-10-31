@@ -28,6 +28,7 @@ import {
 } from "../utils/messagingAdapters";
 import { normalizeApiError } from "@/utils/errors/normalizeApiError";
 import type { MessagingScope } from "../types/messaging.types";
+import { useMessagingRealtime } from "./useMessagingRealtime";
 
 export function useMessagingIdentity() {
   const allowed = useAppSelector(messagingAllowed);
@@ -47,6 +48,7 @@ export function useMessagingWorkspace(scope: MessagingScope, viewer: string) {
   const [params, setParams] = useSearchParams();
   const rawId = params.get("conversation") ?? "";
   const selectedId = z.uuid().safeParse(rawId).success ? rawId : "";
+  const realtime = useMessagingRealtime(scope, viewer, selectedId);
   const [kind, setKind] = useState<"conversations" | "requests">("conversations");
   const [search, setSearch] = useState("");
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -202,6 +204,7 @@ export function useMessagingWorkspace(scope: MessagingScope, viewer: string) {
     "status" in history.error &&
     [401, 403, 404].includes(Number(history.error.status));
   return {
+    realtime,
     rows,
     list,
     kind,

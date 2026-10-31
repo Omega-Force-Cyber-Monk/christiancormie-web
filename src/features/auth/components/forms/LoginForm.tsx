@@ -15,8 +15,42 @@ import {
 } from "@/features/auth/schemas/login.schema";
 import { applyServerFieldErrors } from "@/utils/errors/applyServerFieldErrors";
 import { normalizeAuthError } from "@/features/auth/utils/authErrors";
+import { useAppSelector } from "@/app/hooks";
+import { StaffLoginForm } from "./StaffLoginForm";
 
 export function LoginForm() {
+  const [mode, setMode] = useState<"regular" | "staff">("regular");
+  const sessionId = useAppSelector((state) => state.auth.sessionId);
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2" role="group" aria-label="Login method">
+        <Button
+          className="flex-1"
+          aria-pressed={mode === "regular"}
+          variant={mode === "regular" ? "primary" : "secondary"}
+          onClick={() => setMode("regular")}
+        >
+          Regular Login
+        </Button>
+        <Button
+          className="flex-1"
+          aria-pressed={mode === "staff"}
+          variant={mode === "staff" ? "primary" : "secondary"}
+          onClick={() => setMode("staff")}
+        >
+          Staff Login
+        </Button>
+      </div>
+      {mode === "staff" ? (
+        <StaffLoginForm key={`staff:${sessionId ?? "guest"}`} />
+      ) : (
+        <RegularLoginForm key={`regular:${sessionId ?? "guest"}`} />
+      )}
+    </div>
+  );
+}
+
+function RegularLoginForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [login, { isLoading }] = useLoginMutation();

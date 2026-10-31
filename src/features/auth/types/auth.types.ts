@@ -45,6 +45,8 @@ export type LoginRequest = {
   password: string;
 };
 
+export type StaffLoginRequest = { email: string; pin: string };
+
 export type SourceLoginResponse = {
   accessToken: string;
   refreshToken: string;

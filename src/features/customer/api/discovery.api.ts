@@ -21,6 +21,20 @@ import type {
   NearbyQuery,
 } from "@/features/customer/types/discovery.types";
 import { validCoordinates } from "@/features/customer/utils/discoveryAdapters";
+import { ownedTruck } from "@/features/vendor/api/truckSettings.api";
+import { vendorFor } from "@/features/vendor/api/vendorBookings.api";
+import { managedPromotionsSchema } from "@/features/vendor/schemas/dropsIntegration.schema";
+import {
+  scopedRead,
+  sessionDenied,
+  type SessionScope,
+} from "@/services/api/sessionGuard";
+export type PromotionManagementArg = {
+  foodTruckId: string;
+  activeOnly: false;
+  limit: 100;
+  scope: SessionScope;
+};
 
 const invalid = {
   error: {
@@ -86,9 +100,42 @@ export const discoveryApi = baseApi.injectEndpoints({
         ),
       providesTags: ["TruckProfile"],
     }),
-    getTruckPromotions: b.query<z.infer<typeof promotionsSchema>, string>({
-      queryFn: (id, _a, _e, q) =>
-        z.uuid().safeParse(id).success
+    getTruckPromotions: b.query<
+      z.infer<typeof promotionsSchema>,
+      string | PromotionManagementArg
+    >({
+      queryFn: async (arg, a, _e, q) => {
+        if (typeof arg !== "string") {
+          const { scope, foodTruckId } = arg;
+          if (
+            arg.activeOnly !== false ||
+            arg.limit !== 100 ||
+            !vendorFor(a.getState() as RootState, scope, true) ||
+            !ownedTruck(a.getState() as RootState, scope, foodTruckId)
+          )
+            return sessionDenied;
+          const r = await scopedRead(
+            a,
+            scope,
+            q,
+            {
+              url: `/promotions/food-trucks/${foodTruckId}`,
+              method: "GET",
+              params: { activeOnly: false, limit: 100 },
+            },
+            managedPromotionsSchema.refine(
+              (rows) =>
+                rows.every((p) => p.foodTruckId === foodTruckId) &&
+                new Set(rows.map((p) => p.id)).size === rows.length,
+            ),
+          );
+          return vendorFor(a.getState() as RootState, scope, true) &&
+            ownedTruck(a.getState() as RootState, scope, foodTruckId)
+            ? r
+            : sessionDenied;
+        }
+        const id = arg;
+        return z.uuid().safeParse(id).success
           ? read(
               {
                 url: `/promotions/food-trucks/${id}`,
@@ -97,8 +144,9 @@ export const discoveryApi = baseApi.injectEndpoints({
               promotionsSchema,
               q,
             )
-          : invalid,
-      providesTags: ["TruckProfile"],
+          : invalid;
+      },
+      providesTags: ["TruckProfile", "TruckPromotions"],
     }),
     getDiscoveryFavorites: b.query<z.infer<typeof favoritesSchema>, void>({
       queryFn: (_p, a, _e, q) => {

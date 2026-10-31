@@ -21,6 +21,7 @@ export function CommunityReadCard({
   onImage,
   onEdit,
   onDelete,
+  onOffers,
   busy = false,
   interactive = false,
 }: {
@@ -31,6 +32,7 @@ export function CommunityReadCard({
   onImage: (url: string) => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onOffers?: () => void;
   busy?: boolean;
   interactive?: boolean;
 }) {
@@ -231,7 +233,12 @@ export function CommunityReadCard({
         </div>
       )}
       {mine && kind !== "social" && (!interactive || kind !== "callout") && (
-        <Button disabled className="community-primary mt-3 w-full" title={unavailable}>
+        <Button
+          disabled={!onOffers}
+          onClick={onOffers}
+          className="community-primary mt-3 w-full"
+          title={onOffers ? undefined : unavailable}
+        >
           {kind === "callout" ? "View interested trucks" : "View offers"}
         </Button>
       )}

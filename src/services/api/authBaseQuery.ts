@@ -126,6 +126,7 @@ export const authBaseQuery: ApiBaseQuery = async (args, api, extraOptions) => {
   if (requestUrl === "auth/logout") return rawBaseQuery(args, api, extraOptions);
   const isPublicAuth = [
     "auth/login",
+    "auth/staff/login",
     "auth/register/customer",
     "auth/register/vendor",
     "auth/verify-email",

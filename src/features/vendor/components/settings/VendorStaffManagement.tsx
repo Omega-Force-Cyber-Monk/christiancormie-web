@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeft,
   ChevronDown,
   LockKeyhole,
@@ -6,45 +6,117 @@
   RotateCw,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useStore } from "react-redux";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "@/app/hooks";
+import type { RootState } from "@/app/store";
 import { FormField } from "@/components/forms/FormField";
 import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { AppLoader } from "@/components/ui/AppLoader";
 import { ConfirmationDialog } from "@/components/overlays/ConfirmationDialog/ConfirmationDialog";
 import { useConfirmation } from "@/components/overlays/ConfirmationDialog/useConfirmation";
 import {
-  vendorStaffEmailSchema,
-  type VendorStaffEmailValues,
-} from "@/features/vendor/schemas/settings.schema";
+  createVendorStaffSchema,
+  type CreateVendorStaffValues,
+} from "../../schemas/settings.schema";
 import {
-  formatStaffDate,
-  hasStaffEmail,
-  type VendorSettingsAction,
-  type VendorSettingsState,
-} from "@/features/vendor/utils/settingsState";
+  createVendorStaff,
+  staffOwnerMatches,
+  useGetVendorStaffQuery,
+  vendorStaffApi,
+} from "../../api/vendorStaff.api";
+import { useVendorContext, isVendorAccessError } from "../../utils/useVendorContext";
+import { vendorAccessState } from "../home/VendorAccessState";
+import { vendorStart } from "../../utils/vendorAdapters";
+import { normalizeApiError } from "@/utils/errors/normalizeApiError";
+import { applyServerFieldErrors } from "@/utils/errors/applyServerFieldErrors";
+import type { SessionScope } from "@/services/api/sessionGuard";
+import { VendorStaffPinDialog } from "./VendorStaffPinDialog";
 
-export function VendorStaffManagement({
-  state,
-  dispatch,
+export function VendorStaffManagement({ onBack }: { onBack: () => void }) {
+  const context = useVendorContext();
+  const auth = useAppSelector((s) => s.auth);
+  const access = vendorAccessState(context);
+  if (access) return access;
+  const scope = {
+    sessionId: auth.sessionId ?? "",
+    userId: auth.user?.id ?? "",
+    role: auth.user?.role ?? "",
+  };
+  return (
+    <VendorStaffContent
+      key={`${scope.sessionId}:${scope.userId}:${scope.role}:${context.vendor?.id}`}
+      scope={scope}
+      onBack={onBack}
+    />
+  );
+}
+
+function VendorStaffContent({
+  scope,
   onBack,
 }: {
-  state: VendorSettingsState;
-  dispatch: (action: VendorSettingsAction) => void;
+  scope: SessionScope;
   onBack: () => void;
 }) {
+  const query = useGetVendorStaffQuery(scope);
+  const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const [adding, setAdding] = useState(true);
+  const [resetId, setResetId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const current = () => mounted.current && staffOwnerMatches(store.getState(), scope);
   const {
     register,
     handleSubmit,
     reset,
+    resetField,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<VendorStaffEmailValues>({
-    resolver: zodResolver(vendorStaffEmailSchema),
-    defaultValues: { email: "" },
+  } = useForm<CreateVendorStaffValues>({
+    resolver: zodResolver(createVendorStaffSchema),
+    defaultValues: { email: "", pin: "" },
   });
   const { confirm, confirmationProps } = useConfirmation();
+  const denied = isVendorAccessError(query.error);
+  const members = denied ? [] : (query.currentData?.items ?? []);
+  const selected = members.find((m) => m.id === resetId);
+  const unavailable = busy || query.isFetching || denied;
+  async function change(run: () => Promise<unknown>, message: string) {
+    if (pending.current || !current())
+      throw new Error(
+        "A staff change is pending or this owner session is unavailable.",
+      );
+    pending.current = true;
+    setBusy(true);
+    setStatus("");
+    try {
+      await run();
+      if (!current()) return false;
+      setStatus(message);
+      toast.success(message);
+      return true;
+    } catch (cause) {
+      if (current()) toast.error("Staff change could not be confirmed.");
+      throw cause;
+    } finally {
+      pending.current = false;
+      if (current()) setBusy(false);
+    }
+  }
   return (
     <section className="vendor-staff-management" aria-labelledby="vendor-staff-title">
       <div className="mb-2 flex items-center gap-3">
@@ -52,6 +124,7 @@ export function VendorStaffManagement({
           type="button"
           className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1B2233]"
           aria-label="Back to Settings"
+          disabled={busy}
           onClick={onBack}
         >
           <ArrowLeft size={22} />
@@ -62,63 +135,110 @@ export function VendorStaffManagement({
       </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">
-          Staff Members ({state.staff.length})
+          Staff Members{query.currentData && !denied ? ` (${members.length})` : ""}
         </h2>
         <button
           type="button"
           className="vendor-staff-primary inline-flex items-center gap-1"
+          disabled={unavailable}
           aria-expanded={adding}
           aria-controls="vendor-add-staff"
-          onClick={() => setAdding(!adding)}
+          onClick={() => {
+            reset();
+            setAdding(!adding);
+          }}
         >
           Add Staff
           <ChevronDown size={16} aria-hidden="true" />
         </button>
       </div>
-      {adding && (
+      <button
+        type="button"
+        className="vendor-staff-secondary mb-3"
+        disabled={busy || query.isFetching}
+        onClick={() => void query.refetch()}
+      >
+        Refresh staff
+      </button>
+      {query.isLoading && <AppLoader label="Loading staff" variant="compact" />}
+      {query.isFetching && !query.isLoading && <p role="status">Refreshing staff…</p>}
+      {query.error && (
+        <ErrorState
+          error={normalizeApiError(query.error)}
+          onRetry={() => void query.refetch()}
+        />
+      )}
+      {adding && !denied && (
         <form
           id="vendor-add-staff"
           className="vendor-staff-card mb-4"
           noValidate
           onSubmit={(event) => {
-            void handleSubmit(({ email }) => {
-              if (hasStaffEmail(state.staff, email)) {
-                setError("email", {
-                  message: "This email address is already in the local staff list.",
-                });
-                return;
+            void handleSubmit(async (values) => {
+              if (pending.current || !current()) return;
+              resetField("pin");
+              try {
+                if (
+                  await change(
+                    () => createVendorStaff(dispatch, scope, values),
+                    "Staff account created. Email delivery has not been independently verified.",
+                  )
+                ) {
+                  reset();
+                  setAdding(false);
+                }
+              } catch (cause) {
+                if (current()) {
+                  const error = normalizeApiError(cause);
+                  applyServerFieldErrors(error, setError, ["email", "pin"]);
+                  setError("root", { message: error.message });
+                }
               }
-              dispatch({
-                type: "add",
-                id: crypto.randomUUID(),
-                email,
-                addedOn: new Date().toISOString().slice(0, 10),
-              });
-              reset();
-              setAdding(false);
             })(event);
           }}
         >
           <FormField
             label="Staff email address"
-            aria-label="Staff email address"
             type="email"
             autoComplete="off"
             placeholder="Staff email address"
+            disabled={unavailable || isSubmitting}
             error={errors.email?.message}
             {...register("email")}
             className="vendor-staff-email"
           />
+          <div className="mt-3">
+            <FormField
+              label="Staff PIN"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              maxLength={4}
+              disabled={unavailable || isSubmitting}
+              error={errors.pin?.message}
+              {...register("pin")}
+              className="vendor-staff-email"
+            />
+          </div>
+          <p className="mt-2 text-xs text-[#B8C1D1]">
+            Enter exactly four numeric digits. Leading zeros are preserved.
+          </p>
+          {errors.root && (
+            <p role="alert" className="mt-3 text-sm text-[var(--danger)]">
+              {errors.root.message}
+            </p>
+          )}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={unavailable || isSubmitting}
               className="vendor-staff-primary"
             >
-              Add
+              {isSubmitting ? "Adding…" : "Add"}
             </button>
             <button
               type="button"
+              disabled={busy}
               className="vendor-staff-secondary"
               onClick={() => {
                 reset();
@@ -130,9 +250,9 @@ export function VendorStaffManagement({
           </div>
         </form>
       )}
-      {state.staff.length ? (
-        <ul className="space-y-3" aria-label="Sample staff members">
-          {state.staff.map((member) => (
+      {members.length ? (
+        <ul className="space-y-3" aria-label="Staff members">
+          {members.map((member) => (
             <li key={member.id} className="vendor-staff-card">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -141,20 +261,21 @@ export function VendorStaffManagement({
                   </h3>
                   <p className="mt-1.5 text-xs leading-5 text-[#7D899D]">
                     Added{" "}
-                    <time dateTime={member.addedOn}>
-                      {formatStaffDate(member.addedOn)}
-                    </time>
+                    <time dateTime={member.addedAt}>{vendorStart(member.addedAt)}</time>
+                  </p>
+                  <p className="text-xs leading-5 text-[#7D899D]">
+                    Status: {member.status}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"
                     className="vendor-staff-icon"
-                    aria-pressed={member.locked}
-                    aria-label={`${member.locked ? "Unlock" : "Lock"} local sample access for ${member.email}`}
-                    onClick={() => dispatch({ type: "toggle-lock", id: member.id })}
+                    disabled
+                    aria-label={`${member.status === "DISABLED" ? "Unlock" : "Lock"} unavailable for ${member.email}`}
+                    title="Staff lock/unlock is not supported by the API."
                   >
-                    {member.locked ? (
+                    {member.status === "DISABLED" ? (
                       <LockKeyhole size={23} />
                     ) : (
                       <LockKeyholeOpen size={23} />
@@ -163,14 +284,30 @@ export function VendorStaffManagement({
                   <button
                     type="button"
                     className="vendor-staff-delete"
-                    aria-label={`Remove ${member.email} from sample staff`}
+                    disabled={unavailable}
+                    aria-label={`Remove ${member.email}`}
                     onClick={() =>
                       confirm({
-                        title: "Remove sample staff member?",
-                        description: `Remove ${member.email} from this local list? Real staff access is unchanged.`,
-                        confirmText: "Remove sample",
+                        title: "Remove staff member?",
+                        description: `Permanently remove ${member.email} and their staff access? This is not a lock operation.`,
+                        confirmText: "Remove staff",
                         variant: "danger",
-                        onConfirm: () => dispatch({ type: "remove", id: member.id }),
+                        onConfirm: async () => {
+                          await change(async () => {
+                            const req = dispatch(
+                              vendorStaffApi.endpoints.deleteVendorStaff.initiate({
+                                scope,
+                                staffId: member.id,
+                                confirmed: true,
+                              }),
+                            );
+                            try {
+                              await req.unwrap();
+                            } finally {
+                              req.reset();
+                            }
+                          }, "Staff member deleted.");
+                        },
                       })
                     }
                   >
@@ -185,23 +322,14 @@ export function VendorStaffManagement({
                     className="text-[#7D899D]"
                     aria-hidden="true"
                   />
-                  <span className="sr-only">Sample PIN: </span>
-                  <span className="text-lg leading-7 font-bold tracking-[2px] text-[#20CED0]">
-                    {member.pin}
-                  </span>
+                  <span className="text-sm text-[#7D899D]">PIN hidden</span>
                 </p>
                 <button
                   type="button"
                   className="vendor-staff-reset"
-                  aria-label={`Reset sample PIN for ${member.email}`}
-                  onClick={() =>
-                    confirm({
-                      title: "Reset sample PIN?",
-                      description: `Generate a new demonstration PIN for ${member.email}. No real credential will change.`,
-                      confirmText: "Reset sample PIN",
-                      onConfirm: () => dispatch({ type: "reset-pin", id: member.id }),
-                    })
-                  }
+                  disabled={unavailable}
+                  aria-label={`Reset PIN for ${member.email}`}
+                  onClick={() => setResetId(member.id)}
                 >
                   <RotateCw size={14} aria-hidden="true" />
                   Reset PIN
@@ -210,16 +338,36 @@ export function VendorStaffManagement({
             </li>
           ))}
         </ul>
-      ) : (
+      ) : !query.isLoading && !query.error ? (
         <EmptyState
           title="No staff members"
-          description="Use Add Staff to create a local sample member. No invitations are sent."
+          description="Use Add Staff to create a staff account with an email address and four-digit PIN."
         />
-      )}
+      ) : null}
       <p className="mt-4 text-xs leading-5 text-[#B8C1D1]">
-        Sample staff and demonstration PINs only. Real access is unchanged.
+        Lock/unlock is unavailable because the API does not support it. Reset PIN sets
+        staff status to ACTIVE.
+      </p>
+      <p role="status" className="mt-3 text-sm leading-6 text-[#2ED3D1]">
+        {status}
       </p>
       {confirmationProps && <ConfirmationDialog {...confirmationProps} />}
+      {selected && (
+        <VendorStaffPinDialog
+          key={selected.id}
+          member={selected}
+          scope={scope}
+          busy={busy}
+          onCancel={() => setResetId(null)}
+          onReset={async (run) => {
+            const changed = await change(
+              run,
+              "Staff PIN reset. Email delivery has not been independently verified.",
+            );
+            if (changed) setResetId(null);
+          }}
+        />
+      )}
     </section>
   );
 }

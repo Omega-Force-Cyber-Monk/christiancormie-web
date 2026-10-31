@@ -2,6 +2,8 @@
   AdminVendorDto,
   AdminTruckRequestDto,
 } from "@/features/admin/types/admin.dto";
+import { z } from "zod";
+import { documentKey } from "@/features/admin/api/adminVendorOperations.api";
 import type {
   VendorItem,
   TruckRequestItem,
@@ -30,7 +32,20 @@ function toDocument(value: unknown, vendor: AdminVendorDto): LicenseDocument | n
   const doc = value as Record<string, unknown>;
   const title = text(doc.title) ?? text(doc.name) ?? text(doc.type);
   if (!title) return null;
+  const request = vendor.verificationRequests?.[0];
+  const key = documentKey(doc, request?.documents);
   return {
+    ...(key &&
+    z.uuid().safeParse(request?.id).success &&
+    z.uuid().safeParse(vendor.id).success
+      ? {
+          verification: {
+            vendorId: vendor.id,
+            requestId: request.id,
+            documentKey: key,
+          },
+        }
+      : {}),
     source: doc,
     id: text(doc.id) ?? text(doc.type),
     title: title.replaceAll("_", " "),

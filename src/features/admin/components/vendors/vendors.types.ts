@@ -45,6 +45,7 @@ export type TruckRequestItem = {
 };
 
 export type LicenseDocument = {
+  verification?: { vendorId: string; requestId: string; documentKey: string };
   id?: string;
   title: string;
   uploadedDate: string;

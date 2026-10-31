@@ -22,6 +22,7 @@ import { ROUTES } from "../../../constants/routes.ts";
 import { appRoutes } from "../../../router/routes/app.routes.tsx";
 import { AuthGuard } from "../../../router/guards/AuthGuard.tsx";
 import { RoleGuard } from "../../../router/guards/RoleGuard.tsx";
+import { seedVendorHome, ownerId } from "./vendor.test-fixtures.mjs";
 
 const promoValues = {
   name: " Taco Tuesday ",
@@ -239,7 +240,7 @@ function createStore(role) {
     );
     store.dispatch(
       identityVerified({
-        id: "test-vendor",
+        id: ownerId,
         name: "Test Vendor",
         email: "test@example.invalid",
         roles: [role],
@@ -252,19 +253,24 @@ function createStore(role) {
 function RouteTree() {
   return useRoutes(appRoutes);
 }
-function renderAt(role) {
+async function renderAt(role) {
+  const store = createStore(role);
+  if (role === "VENDOR") await seedVendorHome(store);
   return new Promise((resolve, reject) => {
     let html = "";
     const output = new PassThrough();
     output.on("data", (chunk) => {
       html += chunk;
     });
-    output.on("end", () => resolve(html));
+    output.on("end", () => {
+      store.dispatch(baseApi.util.resetApiState());
+      resolve(html);
+    });
     output.on("error", reject);
     const stream = renderToPipeableStream(
       h(
         Provider,
-        { store: createStore(role) },
+        { store },
         h(MemoryRouter, { initialEntries: [ROUTES.VENDOR_DROPS] }, h(RouteTree)),
       ),
       {
@@ -276,22 +282,14 @@ function renderAt(role) {
     );
   });
 }
-test("verified Vendor Drops renders its single shared shell, presets and promo actions server-free", async () => {
+test("verified Vendor Drops renders its shared shell and real truck selection without fixtures", async () => {
   const html = await renderAt("VENDOR");
   assert.match(html, /vendor-drops-shell/);
   assert.equal((html.match(/<main /g) ?? []).length, 1);
-  for (const label of [
-    "Drop Duration",
-    "Custom",
-    "New Promo",
-    "Lunch Special",
-    "Snacks",
-    "Go Live Now",
-    "End Drop",
-  ])
+  for (const label of ["Choose your truck", "Actual Food Truck"])
     assert.ok(html.includes(label), label);
   assert.match(html, /aria-current="page"[^>]*href="\/dashboard\/vendor\/drops"/);
-  assert.match(html, /aria-label="Enable Lunch Special"/);
+  assert.doesNotMatch(html, /Lunch Special|Snacks|Sample map/);
   assert.doesNotMatch(html, /Hello Taco!/);
 });
 

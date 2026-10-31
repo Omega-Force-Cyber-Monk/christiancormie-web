@@ -32,8 +32,8 @@ export function UnsupportedMessaging({ onClose }: { onClose: () => void }) {
         </h2>
         <p>
           Text messages are supported. Attachment uploads, clearing server history,
-          marking unread, online presence and realtime updates are unavailable. Use
-          Refresh for current messages.
+          marking unread and online presence are unavailable. Realtime updates apply to
+          the selected conversation when connected; Refresh remains available.
         </p>
       </div>
     </Modal>

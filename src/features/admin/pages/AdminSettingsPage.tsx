@@ -28,7 +28,10 @@ const settings = [
 
 export default function AdminSettingsPage() {
   return (
-    <AdminSection description="View and manage settings." title="Settings">
+    <AdminSection
+      description="Read-only settings overview. Configuration controls are unavailable."
+      title="Settings"
+    >
       <div className="grid gap-4 md:grid-cols-2">
         {settings.map((setting) => {
           const Icon = setting.icon;

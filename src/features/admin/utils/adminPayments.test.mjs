@@ -13,7 +13,7 @@ import {
 test("all existing payment tab rows use the real payload including nested methods and revenue months", () => {
   const data = paymentsResponse();
   assert.equal(paymentRows("Payout Requests", data)[0].displayId, "PO-1234");
-  assert.equal(paymentRows("Payout Requests", data)[0].value, "$125.50");
+  assert.equal(paymentRows("Payout Requests", data)[0].value, "USD 125.5");
   assert.equal(paymentRows("Transaction History", data)[0].name, "Payment Vendor");
   assert.equal(paymentRows("Payment Methods", data)[0].name, "Account Vendor");
   assert.equal(paymentRows("Revenue Overview", data)[0].displayId, "Oct");

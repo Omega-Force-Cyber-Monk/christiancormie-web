@@ -580,7 +580,7 @@ export function DiscoverBookingFlow({
           className="mx-auto mb-5 h-[114px] w-[120px]"
         />
         <h2 id={titleId} className="text-3xl font-bold">
-          Booking request Sent!
+          Booking request preview complete
         </h2>
         <p className="mx-auto mt-4 max-w-[330px] text-base leading-6 text-[#B8C1D1]">
           Preview complete. Your request is saved only in this page session. No vendor

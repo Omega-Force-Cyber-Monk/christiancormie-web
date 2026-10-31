@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import type { MessagingWorkspace } from "../hooks/useMessagingWorkspace";
 import type { MessagingScope } from "../types/messaging.types";
 import { RecipientDialog } from "./RecipientDialog";
+import { RealtimeStatus } from "./RealtimeStatus";
 export function ConversationListControls({
   workspace: w,
   scope,
@@ -14,6 +15,7 @@ export function ConversationListControls({
   const [creating, setCreating] = useState(false);
   return (
     <div className="space-y-2 p-3 text-sm">
+      <RealtimeStatus realtime={w.realtime} />
       <div className="flex flex-wrap gap-2">
         <Button
           aria-pressed={w.kind === "conversations"}

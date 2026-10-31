@@ -1,6 +1,5 @@
 import { isMemberIdentifier } from "@/features/social/utils/profileIdentity";
 import {
-  Bell,
   House,
   LogOut,
   MapPin,
@@ -12,11 +11,10 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useState } from "react";
 import { Link, useMatch, useNavigate, useSearchParams } from "react-router";
 
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
-import { Modal } from "@/components/overlays/Modal/Modal";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { ROUTES } from "@/constants/routes";
 import logo from "@/features/customer/assets/discover/discover-logo.svg";
 import { selectIsAuthenticated } from "@/features/auth/store/auth.selectors";
@@ -42,7 +40,6 @@ export default function DiscoverLayout() {
   const [searchParams] = useSearchParams();
   const profileMatch = useMatch(ROUTES.CUSTOMER_PROFILE);
   const isMemberProfilePage = isMemberIdentifier(profileMatch?.params.id);
-  const [preview, setPreview] = useState<string | null>(null);
 
   return (
     <>
@@ -195,20 +192,7 @@ export default function DiscoverLayout() {
                 )}
             </div>
             <div className="flex shrink-0 items-center gap-4">
-              <button
-                aria-label="Notifications (sample count: 3)"
-                className="relative grid size-9 place-items-center rounded-full border border-[#CDD5DF] bg-white text-[#414651] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => setPreview("Notifications")}
-                type="button"
-              >
-                <Bell aria-hidden="true" size={16} />
-                <span
-                  aria-hidden="true"
-                  className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-[#FB2C36] text-[10px] text-white"
-                >
-                  3
-                </span>
-              </button>
+              <NotificationBell />
               <button
                 aria-label="Sample profile: Alex"
                 className="grid size-9 place-items-center rounded-full bg-[#FF5733] text-xs font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -223,31 +207,6 @@ export default function DiscoverLayout() {
           </div>
         }
       />
-      <div className="discover-shell">
-        <Modal
-          isOpen={preview !== null}
-          onClose={() => setPreview(null)}
-          titleId="discover-shell-preview-title"
-        >
-          <div className="p-6 pt-12">
-            <h2 className="text-xl font-semibold" id="discover-shell-preview-title">
-              {preview} preview
-            </h2>
-            <p className="mt-3 text-sm text-[var(--text-muted)]">
-              This screen is a static customer design preview.{" "}
-              {preview === "Profile"
-                ? "Alex and the San Francisco location are sample content from the design."
-                : `${preview} functionality is not connected in this preview.`}
-            </p>
-            <Link
-              className="mt-5 inline-flex min-h-11 items-center text-sm text-[#2ED3D1] underline focus-visible:outline"
-              to={ROUTES.CUSTOMER_DISCOVER}
-            >
-              Go to Discover
-            </Link>
-          </div>
-        </Modal>
-      </div>
     </>
   );
 }

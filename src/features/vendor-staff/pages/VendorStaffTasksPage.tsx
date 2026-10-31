@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 export default function VendorStaffTasksPage() {
   return (
     <PageHeader
-      description="Task queues are scoped to vendor staff and ready for server integration."
+      description="Task management is unavailable. No tasks are assigned or saved here."
       title="Tasks"
     />
   );

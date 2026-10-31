@@ -12,16 +12,13 @@ import {
 import type { ReactNode } from "react";
 
 import { Modal } from "@/components/overlays/Modal/Modal";
-import type {
-  BookingRecord,
-  MessageRecipient,
-} from "@/features/admin/components/bookings/bookings.types";
+import type { BookingRecord } from "@/features/admin/components/bookings/bookings.types";
 
 type BookingDetailsModalProps = {
   booking?: BookingRecord | null;
   isOpen: boolean;
   onClose: () => void;
-  onOpenMessage: (recipient: MessageRecipient) => void;
+  onOpenMessage: () => void;
 };
 
 export function BookingDetailsModal({
@@ -79,11 +76,21 @@ export function BookingDetailsModal({
                 {details.status}
               </span>
               <div className="flex items-center gap-2.5">
-                <button className="cursor-pointer rounded-xl border border-[#26334a] bg-[#182030] px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-[#222d44]">
-                  Return payment
+                <button
+                  type="button"
+                  disabled
+                  title="Financial security and settlement approval required"
+                  className="rounded-xl border border-[#26334a] bg-[#182030] px-4 py-2 text-xs font-semibold text-slate-200 opacity-60"
+                >
+                  Return payment unavailable
                 </button>
-                <button className="cursor-pointer rounded-xl bg-[#ff6542] px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-[#ff5530]">
-                  Release payment
+                <button
+                  type="button"
+                  disabled
+                  title="Financial security and settlement approval required"
+                  className="rounded-xl bg-[#ff6542] px-4 py-2 text-xs font-semibold text-white opacity-60"
+                >
+                  Release payment unavailable
                 </button>
               </div>
             </div>
@@ -93,13 +100,7 @@ export function BookingDetailsModal({
                 accent="customer"
                 email={details.customerEmail}
                 name={details.customerName}
-                onMessage={() =>
-                  onOpenMessage({
-                    name: details.customerName,
-                    type: "customer",
-                    conversationId: `${details.id}-customer`,
-                  })
-                }
+                onMessage={onOpenMessage}
                 phone={details.customerPhone}
                 title="Customer Information"
               />
@@ -108,13 +109,7 @@ export function BookingDetailsModal({
                 email={details.vendorEmail}
                 name={details.vendorName}
                 nameLabel="Business Name"
-                onMessage={() =>
-                  onOpenMessage({
-                    name: details.vendorName,
-                    type: "vendor",
-                    conversationId: `${details.id}-vendor`,
-                  })
-                }
+                onMessage={onOpenMessage}
                 phone={details.vendorPhone}
                 title="Vendor Information"
               />
@@ -232,7 +227,7 @@ function PartyCard({
           type="button"
         >
           <MessageSquare className="size-3.5" />
-          <span>Message</span>
+          <span>Booking issues</span>
         </button>
         <button
           className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#10b981] py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#059669]"

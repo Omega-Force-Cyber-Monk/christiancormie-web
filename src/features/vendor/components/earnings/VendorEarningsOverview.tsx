@@ -1,5 +1,6 @@
 ﻿import { Building, CircleCheck, Clock, Plus } from "lucide-react";
 import { earningsTransactions } from "@/features/vendor/data/earnings.data";
+import type { ReactNode } from "react";
 import {
   formatEarningsMoney,
   type PreviewPaymentMethod,
@@ -9,11 +10,15 @@ export function VendorEarningsOverview({
   defaultMethodId,
   onAdd,
   onDefault,
+  connectStatus,
+  financialContent,
 }: {
   methods: PreviewPaymentMethod[];
   defaultMethodId: string;
   onAdd: () => void;
   onDefault: (id: string) => void;
+  connectStatus?: ReactNode;
+  financialContent?: ReactNode;
 }) {
   return (
     <div className="vendor-earnings-overview">
@@ -29,6 +34,10 @@ export function VendorEarningsOverview({
             <span className="sr-only"> sample payment method</span>
           </button>
         </div>
+        {connectStatus}
+        <p className="mb-3 text-xs leading-5 text-[#B8C1D1]">
+          Local bank-method preview. These sample entries are not connected accounts.
+        </p>
         <ul className="space-y-4">
           {methods.map((method) => (
             <li key={method.id} className="flex items-center gap-3">
@@ -61,39 +70,47 @@ export function VendorEarningsOverview({
         </ul>
       </section>
       <section className="vendor-recent-transactions">
-        <h2 className="mb-4 text-lg font-bold">Recent Transactions</h2>
-        <ul>
-          {earningsTransactions.map((transaction) => (
-            <li key={transaction.id} className="vendor-transaction">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base">{transaction.name}</h3>
+        {financialContent ?? (
+          <>
+            <h2 className="mb-4 text-lg font-bold">Recent Transactions (sample)</h2>
+            <p className="mb-3 text-xs leading-5 text-[#B8C1D1]">
+              Sample transactions only. No confirmed payment or payout records are
+              loaded.
+            </p>
+            <ul>
+              {earningsTransactions.map((transaction) => (
+                <li key={transaction.id} className="vendor-transaction">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base">{transaction.name}</h3>
+                      <span
+                        className={`vendor-transaction-status vendor-transaction-status--${transaction.status}`}
+                      >
+                        {transaction.status === "completed" ? (
+                          <CircleCheck size={16} />
+                        ) : (
+                          <Clock size={16} />
+                        )}{" "}
+                        {transaction.status} (sample)
+                      </span>
+                    </div>
+                    {transaction.transactionId && (
+                      <p className="mt-1 text-xs text-[#B8C1D1]">
+                        Transaction ID: {transaction.transactionId}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-[#B8C1D1]">{transaction.date}</p>
+                  </div>
                   <span
-                    className={`vendor-transaction-status vendor-transaction-status--${transaction.status}`}
+                    className={`shrink-0 text-lg text-[#FF5733] ${transaction.status === "processing" ? "font-semibold" : ""}`}
                   >
-                    {transaction.status === "completed" ? (
-                      <CircleCheck size={16} />
-                    ) : (
-                      <Clock size={16} />
-                    )}{" "}
-                    {transaction.status}
+                    {formatEarningsMoney(transaction.amountCents)}
                   </span>
-                </div>
-                {transaction.transactionId && (
-                  <p className="mt-1 text-xs text-[#B8C1D1]">
-                    Transaction ID: {transaction.transactionId}
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-[#B8C1D1]">{transaction.date}</p>
-              </div>
-              <span
-                className={`shrink-0 text-lg text-[#FF5733] ${transaction.status === "processing" ? "font-semibold" : ""}`}
-              >
-                {formatEarningsMoney(transaction.amountCents)}
-              </span>
-            </li>
-          ))}
-        </ul>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
     </div>
   );

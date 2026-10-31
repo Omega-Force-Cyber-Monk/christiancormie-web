@@ -270,16 +270,17 @@ test("payment summaries use unknown currency while payout rows preserve their ac
     );
     const html = renderAdmin(s, AdminPaymentsPage);
     assert.match(html, /1,000.00 \(currency unavailable\)/);
-    assert.match(html, /CA\$125.50/);
+    assert.match(html, /CAD 125.5/);
     assert.doesNotMatch(html, />\$1,000.00</);
     const nulls = paymentsResponse();
     nulls.payoutRequests[0].amount = null;
     nulls.transactions[0].amount = null;
     nulls.revenueOverview.monthlyRevenueBreakdown[0].revenue = null;
-    for (const tab of ["Payout Requests", "Transaction History", "Revenue Overview"])
+    assert.equal(paymentRows("Payout Requests", nulls)[0].value, "Not available");
+    for (const tab of ["Transaction History", "Revenue Overview"])
       assert.equal(paymentRows(tab, nulls)[0].value, "N/A");
     nulls.payoutRequests[0].amount = 0;
-    assert.equal(paymentRows("Payout Requests", nulls)[0].value, "$0.00");
+    assert.equal(paymentRows("Payout Requests", nulls)[0].value, "USD 0");
   } finally {
     cleanup(s);
   }

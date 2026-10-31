@@ -8,7 +8,7 @@
   Trash2,
   UsersRound,
 } from "lucide-react";
-import { useReducer, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useAppDispatch } from "@/app/hooks";
 import { ROUTES } from "@/constants/routes";
@@ -21,9 +21,7 @@ import {
   type VendorSettingsPreview,
 } from "@/features/vendor/data/settings.data";
 import {
-  initialVendorSettingsState,
   parseVendorSettingsView,
-  vendorSettingsReducer,
   vendorSettingsViewQuery,
 } from "@/features/vendor/utils/settingsState";
 import "@/features/vendor/components/settings/settings.css";
@@ -31,11 +29,6 @@ import "@/features/vendor/components/settings/settings.css";
 export default function VendorSettingsPage() {
   const [params, setParams] = useSearchParams();
   const view = parseVendorSettingsView(params.get("view"));
-  const [state, dispatch] = useReducer(
-    vendorSettingsReducer,
-    undefined,
-    initialVendorSettingsState,
-  );
   const [passwordOpen, setPasswordOpen] = useState(true);
   const [passwordStatus, setPasswordStatus] = useState("");
   const [preview, setPreview] = useState<VendorSettingsPreview | null>(null);
@@ -46,8 +39,6 @@ export default function VendorSettingsPage() {
     <div className="vendor-settings-page">
       {view === "staff" ? (
         <VendorStaffManagement
-          state={state}
-          dispatch={dispatch}
           onBack={() => {
             void setParams(vendorSettingsViewQuery(params, "settings"));
           }}
@@ -149,16 +140,6 @@ export default function VendorSettingsPage() {
           </button>
         </section>
       )}
-      <p
-        role="status"
-        className={
-          view === "staff" && state.status
-            ? "mt-3 max-w-[414px] text-sm leading-6 text-[#2ED3D1]"
-            : "sr-only"
-        }
-      >
-        {view === "staff" ? state.status : ""}
-      </p>
       {previewContent && (
         <VendorHomeDialog title={previewContent.title} onClose={() => setPreview(null)}>
           <p className="text-sm leading-6 text-[#B8C1D1]">

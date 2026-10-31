@@ -3,7 +3,42 @@ import map from "@/features/vendor/assets/drops/Drops-map.webp";
 import marker from "@/features/vendor/assets/drops/Drops-truck-marker.svg";
 import { sampleDropLocation } from "@/features/vendor/data/drops.data";
 
-export function DropsMap({
+type LiveMapProps = {
+  live: {
+    truckName: string;
+    status: string;
+    address?: string | null;
+    latitude?: number;
+    longitude?: number;
+  };
+};
+export function DropsMap(
+  props: LiveMapProps | { online: boolean; onAvailability: (online: boolean) => void },
+) {
+  if ("live" in props)
+    return (
+      <div
+        data-live="true"
+        className="vendor-drops-map grid place-items-center border border-[#343c4c] bg-[#121826] p-5 text-center"
+      >
+        <div>
+          <h2 className="font-semibold">{props.live.truckName}</h2>
+          <p>Operating status: {props.live.status}</p>
+          <p>{props.live.address ?? "Address not reported"}</p>
+          <p>
+            {props.live.latitude === undefined
+              ? "Coordinates not reported by the truck read."
+              : `Last acknowledged coordinates: ${props.live.latitude}, ${props.live.longitude}`}
+          </p>
+          <p className="mt-2 text-xs text-[#B8C1D1]">
+            Map rendering unavailable. No sample pin represents this truck.
+          </p>
+        </div>
+      </div>
+    );
+  return <PreviewDropsMap {...props} />;
+}
+function PreviewDropsMap({
   online,
   onAvailability,
 }: {

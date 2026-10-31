@@ -298,6 +298,15 @@
   background: #1b2233;
   color: white;
 }
+.vendor-earnings-page .request-input {
+  min-height: 44px;
+  max-width: 100%;
+  border: 1px solid #414651;
+  border-radius: 9px;
+  background: #121826;
+  color: white;
+  padding: 10px 12px;
+}
 .vendor-earnings-primary:disabled {
   opacity: 0.6;
 }
